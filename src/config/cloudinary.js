@@ -1,5 +1,5 @@
-const { v2: cloudinary } = require("cloudinary");
-const multer = require("multer");
+const { v2: cloudinary } = require('cloudinary');
+const multer = require('multer');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -8,9 +8,9 @@ cloudinary.config({
 });
 
 const ALLOWED_FORMATS = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
 };
 
 const removeFromCloudinary = async (publicId) => {
@@ -20,7 +20,7 @@ const removeFromCloudinary = async (publicId) => {
 class CloudinaryStorage {
   _handleFile(req, file, cb) {
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: "backend-users", allowed_formats: Object.values(ALLOWED_FORMATS) },
+      { folder: 'noxfit', allowed_formats: Object.values(ALLOWED_FORMATS) },
       (error, result) => {
         if (error) return cb(error);
         cb(null, { path: result.secure_url, filename: result.public_id });
@@ -38,7 +38,7 @@ const fileFilter = (req, file, cb) => {
   if (file.mimetype in ALLOWED_FORMATS) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid file type"), false);
+    cb(new Error('Invalid file type'), false);
   }
 };
 

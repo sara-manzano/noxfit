@@ -99,7 +99,7 @@ const loadCsv = (fileName) => {
   const filePath = path.join(dataDirectory, fileName);
 
   if (!fs.existsSync(filePath)) {
-    throw new Error(`No se encontro el archivo ${fileName} en data/`);
+    throw new Error(`The file ${fileName} was not found in data/`);
   }
 
   return new Promise((resolve, reject) => {
@@ -139,11 +139,11 @@ const mapReservations = (rows, membersById, trainersById) => rows.map((row) => {
   const trainer = trainersById.get(row.trainer_id);
 
   if (!member) {
-    throw new Error(`No existe el miembro ${row.member_id} para la reserva ${row.reservation_id}`);
+    throw new Error(`Member ${row.member_id} does not exist for reservation ${row.reservation_id}`);
   }
 
   if (!trainer) {
-    throw new Error(`No existe el entrenador ${row.trainer_id} para la reserva ${row.reservation_id}`);
+    throw new Error(`Trainer ${row.trainer_id} does not exist for reservation ${row.reservation_id}`);
   }
 
   return {
@@ -160,7 +160,7 @@ const mapReservations = (rows, membersById, trainersById) => rows.map((row) => {
 
 const connect = async () => {
   if (!process.env.MONGODB_URI) {
-    throw new Error('The MONGODB_URI environment variable is required to run the seed script.');
+    throw new Error('The MONGODB_URI variable is missing.');
   }
 
   await mongoose.connect(process.env.MONGODB_URI);
@@ -192,9 +192,9 @@ const seed = async () => {
 
     await Reservation.insertMany(reservations);
 
-    console.log(`Inserted members: ${insertedMembers.length}`);
-    console.log(`Inserted trainers: ${insertedTrainers.length}`);
-    console.log(`Inserted reservations: ${reservations.length}`);
+    console.log(`Members inserted: ${insertedMembers.length}`);
+    console.log(`Trainers inserted: ${insertedTrainers.length}`);
+    console.log(`Reservations inserted: ${reservations.length}`);
   } finally {
     await mongoose.connection.close();
   }
@@ -203,10 +203,10 @@ const seed = async () => {
 if (require.main === module) {
   seed()
     .then(() => {
-      console.log('Seed completed successfully.');
+      console.log('Seed completed.');
     })
     .catch((error) => {
-      console.error('Error executing seed:', error.message);
+      console.error('Error running seed:', error.message);
       process.exitCode = 1;
     });
 }

@@ -3,6 +3,10 @@ const cors = require('cors');
 const morgan = require('morgan');
 const multer = require('multer');
 
+const membersRoutes = require('./routes/membersRoutes');
+const trainersRoutes = require('./routes/trainersRoutes');
+const reservationsRoutes = require('./routes/reservationsRoutes');
+
 const app = express();
 
 app.use(cors());
@@ -18,19 +22,23 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+app.use('/api/members', membersRoutes);
+app.use('/api/trainers', trainersRoutes);
+app.use('/api/reservations', reservationsRoutes);
+
 app.use((error, _req, res, _next) => {
   console.error(error);
 
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'The file cannot exceed 2MB' });
+      return res.status(400).json({ error: 'The image cannot exceed 2 MB' });
     }
 
-    return res.status(400).json({ error: 'Error uploading the file' });
+    return res.status(400).json({ error: 'The image upload could not be processed' });
   }
 
   if (error.message === 'Invalid file type') {
-    return res.status(400).json({ error: 'Unsupported image format. Please use jpg, jpeg, png or webp' });
+    return res.status(400).json({ error: 'Invalid image format. Use jpg, jpeg, png or webp' });
   }
 
   if (error.name === 'ValidationError') {
@@ -38,11 +46,20 @@ app.use((error, _req, res, _next) => {
     return res.status(400).json({ error: messages.join(', ') });
   }
 
-  if (error.name === 'CastError') {
-    return res.status(400).json({ error: 'ID invalid' });
+  if (error.code === 11000) {
+    const duplicatedField = Object.keys(error.keyPattern || {})[0] || 'field';
+    return res.status(409).json({ error: `${duplicatedField} already exists` });
   }
 
-  return res.status(500).json({ error: 'Something has gone wrong' });
+  if (error.name === 'CastError') {
+    return res.status(400).json({ error: 'The identifier is not valid' });
+  }
+
+  if (error.statusCode) {
+    return res.status(error.statusCode).json({ error: error.message });
+  }
+
+  return res.status(500).json({ error: 'An internal error occurred' });
 });
 
 
