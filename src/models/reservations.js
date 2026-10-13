@@ -1,23 +1,5 @@
 const mongoose = require('mongoose');
-
-const TIME_SLOT_PATTERN = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
-
-const isValidTimeSlot = (value) => {
-  if (typeof value !== 'string') {
-    return false;
-  }
-
-  const match = value.trim().match(TIME_SLOT_PATTERN);
-
-  if (!match) {
-    return false;
-  }
-
-  const startMinutes = Number(match[1]) * 60 + Number(match[2]);
-  const endMinutes = Number(match[3]) * 60 + Number(match[4]);
-
-  return endMinutes > startMinutes;
-};
+const { isValidTimeSlot } = require('../config/validation');
 
 const reservationSchema = new mongoose.Schema({
   reservation_id: { type: String, required: true, unique: true, trim: true },
