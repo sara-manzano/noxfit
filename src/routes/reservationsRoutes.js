@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { authenticateRequest } = require('../middleware/auth');
+const { requireReservationAccess } = require('../middleware/auth');
 
 const {
   listReservations,
@@ -9,7 +9,7 @@ const {
   deleteReservation,
 } = require('../controllers/reservationsController');
 
-router.use(authenticateRequest);
+router.use(requireReservationAccess);
 
 router.route('/')
   .get(listReservations)
