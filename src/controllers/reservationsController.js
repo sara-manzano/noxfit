@@ -1,7 +1,10 @@
 const Member = require('../models/members');
 const Trainer = require('../models/trainers');
 const Reservation = require('../models/reservations');
+const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeReservationPayload } = require('../middleware/validators');
+const { createStatusError, ensureFound } = require('./accountControllerHelpers');
+const { ensureNoReservationConflicts } = require('./reservationConflicts');
 
 const reservationPopulation = [
   { path: 'member', select: 'member_id full_name email' },
@@ -10,48 +13,43 @@ const reservationPopulation = [
 
 const isTrainerAdmin = (req) => req.auth?.role === 'trainer' && req.auth?.isAdmin;
 
-const createForbiddenError = (message) => {
-  const error = new Error(message);
-  error.statusCode = 403;
-  return error;
+const createForbiddenError = (message) => createStatusError(message, 403);
+const getReferenceId = (reference) => reference?._id || reference;
+
+const findMemberIdByCode = async (member_id) => {
+  const member = await Member.findOne({ member_id }).select('_id').lean();
+  return ensureFound(member, 'Member')._id;
 };
 
-const createNotFoundError = (message) => {
-  const error = new Error(message);
-  error.statusCode = 404;
-  return error;
+const findTrainerIdByCode = async (trainer_id) => {
+  const trainer = await Trainer.findOne({ trainer_id }).select('_id').lean();
+  return ensureFound(trainer, 'Trainer')._id;
 };
 
-const findMemberIdByCode = async (memberId) => {
-  const member = await Member.findOne({ member_id: memberId }).select('_id').lean();
+const findReservationByCode = (reservation_id) => Reservation.findOne({ reservation_id });
 
-  if (!member) {
-    throw createNotFoundError('Member not found');
-  }
-
-  return member._id;
-};
-
-const findTrainerIdByCode = async (trainerId) => {
-  const trainer = await Trainer.findOne({ trainer_id: trainerId }).select('_id').lean();
-
-  if (!trainer) {
-    throw createNotFoundError('Trainer not found');
-  }
-
-  return trainer._id;
-};
-
-const findReservationByCode = (reservationId) => Reservation.findOne({ reservation_id: reservationId });
-
-const findReservationForOwnershipCheck = (reservationId) => findReservationByCode(reservationId)
+const findReservationForOwnershipCheck = (reservation_id) => findReservationByCode(reservation_id)
   .populate({ path: 'member', select: 'member_id' })
   .lean();
 
-const ensureReservationOwner = (reservation, accountId, action) => {
-  if (!reservation) {
-    throw createNotFoundError('Reservation not found');
+const resolveFilterReference = async (value, resolver) => {
+  if (!value) {
+    return undefined;
   }
+
+  try {
+    return await resolver(value);
+  } catch (error) {
+    if (error.statusCode === 404) {
+      return null;
+    }
+
+    throw error;
+  }
+};
+
+const ensureReservationOwner = (reservation, accountId, action) => {
+  ensureFound(reservation, 'Reservation');
 
   if (reservation.member?._id?.toString() !== accountId) {
     throw createForbiddenError(`You can only ${action} your own reservations`);
@@ -74,33 +72,17 @@ const buildReservationFilters = async (query) => {
   }
 
   if (query.member_id) {
-    try {
-      filters.member = await findMemberIdByCode(query.member_id);
-    } catch (error) {
-      if (error.statusCode === 404) {
-        return { filters: null, emptyResult: true };
-      }
+    filters.member = await resolveFilterReference(query.member_id, findMemberIdByCode);
 
-      throw error;
-    }
-
-    if (!filters.member) {
+    if (filters.member === null) {
       return { filters: null, emptyResult: true };
     }
   }
 
   if (query.trainer_id) {
-    try {
-      filters.trainer = await findTrainerIdByCode(query.trainer_id);
-    } catch (error) {
-      if (error.statusCode === 404) {
-        return { filters: null, emptyResult: true };
-      }
+    filters.trainer = await resolveFilterReference(query.trainer_id, findTrainerIdByCode);
 
-      throw error;
-    }
-
-    if (!filters.trainer) {
+    if (filters.trainer === null) {
       return { filters: null, emptyResult: true };
     }
   }
@@ -125,135 +107,127 @@ const resolveReservationReferences = async (payload) => {
   return data;
 };
 
-const listReservations = async (req, res, next) => {
-  try {
-    const { filters, emptyResult } = await buildReservationFilters(req.query);
-
-    if (emptyResult) {
-      return res.status(200).json({ items: [], total: 0 });
-    }
-
-    if (!isTrainerAdmin(req)) {
-      if (req.query.member_id && req.query.member_id !== req.auth.identifier) {
-        throw createForbiddenError('You can only view your own reservations');
-      }
-
-      filters.member = req.auth.accountId;
-    }
-
-    const reservations = await Reservation.find(filters)
-      .populate(reservationPopulation)
-      .sort({ date: 1, time_slot: 1 })
-      .lean();
-
-    return res.status(200).json({
-      items: reservations,
-      total: reservations.length,
-    });
-  } catch (error) {
-    return next(error);
+const ensureMemberReservationAccess = (req, memberId, message) => {
+  if (!isTrainerAdmin(req) && memberId && memberId !== req.auth.identifier) {
+    throw createForbiddenError(message);
   }
 };
 
-const getReservationById = async (req, res, next) => {
-  try {
-    const reservation = await Reservation.findOne({ reservation_id: req.params.reservationId })
-      .populate(reservationPopulation)
-      .lean();
-
-    if (!reservation) {
-      return res.status(404).json({ error: 'Reservation not found' });
-    }
-
-    if (!isTrainerAdmin(req) && reservation.member?._id?.toString() !== req.auth.accountId) {
-      throw createForbiddenError('You can only view your own reservations');
-    }
-
-    return res.status(200).json(reservation);
-  } catch (error) {
-    return next(error);
+const assignCurrentMember = (req, reservationData) => {
+  if (!isTrainerAdmin(req)) {
+    reservationData.member_id = req.auth.identifier;
   }
 };
 
-const createReservation = async (req, res, next) => {
-  try {
-    const reservationData = sanitizeReservationPayload(req.body);
+const listReservations = async (req, res) => {
+  const { filters, emptyResult } = await buildReservationFilters(req.query);
 
-    if (!isTrainerAdmin(req)) {
-      if (reservationData.member_id && reservationData.member_id !== req.auth.identifier) {
-        throw createForbiddenError('You can only create reservations for your own account');
-      }
-
-      reservationData.member_id = req.auth.identifier;
-    }
-
-    const payload = await resolveReservationReferences(reservationData);
-    const reservation = await Reservation.create(payload);
-
-    const createdReservation = await Reservation.findById(reservation._id)
-      .populate(reservationPopulation)
-      .lean();
-
-    return res.status(201).json(createdReservation);
-  } catch (error) {
-    return next(error);
+  if (emptyResult) {
+    return sendCollection(res, []);
   }
+
+  if (!isTrainerAdmin(req)) {
+    ensureMemberReservationAccess(req, req.query.member_id, 'You can only view your own reservations');
+    filters.member = req.auth.accountId;
+  }
+
+  const reservations = await Reservation.find(filters)
+    .populate(reservationPopulation)
+    .sort({ date: 1, time_slot: 1 })
+    .lean();
+
+  return sendCollection(res, reservations);
 };
 
-const updateReservation = async (req, res, next) => {
-  try {
-    const reservationData = sanitizeReservationPayload(req.body, { partial: true });
-
-    if (!isTrainerAdmin(req)) {
-      const existingReservation = await findReservationForOwnershipCheck(req.params.reservationId);
-
-      ensureReservationOwner(existingReservation, req.auth.accountId, 'update');
-
-      if (reservationData.member_id && reservationData.member_id !== req.auth.identifier) {
-        throw createForbiddenError('You cannot move a reservation to another member');
-      }
-
-      reservationData.member_id = req.auth.identifier;
-    }
-
-    const payload = await resolveReservationReferences(reservationData);
-
-    const reservation = await Reservation.findOneAndUpdate(
-      { reservation_id: req.params.reservationId },
-      payload,
-      { new: true, runValidators: true }
-    )
+const getReservationById = async (req, res) => {
+  const reservation = ensureFound(
+    await Reservation.findOne({ reservation_id: req.params.reservation_id })
       .populate(reservationPopulation)
-      .lean();
+      .lean(),
+    'Reservation'
+  );
 
-    if (!reservation) {
-      return res.status(404).json({ error: 'Reservation not found' });
-    }
-
-    return res.status(200).json(reservation);
-  } catch (error) {
-    return next(error);
+  if (!isTrainerAdmin(req) && reservation.member?._id?.toString() !== req.auth.accountId) {
+    throw createForbiddenError('You can only view your own reservations');
   }
+
+  return sendItem(res, reservation);
 };
 
-const deleteReservation = async (req, res, next) => {
-  try {
-    if (!isTrainerAdmin(req)) {
-      const reservation = await findReservationForOwnershipCheck(req.params.reservationId);
+const createReservation = async (req, res) => {
+  const reservationData = sanitizeReservationPayload(req.body, {
+    requireMemberId: isTrainerAdmin(req),
+  });
 
-      ensureReservationOwner(reservation, req.auth.accountId, 'delete');
-    }
+  ensureMemberReservationAccess(req, reservationData.member_id, 'You can only create reservations for your own account');
+  assignCurrentMember(req, reservationData);
 
-    const reservation = await Reservation.findOneAndDelete({ reservation_id: req.params.reservationId });
+  const payload = await resolveReservationReferences(reservationData);
 
-    if (!reservation) {
-      return res.status(404).json({ error: 'Reservation not found' });
-    }
+  await ensureNoReservationConflicts(Reservation, {
+    trainer: payload.trainer,
+    member: payload.member,
+    date: payload.date,
+    time_slot: payload.time_slot,
+    status: payload.status || 'Confirmada',
+  });
 
-    return res.status(204).send();
-  } catch (error) {
-    return next(error);
+  const reservation = await Reservation.create(payload);
+  const createdReservation = await Reservation.findById(reservation._id)
+    .populate(reservationPopulation)
+    .lean();
+
+  return sendItem(res, createdReservation, 201);
+};
+
+const updateReservation = async (req, res) => {
+  const reservationData = sanitizeReservationPayload(req.body, { partial: true });
+  const existingReservation = await findReservationForOwnershipCheck(req.params.reservation_id);
+
+  ensureFound(existingReservation, 'Reservation');
+
+  if (!isTrainerAdmin(req)) {
+    ensureReservationOwner(existingReservation, req.auth.accountId, 'update');
+    ensureMemberReservationAccess(req, reservationData.member_id, 'You cannot move a reservation to another member');
+    assignCurrentMember(req, reservationData);
   }
+
+  const payload = await resolveReservationReferences(reservationData);
+
+  await ensureNoReservationConflicts(Reservation, {
+    reservation_id: req.params.reservation_id,
+    trainer: payload.trainer || getReferenceId(existingReservation.trainer),
+    member: payload.member || getReferenceId(existingReservation.member),
+    date: payload.date || existingReservation.date,
+    time_slot: payload.time_slot || existingReservation.time_slot,
+    status: payload.status || existingReservation.status,
+  });
+
+  const reservation = await Reservation.findOneAndUpdate(
+    { reservation_id: req.params.reservation_id },
+    payload,
+    { new: true, runValidators: true }
+  )
+    .populate(reservationPopulation)
+    .lean();
+
+  ensureFound(reservation, 'Reservation');
+
+  return sendItem(res, reservation);
+};
+
+const deleteReservation = async (req, res) => {
+  if (!isTrainerAdmin(req)) {
+    const reservation = await findReservationForOwnershipCheck(req.params.reservation_id);
+    ensureReservationOwner(reservation, req.auth.accountId, 'delete');
+  }
+
+  ensureFound(
+    await Reservation.findOneAndDelete({ reservation_id: req.params.reservation_id }),
+    'Reservation'
+  );
+
+  return sendNoContent(res);
 };
 
 module.exports = {

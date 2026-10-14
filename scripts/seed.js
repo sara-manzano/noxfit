@@ -7,10 +7,32 @@ const mongoose = require('mongoose');
 const Member = require('../src/models/members');
 const Trainer = require('../src/models/trainers');
 const Reservation = require('../src/models/reservations');
+const connectToDatabase = require('../src/config/database');
+const { hashPassword } = require('../src/config/auth');
 
 const dataDirectory = path.join(__dirname, '..', 'data');
+const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || 'Noxfit123';
+const ADMIN_TRAINER_ID = process.env.SEED_ADMIN_TRAINER_ID;
 const ACTIVITY_TYPE_NORMALIZATION = {
   'Entenamiento Funcinal': 'Entrenamiento Funcional'
+};
+
+const resolveAdminTrainerId = (trainerRows) => {
+  if (!trainerRows.length) {
+    throw new Error('No trainers were found in the CSV, so an admin cannot be assigned');
+  }
+
+  if (!ADMIN_TRAINER_ID) {
+    return trainerRows[0].trainer_id;
+  }
+
+  const exists = trainerRows.some((row) => row.trainer_id === ADMIN_TRAINER_ID);
+
+  if (!exists) {
+    throw new Error(`The trainer_id ${ADMIN_TRAINER_ID} does not exist in trainers.csv`);
+  }
+
+  return ADMIN_TRAINER_ID;
 };
 
 const parseBoolean = (value) => {
@@ -113,24 +135,72 @@ const loadCsv = (fileName) => {
   });
 };
 
-const mapMembers = (rows) => rows.map((row) => ({
+const loadSeedRows = () => Promise.all([
+  loadCsv('members.csv'),
+  loadCsv('trainers.csv'),
+  loadCsv('reservations.csv')
+]);
+
+const buildLookupMap = (items, fieldName) => new Map(
+  items.map((item) => [item[fieldName], item])
+);
+
+const clearCollections = async () => {
+  await Reservation.deleteMany({});
+  await Promise.all([
+    Member.deleteMany({}),
+    Trainer.deleteMany({}),
+  ]);
+};
+
+const createAccountsPayload = async (memberRows, trainerRows) => {
+  const passwordHash = await hashPassword(DEFAULT_SEED_PASSWORD);
+  const adminTrainerId = resolveAdminTrainerId(trainerRows);
+
+  return {
+    adminTrainerId,
+    members: mapMembers(memberRows, passwordHash),
+    trainers: mapTrainers(trainerRows, passwordHash, adminTrainerId),
+  };
+};
+
+const insertAccounts = async (members, trainers) => {
+  const [insertedMembers, insertedTrainers] = await Promise.all([
+    Member.insertMany(members),
+    Trainer.insertMany(trainers),
+  ]);
+
+  return { insertedMembers, insertedTrainers };
+};
+
+const logSeedSummary = ({ insertedMembers, insertedTrainers, reservations, adminTrainerId }) => {
+  console.log(`Members inserted: ${insertedMembers.length}`);
+  console.log(`Trainers inserted: ${insertedTrainers.length}`);
+  console.log(`Reservations inserted: ${reservations.length}`);
+  console.log(`Initial admin trainer: ${adminTrainerId}`);
+};
+
+const mapMembers = (rows, passwordHash) => rows.map((row) => ({
   member_id: row.member_id,
   full_name: row.full_name,
   email: row.email,
+  password_hash: passwordHash,
   phone: row.phone || undefined,
   membership_type: row.membership_type || undefined,
   join_date: parseDate(row.join_date),
   active: row.active === undefined || row.active === '' ? true : parseBoolean(row.active)
 }));
 
-const mapTrainers = (rows) => rows.map((row) => ({
+const mapTrainers = (rows, passwordHash, adminTrainerId) => rows.map((row) => ({
   trainer_id: row.trainer_id,
   full_name: row.full_name,
   email: row.email,
+  password_hash: passwordHash,
   activity_type: normalizeActivityType(row.activity_type),
   phone: row.phone || undefined,
   years_experience: parseNumber(row.years_experience),
   hourly_rate: parseNumber(row.hourly_rate),
+  is_admin: row.trainer_id === adminTrainerId,
   active: row.active === undefined || row.active === '' ? true : parseBoolean(row.active)
 }));
 
@@ -158,43 +228,24 @@ const mapReservations = (rows, membersById, trainersById) => rows.map((row) => {
   };
 });
 
-const connect = async () => {
-  if (!process.env.MONGODB_URI) {
-    throw new Error('The MONGODB_URI variable is missing.');
-  }
-
-  await mongoose.connect(process.env.MONGODB_URI);
-};
-
 const seed = async () => {
-  await connect();
+  await connectToDatabase();
 
   try {
-    const [memberRows, trainerRows, reservationRows] = await Promise.all([
-      loadCsv('members.csv'),
-      loadCsv('trainers.csv'),
-      loadCsv('reservations.csv')
-    ]);
+    const [memberRows, trainerRows, reservationRows] = await loadSeedRows();
+    const { adminTrainerId, members, trainers } = await createAccountsPayload(memberRows, trainerRows);
 
-    const members = mapMembers(memberRows);
-    const trainers = mapTrainers(trainerRows);
+    await clearCollections();
 
-    await Reservation.deleteMany({});
-    await Member.deleteMany({});
-    await Trainer.deleteMany({});
+    const { insertedMembers, insertedTrainers } = await insertAccounts(members, trainers);
 
-    const insertedMembers = await Member.insertMany(members);
-    const insertedTrainers = await Trainer.insertMany(trainers);
-
-    const membersById = new Map(insertedMembers.map((member) => [member.member_id, member]));
-    const trainersById = new Map(insertedTrainers.map((trainer) => [trainer.trainer_id, trainer]));
+    const membersById = buildLookupMap(insertedMembers, 'member_id');
+    const trainersById = buildLookupMap(insertedTrainers, 'trainer_id');
     const reservations = mapReservations(reservationRows, membersById, trainersById);
 
     await Reservation.insertMany(reservations);
 
-    console.log(`Members inserted: ${insertedMembers.length}`);
-    console.log(`Trainers inserted: ${insertedTrainers.length}`);
-    console.log(`Reservations inserted: ${reservations.length}`);
+    logSeedSummary({ insertedMembers, insertedTrainers, reservations, adminTrainerId });
   } finally {
     await mongoose.connection.close();
   }

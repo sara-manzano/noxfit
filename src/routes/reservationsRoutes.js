@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const asyncHandler = require('../middleware/asyncHandler');
 const { requireReservationAccess } = require('../middleware/auth');
 
 const {
@@ -12,13 +13,13 @@ const {
 router.use(requireReservationAccess);
 
 router.route('/')
-  .get(listReservations)
-  .post(createReservation);
+  .get(asyncHandler(listReservations))
+  .post(asyncHandler(createReservation));
 
-router.route('/:reservationId')
-  .get(getReservationById)
-  .patch(updateReservation)
-  .put(updateReservation)
-  .delete(deleteReservation);
+router.route('/:reservation_id')
+  .get(asyncHandler(getReservationById))
+  .patch(asyncHandler(updateReservation))
+  .put(asyncHandler(updateReservation))
+  .delete(asyncHandler(deleteReservation));
 
 module.exports = router;

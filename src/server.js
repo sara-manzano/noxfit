@@ -7,12 +7,12 @@ const PORT = process.env.PORT || 3000;
 const startServer = async () => {
   await connectToDatabase();
 
-  return app.listen(PORT, () => console.log(`Servidor escuchando en http://localhost:${PORT}`));
+  return app.listen(PORT, () => console.log(`Server listening at http://localhost:${PORT}`));
 };
 
 if (require.main === module) {
   startServer().catch((error) => {
-    console.error('The server could not be started:', error.message);
+    console.error('Server failed to start:', error.message);
     process.exit(1);
   });
 }

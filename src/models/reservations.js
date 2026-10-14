@@ -24,4 +24,26 @@ const reservationSchema = new mongoose.Schema({
   price: { type: Number, min: 0 },
 });
 
+reservationSchema.index(
+  { trainer: 1, date: 1, time_slot: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ['Confirmada', 'Completada'] },
+    },
+    name: 'unique_active_trainer_slot',
+  }
+);
+
+reservationSchema.index(
+  { member: 1, date: 1, time_slot: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ['Confirmada', 'Completada'] },
+    },
+    name: 'unique_active_member_slot',
+  }
+);
+
 module.exports = mongoose.model('Reservation', reservationSchema);

@@ -12,6 +12,7 @@ const ALLOWED_FORMATS = {
   'image/png': 'png',
   'image/webp': 'webp',
 };
+const INVALID_FILE_TYPE_MESSAGE = 'Invalid file type';
 
 const removeFromCloudinary = async (publicId) => {
   if (publicId) await cloudinary.uploader.destroy(publicId);
@@ -38,7 +39,7 @@ const fileFilter = (req, file, cb) => {
   if (file.mimetype in ALLOWED_FORMATS) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type'), false);
+    cb(new Error(INVALID_FILE_TYPE_MESSAGE), false);
   }
 };
 
@@ -48,4 +49,10 @@ const upload = multer({
   fileFilter,
 });
 
-module.exports = { cloudinary, upload, removeFromCloudinary };
+module.exports = {
+  cloudinary,
+  upload,
+  removeFromCloudinary,
+  ALLOWED_FORMATS,
+  INVALID_FILE_TYPE_MESSAGE,
+};

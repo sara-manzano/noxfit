@@ -1,14 +1,12 @@
+const { createStatusError } = require('../http/errors');
 const { verifyToken } = require('../config/auth');
 const Member = require('../models/members');
 const Trainer = require('../models/trainers');
 
-const createAuthError = (message, statusCode) => {
-  const error = new Error(message);
-  error.statusCode = statusCode;
-  return error;
-};
+const createAuthError = (message, statusCode) => createStatusError(message, statusCode);
 
-const createDeletedAccountError = () => createAuthError('The account associated with this token no longer exists', 401);
+const createForbiddenError = (message) => createAuthError(message, 403);
+const createDeletedAccountError = () => createAuthError('Account for this token no longer exists', 401);
 
 const normalizeAuthError = (error) => {
   if (error.statusCode) {
@@ -16,7 +14,7 @@ const normalizeAuthError = (error) => {
   }
 
   if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-    return createAuthError('Invalid or expired token', 401);
+    return createAuthError('Token is invalid or expired', 401);
   }
 
   return error;
@@ -32,7 +30,7 @@ const getBearerToken = (req) => {
   const [scheme, token] = authorizationHeader.split(' ');
 
   if (scheme !== 'Bearer' || !token) {
-    throw createAuthError('Authorization header must use the Bearer scheme', 401);
+    throw createAuthError('Authorization header must use Bearer <token>', 401);
   }
 
   return token;
@@ -40,7 +38,7 @@ const getBearerToken = (req) => {
 
 const resolveAccount = async (payload) => {
   if (!payload?.sub || !payload?.role) {
-    throw createAuthError('Invalid or expired token', 401);
+    throw createAuthError('Token is invalid or expired', 401);
   }
 
   if (payload.role === 'member') {
@@ -53,7 +51,7 @@ const resolveAccount = async (payload) => {
     }
 
     if (member.active === false) {
-      throw createAuthError('This account is inactive', 403);
+      throw createAuthError('Account is inactive', 403);
     }
 
     return {
@@ -72,7 +70,7 @@ const resolveAccount = async (payload) => {
     }
 
     if (trainer.active === false) {
-      throw createAuthError('This account is inactive', 403);
+      throw createAuthError('Account is inactive', 403);
     }
 
     return {
@@ -81,7 +79,7 @@ const resolveAccount = async (payload) => {
     };
   }
 
-  throw createAuthError('Invalid or expired token', 401);
+  throw createAuthError('Token is invalid or expired', 401);
 };
 
 const buildAuthContext = async (req) => {
@@ -97,21 +95,31 @@ const buildAuthContext = async (req) => {
   };
 };
 
-const authenticateRequest = async (req, _res, next) => {
-  try {
-    req.auth = await buildAuthContext(req);
-    return next();
-  } catch (error) {
-    return next(normalizeAuthError(error));
+const loadAuthContext = async (req) => {
+  req.auth = await buildAuthContext(req);
+  return req.auth;
+};
+
+const ensureRole = (auth, role) => {
+  if (auth.role !== role) {
+    throw createForbiddenError(`${role[0].toUpperCase()}${role.slice(1)} access is required`);
   }
 };
 
-const requireMemberAuth = async (req, _res, next) => {
-  try {
-    req.auth = await buildAuthContext(req);
+const ensureTrainerAdmin = (auth) => {
+  ensureRole(auth, 'trainer');
 
-    if (req.auth.role !== 'member') {
-      throw createAuthError('Member access is required', 403);
+  if (!auth.isAdmin) {
+    throw createForbiddenError('Trainer admin access is required');
+  }
+};
+
+const withAuth = (guard) => async (req, _res, next) => {
+  try {
+    const auth = await loadAuthContext(req);
+
+    if (guard) {
+      guard(auth);
     }
 
     return next();
@@ -120,54 +128,18 @@ const requireMemberAuth = async (req, _res, next) => {
   }
 };
 
-const requireTrainerAuth = async (req, _res, next) => {
-  try {
-    req.auth = await buildAuthContext(req);
+const authenticateRequest = withAuth();
+const requireMemberAuth = withAuth((auth) => ensureRole(auth, 'member'));
+const requireTrainerAuth = withAuth((auth) => ensureRole(auth, 'trainer'));
+const requireTrainerAdmin = withAuth(ensureTrainerAdmin);
+const requireReservationAccess = withAuth((auth) => {
+  const canAccessReservations = auth.role === 'member'
+    || (auth.role === 'trainer' && auth.isAdmin);
 
-    if (req.auth.role !== 'trainer') {
-      throw createAuthError('Trainer access is required', 403);
-    }
-
-    return next();
-  } catch (error) {
-    return next(normalizeAuthError(error));
+  if (!canAccessReservations) {
+    throw createForbiddenError('Reservations require member or trainer admin access');
   }
-};
-
-const requireTrainerAdmin = async (req, _res, next) => {
-  try {
-    req.auth = await buildAuthContext(req);
-
-    if (req.auth.role !== 'trainer') {
-      throw createAuthError('Trainer access is required', 403);
-    }
-
-    if (!req.auth.isAdmin) {
-      throw createAuthError('Trainer admin access is required', 403);
-    }
-
-    return next();
-  } catch (error) {
-    return next(normalizeAuthError(error));
-  }
-};
-
-const requireReservationAccess = async (req, _res, next) => {
-  try {
-    req.auth = await buildAuthContext(req);
-
-    const canAccessReservations = req.auth.role === 'member'
-      || (req.auth.role === 'trainer' && req.auth.isAdmin);
-
-    if (!canAccessReservations) {
-      throw createAuthError('Member or trainer admin access is required', 403);
-    }
-
-    return next();
-  } catch (error) {
-    return next(normalizeAuthError(error));
-  }
-};
+});
 
 module.exports = {
   authenticateRequest,
