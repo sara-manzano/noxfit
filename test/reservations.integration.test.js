@@ -5,6 +5,7 @@ const { MongoMemoryServer } = require('mongodb-memory-server');
 const request = require('supertest');
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'noxfit-test-secret';
+process.env.TRAINER_BOOTSTRAP_TOKEN = process.env.TRAINER_BOOTSTRAP_TOKEN || 'bootstrap-secret';
 
 const app = require('../src/app');
 const { hashPassword } = require('../src/config/auth');
@@ -166,7 +167,68 @@ test('trainer admin can list all reservations while a non-admin trainer is rejec
   assert.equal(adminResponse.status, 200);
   assert.equal(adminResponse.body.total, 2);
   assert.equal(standardResponse.status, 403);
-  assert.equal(standardResponse.body.error, 'Reservations require member or trainer admin access');
+  assert.equal(standardResponse.body.error, 'Las reservas requieren acceso de miembro o entrenador admin');
+});
+
+test('public trainer registration bootstraps the first admin and then closes', async () => {
+  const firstResponse = await request(app)
+    .post('/api/trainers/register')
+    .set('x-bootstrap-token', process.env.TRAINER_BOOTSTRAP_TOKEN)
+    .send({
+      trainer_id: 'trainer-bootstrap',
+      full_name: 'Trainer Bootstrap',
+      email: 'trainer-bootstrap@noxfit.test',
+      password: PASSWORD,
+      activity_type: 'CrossFit',
+    });
+
+  const secondResponse = await request(app)
+    .post('/api/trainers/register')
+    .send({
+      trainer_id: 'trainer-second',
+      full_name: 'Trainer Second',
+      email: 'trainer-second@noxfit.test',
+      password: PASSWORD,
+      activity_type: 'Pilates',
+    });
+
+  assert.equal(firstResponse.status, 201);
+  assert.equal(firstResponse.body.user.is_admin, true);
+  assert.equal(secondResponse.status, 403);
+  assert.equal(secondResponse.body.error, 'El registro publico de entrenadores esta cerrado; pide a un admin que cree la cuenta');
+});
+
+test('public trainer bootstrap requires the configured bootstrap token', async () => {
+  const response = await request(app)
+    .post('/api/trainers/register')
+    .send({
+      trainer_id: 'trainer-bootstrap',
+      full_name: 'Trainer Bootstrap',
+      email: 'trainer-bootstrap@noxfit.test',
+      password: PASSWORD,
+      activity_type: 'CrossFit',
+    });
+
+  assert.equal(response.status, 403);
+  assert.equal(response.body.error, 'Hace falta un bootstrap token valido para crear el primer entrenador admin');
+});
+
+test('unknown api routes return a JSON 404 error', async () => {
+  const response = await request(app).get('/api/unknown');
+
+  assert.equal(response.status, 404);
+  assert.equal(response.headers['content-type'], 'application/json; charset=utf-8');
+  assert.deepEqual(response.body, { error: 'Recurso no encontrado' });
+});
+
+test('reservation dates are normalized before persistence', async () => {
+  const reservation = await createReservation({
+    member: new mongoose.Types.ObjectId(),
+    trainer: new mongoose.Types.ObjectId(),
+    date: new Date('2026-11-10T15:30:00.000Z'),
+  });
+
+  assert.equal(reservation.date.toISOString(), '2026-11-10T00:00:00.000Z');
 });
 
 test('member only sees their own reservations and cannot query another member by id', async () => {
@@ -187,7 +249,83 @@ test('member only sees their own reservations and cannot query another member by
   assert.equal(ownReservations.body.total, 1);
   assert.equal(ownReservations.body.items[0].member.member_id, 'member-a');
   assert.equal(forbiddenQuery.status, 403);
-  assert.equal(forbiddenQuery.body.error, 'You can only view your own reservations');
+  assert.equal(forbiddenQuery.body.error, 'Solo puedes ver tus propias reservas');
+});
+
+test('member cannot change their own member_id through /me', async () => {
+  await createFixtures();
+
+  const memberLogin = await loginMember('member-a@noxfit.test');
+
+  const response = await request(app)
+    .patch('/api/members/me')
+    .set('Authorization', `Bearer ${memberLogin.body.token}`)
+    .send({
+      member_id: 'member-a-updated',
+      full_name: 'Member A Updated',
+    });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.member_id, 'member-a');
+  assert.equal(response.body.full_name, 'Member A Updated');
+
+  const persistedMember = await Member.findOne({ email: 'member-a@noxfit.test' }).lean();
+
+  assert.equal(persistedMember.member_id, 'member-a');
+});
+
+test('trainer cannot change their own trainer_id through /me', async () => {
+  await createFixtures();
+
+  const trainerLogin = await loginTrainer('trainer-admin@noxfit.test');
+
+  const response = await request(app)
+    .patch('/api/trainers/me')
+    .set('Authorization', `Bearer ${trainerLogin.body.token}`)
+    .send({
+      trainer_id: 'trainer-admin-updated',
+      full_name: 'Trainer Admin Updated',
+    });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.trainer_id, 'trainer-admin');
+  assert.equal(response.body.full_name, 'Trainer Admin Updated');
+
+  const persistedTrainer = await Trainer.findOne({ email: 'trainer-admin@noxfit.test' }).lean();
+
+  assert.equal(persistedTrainer.trainer_id, 'trainer-admin');
+});
+
+test('PUT member self-update is rejected with 405', async () => {
+  await createFixtures();
+
+  const memberLogin = await loginMember('member-a@noxfit.test');
+
+  const response = await request(app)
+    .put('/api/members/me')
+    .set('Authorization', `Bearer ${memberLogin.body.token}`)
+    .send({
+      full_name: 'Member A Updated',
+    });
+
+  assert.equal(response.status, 405);
+  assert.equal(response.body.error, 'PUT no esta soportado para miembros; usa PATCH para cambios parciales');
+});
+
+test('PUT reservation update is rejected with 405', async () => {
+  await createFixtures();
+
+  const trainerLogin = await loginTrainer('trainer-admin@noxfit.test');
+
+  const response = await request(app)
+    .put('/api/reservations/reservation-a')
+    .set('Authorization', `Bearer ${trainerLogin.body.token}`)
+    .send({
+      status: 'Completada',
+    });
+
+  assert.equal(response.status, 405);
+  assert.equal(response.body.error, 'PUT no esta soportado para reservas; usa PATCH para cambios parciales');
 });
 
 test('creating a reservation rejects trainer slot conflicts with 409', async () => {
@@ -209,7 +347,7 @@ test('creating a reservation rejects trainer slot conflicts with 409', async () 
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'Trainer is already booked for that time slot');
+  assert.equal(response.body.error, 'El entrenador ya esta ocupado en esa franja horaria');
 });
 
 test('creating a reservation rejects member slot conflicts with 409', async () => {
@@ -230,7 +368,7 @@ test('creating a reservation rejects member slot conflicts with 409', async () =
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'Member already has a reservation for that time slot');
+  assert.equal(response.body.error, 'El miembro ya tiene una reserva en esa franja horaria');
 });
 
 test('updating a reservation rejects moving it into an occupied trainer slot', async () => {
@@ -267,7 +405,7 @@ test('updating a reservation rejects moving it into an occupied trainer slot', a
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'Trainer is already booked for that time slot');
+  assert.equal(response.body.error, 'El entrenador ya esta ocupado en esa franja horaria');
 });
 
 test('updating a reservation rejects moving it into an occupied member slot', async () => {
@@ -304,5 +442,5 @@ test('updating a reservation rejects moving it into an occupied member slot', as
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'Member already has a reservation for that time slot');
+  assert.equal(response.body.error, 'El miembro ya tiene una reserva en esa franja horaria');
 });

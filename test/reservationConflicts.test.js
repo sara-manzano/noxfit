@@ -87,7 +87,7 @@ test('ensureNoReservationConflicts throws a 409 when the trainer slot is already
     }),
     (error) => {
       assert.equal(error.statusCode, 409);
-      assert.equal(error.message, 'Trainer is already booked for that time slot');
+      assert.equal(error.message, 'El entrenador ya esta ocupado en esa franja horaria');
       return true;
     }
   );
@@ -109,7 +109,7 @@ test('ensureNoReservationConflicts throws a 409 when the member slot is already 
     }),
     (error) => {
       assert.equal(error.statusCode, 409);
-      assert.equal(error.message, 'Member already has a reservation for that time slot');
+      assert.equal(error.message, 'El miembro ya tiene una reserva en esa franja horaria');
       return true;
     }
   );

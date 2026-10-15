@@ -9,6 +9,7 @@ const Trainer = require('../src/models/trainers');
 const Reservation = require('../src/models/reservations');
 const connectToDatabase = require('../src/config/database');
 const { hashPassword } = require('../src/config/auth');
+const { normalizeDateOnly } = require('../src/config/validation');
 
 const dataDirectory = path.join(__dirname, '..', 'data');
 const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || 'Noxfit123';
@@ -56,13 +57,18 @@ const parseNumber = (value) => {
   return Number.isNaN(parsed) ? undefined : parsed;
 };
 
-const parseDate = (value) => {
+const parseDate = (value, { normalizeDate = false } = {}) => {
   if (!value) {
     return undefined;
   }
 
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+
+  if (Number.isNaN(parsed.getTime())) {
+    return undefined;
+  }
+
+  return normalizeDate ? normalizeDateOnly(parsed) : parsed;
 };
 
 const normalizeActivityType = (value) => {
@@ -187,7 +193,7 @@ const mapMembers = (rows, passwordHash) => rows.map((row) => ({
   password_hash: passwordHash,
   phone: row.phone || undefined,
   membership_type: row.membership_type || undefined,
-  join_date: parseDate(row.join_date),
+  join_date: parseDate(row.join_date, { normalizeDate: true }),
   active: row.active === undefined || row.active === '' ? true : parseBoolean(row.active)
 }));
 
@@ -201,6 +207,7 @@ const mapTrainers = (rows, passwordHash, adminTrainerId) => rows.map((row) => ({
   years_experience: parseNumber(row.years_experience),
   hourly_rate: parseNumber(row.hourly_rate),
   is_admin: row.trainer_id === adminTrainerId,
+  bootstrap_admin: row.trainer_id === adminTrainerId,
   active: row.active === undefined || row.active === '' ? true : parseBoolean(row.active)
 }));
 
@@ -221,7 +228,7 @@ const mapReservations = (rows, membersById, trainersById) => rows.map((row) => {
     member: member._id,
     trainer: trainer._id,
     activity_type: normalizeActivityType(row.activity_type),
-    date: parseDate(row.date),
+    date: parseDate(row.date, { normalizeDate: true }),
     time_slot: normalizeTimeSlot(row.time_slot),
     status: row.status || undefined,
     price: parseNumber(row.price)

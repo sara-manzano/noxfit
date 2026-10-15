@@ -4,14 +4,15 @@ const { hashPassword, comparePassword, signToken } = require('../config/auth');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeLoginPayload, sanitizeTrainerPayload } = require('../middleware/validators');
 const {
+  createStatusError,
   ensureFound,
-  ensureNoLinkedRecords,
   listAccountRecords,
   getAccountRecord,
   createAccountRecord,
   createAccountAuthResponse,
   authenticateAccount,
   updateAccountRecord,
+  deleteAccountRecord,
 } = require('./accountControllerHelpers');
 
 const buildTrainerToken = (trainer) => signToken({
@@ -19,6 +20,29 @@ const buildTrainerToken = (trainer) => signToken({
   role: 'trainer',
   is_admin: trainer.is_admin,
 });
+
+const ensureBootstrapTokenIsConfigured = () => {
+  if (!process.env.TRAINER_BOOTSTRAP_TOKEN) {
+    throw createStatusError('TRAINER_BOOTSTRAP_TOKEN es obligatorio para crear el primer entrenador admin', 503);
+  }
+
+  return process.env.TRAINER_BOOTSTRAP_TOKEN;
+};
+
+const ensurePublicTrainerRegistrationAllowed = async (req) => {
+  const trainerExists = await Trainer.exists({});
+
+  if (trainerExists) {
+    throw createStatusError('El registro publico de entrenadores esta cerrado; pide a un admin que cree la cuenta', 403);
+  }
+
+  const bootstrapToken = ensureBootstrapTokenIsConfigured();
+  const providedToken = req.headers['x-bootstrap-token'];
+
+  if (providedToken !== bootstrapToken) {
+    throw createStatusError('Hace falta un bootstrap token valido para crear el primer entrenador admin', 403);
+  }
+};
 
 const listTrainers = async (req, res) => {
   const response = await listAccountRecords(Trainer, req.query, 'activity_type');
@@ -33,13 +57,13 @@ const getTrainerById = async (req, res) => {
 };
 
 const registerTrainer = async (req, res) => {
-  const trainersCount = await Trainer.countDocuments();
-  const trainer = await createAccountRecord(
-    Trainer,
-    sanitizeTrainerPayload(req.body, { requirePassword: true }),
-    hashPassword,
-    { is_admin: trainersCount === 0 }
-  );
+  await ensurePublicTrainerRegistrationAllowed(req);
+
+  const payload = sanitizeTrainerPayload(req.body, { requirePassword: true });
+  const trainer = await createAccountRecord(Trainer, payload, hashPassword, {
+    is_admin: true,
+    bootstrap_admin: true,
+  });
 
   return sendItem(res, createAccountAuthResponse(trainer, buildTrainerToken), 201);
 };
@@ -81,7 +105,7 @@ const updateCurrentTrainer = async (req, res) => {
   const trainer = await updateAccountRecord(
     Trainer,
     { trainer_id: req.auth.identifier },
-    sanitizeTrainerPayload(req.body, { partial: true }),
+    sanitizeTrainerPayload(req.body, { partial: true, allowIdentifierUpdate: false }),
     hashPassword
   );
 
@@ -107,17 +131,14 @@ const updateTrainer = async (req, res) => {
 };
 
 const deleteTrainer = async (req, res) => {
-  const trainer = ensureFound(
-    await Trainer.findOne({ trainer_id: req.params.trainer_id }).select('_id').lean(),
-    'Trainer'
-  );
-
-  await ensureNoLinkedRecords(
-    Reservation.exists({ trainer: trainer._id }),
-    'Trainer cannot be deleted while reservations are linked to the account'
-  );
-
-  await Trainer.findOneAndDelete({ trainer_id: req.params.trainer_id });
+  await deleteAccountRecord({
+    Model: Trainer,
+    ReservationModel: Reservation,
+    identifierField: 'trainer_id',
+    identifierValue: req.params.trainer_id,
+    reservationField: 'trainer',
+    resourceName: 'Trainer',
+  });
 
   return sendNoContent(res);
 };

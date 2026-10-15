@@ -2,9 +2,9 @@ const { createStatusError } = require('../http/errors');
 
 const createConflictError = (message) => createStatusError(message, 409);
 
-const createNotFoundError = (resourceName) => createStatusError(`${resourceName} was not found`, 404);
+const createNotFoundError = (resourceName) => createStatusError(`${resourceName} no existe`, 404);
 
-const createUnauthorizedError = () => createStatusError('Invalid email or password', 401);
+const createUnauthorizedError = () => createStatusError('Email o contrasena incorrectos', 401);
 
 const ensureFound = (record, resourceName) => {
   if (!record) {
@@ -107,14 +107,35 @@ const updateAccountRecord = async (Model, filter, payload, hashPassword) => {
   const data = await withHashedPassword(payload, hashPassword);
 
   return Model.findOneAndUpdate(filter, data, {
-    new: true,
+    returnDocument: 'after',
     runValidators: true,
   });
 };
 
+const deleteAccountRecord = async ({
+  Model,
+  ReservationModel,
+  identifierField,
+  identifierValue,
+  reservationField,
+  resourceName,
+}) => {
+  const account = ensureFound(
+    await Model.findOne({ [identifierField]: identifierValue }).select('_id').lean(),
+    resourceName
+  );
+
+  await ensureNoLinkedRecords(
+    ReservationModel.exists({ [reservationField]: account._id }),
+    `${resourceName} no se puede borrar mientras tenga reservas asociadas`
+  );
+
+  await Model.findOneAndDelete({ [identifierField]: identifierValue });
+};
+
 const ensureActiveAccount = (account, roleLabel) => {
   if (account.active === false) {
-    throw createStatusError(`${roleLabel} account is inactive`, 403);
+    throw createStatusError(`La cuenta de ${roleLabel} esta inactiva`, 403);
   }
 };
 
@@ -133,5 +154,6 @@ module.exports = {
   createAccountAuthResponse,
   authenticateAccount,
   updateAccountRecord,
+  deleteAccountRecord,
   ensureActiveAccount,
 };

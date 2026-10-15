@@ -52,7 +52,15 @@ const ensureReservationOwner = (reservation, accountId, action) => {
   ensureFound(reservation, 'Reservation');
 
   if (reservation.member?._id?.toString() !== accountId) {
-    throw createForbiddenError(`You can only ${action} your own reservations`);
+    if (action === 'update') {
+      throw createForbiddenError('Solo puedes actualizar tus propias reservas');
+    }
+
+    if (action === 'delete') {
+      throw createForbiddenError('Solo puedes borrar tus propias reservas');
+    }
+
+    throw createForbiddenError('Solo puedes gestionar tus propias reservas');
   }
 };
 
@@ -127,7 +135,7 @@ const listReservations = async (req, res) => {
   }
 
   if (!isTrainerAdmin(req)) {
-    ensureMemberReservationAccess(req, req.query.member_id, 'You can only view your own reservations');
+    ensureMemberReservationAccess(req, req.query.member_id, 'Solo puedes ver tus propias reservas');
     filters.member = req.auth.accountId;
   }
 
@@ -148,7 +156,7 @@ const getReservationById = async (req, res) => {
   );
 
   if (!isTrainerAdmin(req) && reservation.member?._id?.toString() !== req.auth.accountId) {
-    throw createForbiddenError('You can only view your own reservations');
+    throw createForbiddenError('Solo puedes ver tus propias reservas');
   }
 
   return sendItem(res, reservation);
@@ -159,7 +167,7 @@ const createReservation = async (req, res) => {
     requireMemberId: isTrainerAdmin(req),
   });
 
-  ensureMemberReservationAccess(req, reservationData.member_id, 'You can only create reservations for your own account');
+  ensureMemberReservationAccess(req, reservationData.member_id, 'Solo puedes crear reservas para tu propia cuenta');
   assignCurrentMember(req, reservationData);
 
   const payload = await resolveReservationReferences(reservationData);
@@ -188,7 +196,7 @@ const updateReservation = async (req, res) => {
 
   if (!isTrainerAdmin(req)) {
     ensureReservationOwner(existingReservation, req.auth.accountId, 'update');
-    ensureMemberReservationAccess(req, reservationData.member_id, 'You cannot move a reservation to another member');
+    ensureMemberReservationAccess(req, reservationData.member_id, 'No puedes mover una reserva a otro miembro');
     assignCurrentMember(req, reservationData);
   }
 
@@ -206,7 +214,7 @@ const updateReservation = async (req, res) => {
   const reservation = await Reservation.findOneAndUpdate(
     { reservation_id: req.params.reservation_id },
     payload,
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   )
     .populate(reservationPopulation)
     .lean();

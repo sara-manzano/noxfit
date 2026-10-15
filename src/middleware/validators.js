@@ -2,7 +2,7 @@ const MEMBER_TYPES = ['Básica', 'Premium', 'VIP'];
 const RESERVATION_STATUS = ['Confirmada', 'Completada', 'Cancelada'];
 const MIN_PASSWORD_LENGTH = 8;
 const { createStatusError } = require('../http/errors');
-const { isValidTimeSlot } = require('../config/validation');
+const { isValidTimeSlot, normalizeDateOnly } = require('../config/validation');
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim() !== '';
 
@@ -35,12 +35,6 @@ const requireField = (value, fieldName) => {
   }
 
   return value;
-};
-
-const assignOptionalFields = (target, entries) => {
-  entries.forEach(([fieldName, value]) => {
-    assignIfDefined(target, fieldName, value);
-  });
 };
 
 const readStringField = (payload, fieldName) => {
@@ -84,7 +78,7 @@ const readDateField = (payload, fieldName) => {
     throw createValidationError(`${fieldName} must be a valid date`);
   }
 
-  return new Date(payload[fieldName]);
+  return normalizeDateOnly(payload[fieldName]);
 };
 
 const readBooleanField = (payload, fieldName) => {
@@ -153,91 +147,73 @@ const readPasswordField = (payload, fieldName = 'password') => {
   return value;
 };
 
-const readAccountIdentityFields = (payload, { partial, identifierField }) => {
-  if (!partial) {
-    return {
-      [identifierField]: readRequiredStringField(payload, identifierField),
-      full_name: readRequiredStringField(payload, 'full_name'),
-      email: readEmailField(payload, 'email'),
-    };
-  }
-
+const sanitizeMemberPayload = (
+  payload,
+  { partial = false, requirePassword = false, allowIdentifierUpdate = true } = {}
+) => {
   const data = {};
 
-  assignIfDefined(data, identifierField, readStringField(payload, identifierField));
-  assignIfDefined(data, 'full_name', readStringField(payload, 'full_name'));
-  assignIfDefined(data, 'email', readEmailField(payload, 'email'));
+  if (partial) {
+    if (allowIdentifierUpdate) {
+      assignIfDefined(data, 'member_id', readStringField(payload, 'member_id'));
+    }
 
-  return data;
-};
+    assignIfDefined(data, 'full_name', readStringField(payload, 'full_name'));
+    assignIfDefined(data, 'email', readEmailField(payload, 'email'));
+  } else {
+    data.member_id = readRequiredStringField(payload, 'member_id');
+    data.full_name = readRequiredStringField(payload, 'full_name');
+    data.email = requireField(readEmailField(payload, 'email'), 'email');
+  }
 
-const readPasswordForPayload = (payload, requirePassword) => {
   const password = readPasswordField(payload, 'password');
+  assignIfDefined(data, 'password', requirePassword ? requireField(password, 'password') : password);
 
-  if (requirePassword) {
-    return requireField(password, 'password');
-  }
-
-  return password;
-};
-
-const readReservationReferenceField = (payload, fieldName, isRequired) => {
-  const value = readStringField(payload, fieldName);
-
-  if (!isRequired) {
-    return value;
-  }
-
-  return requireField(value, fieldName);
-};
-
-const readRequiredDateField = (payload, fieldName) => requireField(
-  readDateField(payload, fieldName),
-  fieldName
-);
-
-const sanitizeMemberPayload = (payload, { partial = false, requirePassword = false } = {}) => {
-  const data = readAccountIdentityFields(payload, {
-    partial,
-    identifierField: 'member_id',
-  });
-
-  if (!partial) {
-    requireField(data.email, 'email');
-  }
-
-  assignIfDefined(data, 'password', readPasswordForPayload(payload, requirePassword));
-
-  assignOptionalFields(data, [
-    ['phone', readStringField(payload, 'phone')],
-    ['membership_type', readEnumField(payload, 'membership_type', MEMBER_TYPES)],
-    ['join_date', readDateField(payload, 'join_date')],
-    ['active', readBooleanField(payload, 'active')],
-  ]);
+  assignIfDefined(data, 'phone', readStringField(payload, 'phone'));
+  assignIfDefined(data, 'membership_type', readEnumField(payload, 'membership_type', MEMBER_TYPES));
+  assignIfDefined(data, 'join_date', readDateField(payload, 'join_date'));
+  assignIfDefined(data, 'active', readBooleanField(payload, 'active'));
 
   return data;
 };
 
-const sanitizeTrainerPayload = (payload, { partial = false, requirePassword = false, allowAdminField = false } = {}) => {
-  const data = readAccountIdentityFields(payload, {
-    partial,
-    identifierField: 'trainer_id',
-  });
+const sanitizeTrainerPayload = (
+  payload,
+  {
+    partial = false,
+    requirePassword = false,
+    allowAdminField = false,
+    allowIdentifierUpdate = true,
+  } = {}
+) => {
+  const data = {};
 
-  if (!partial) {
-    requireField(data.email, 'email');
+  if (partial) {
+    if (allowIdentifierUpdate) {
+      assignIfDefined(data, 'trainer_id', readStringField(payload, 'trainer_id'));
+    }
+
+    assignIfDefined(data, 'full_name', readStringField(payload, 'full_name'));
+    assignIfDefined(data, 'email', readEmailField(payload, 'email'));
+  } else {
+    data.trainer_id = readRequiredStringField(payload, 'trainer_id');
+    data.full_name = readRequiredStringField(payload, 'full_name');
+    data.email = requireField(readEmailField(payload, 'email'), 'email');
   }
 
-  assignIfDefined(data, 'password', readPasswordForPayload(payload, requirePassword));
+  const password = readPasswordField(payload, 'password');
+  assignIfDefined(data, 'password', requirePassword ? requireField(password, 'password') : password);
 
-  assignOptionalFields(data, [
-    ['activity_type', readStringField(payload, 'activity_type')],
-    ['phone', readStringField(payload, 'phone')],
-    ['years_experience', readNumberField(payload, 'years_experience')],
-    ['hourly_rate', readNumberField(payload, 'hourly_rate')],
-    ['is_admin', allowAdminField ? readBooleanField(payload, 'is_admin') : undefined],
-    ['active', readBooleanField(payload, 'active')],
-  ]);
+  assignIfDefined(data, 'activity_type', readStringField(payload, 'activity_type'));
+  assignIfDefined(data, 'phone', readStringField(payload, 'phone'));
+  assignIfDefined(data, 'years_experience', readNumberField(payload, 'years_experience'));
+  assignIfDefined(data, 'hourly_rate', readNumberField(payload, 'hourly_rate'));
+
+  if (allowAdminField) {
+    assignIfDefined(data, 'is_admin', readBooleanField(payload, 'is_admin'));
+  }
+
+  assignIfDefined(data, 'active', readBooleanField(payload, 'active'));
 
   return data;
 };
@@ -261,27 +237,23 @@ const sanitizeReservationPayload = (
   if (!partial) {
     data.reservation_id = readRequiredStringField(payload, 'reservation_id');
 
-    assignOptionalFields(data, [
-      ['member_id', readReservationReferenceField(payload, 'member_id', requireMemberId)],
-      ['trainer_id', readReservationReferenceField(payload, 'trainer_id', requireTrainerId)],
-    ]);
+    const memberId = readStringField(payload, 'member_id');
+    const trainerId = readStringField(payload, 'trainer_id');
 
-    data.date = readRequiredDateField(payload, 'date');
+    assignIfDefined(data, 'member_id', requireMemberId ? requireField(memberId, 'member_id') : memberId);
+    assignIfDefined(data, 'trainer_id', requireTrainerId ? requireField(trainerId, 'trainer_id') : trainerId);
+    data.date = requireField(readDateField(payload, 'date'), 'date');
   } else {
-    assignOptionalFields(data, [
-      ['reservation_id', readStringField(payload, 'reservation_id')],
-      ['member_id', readStringField(payload, 'member_id')],
-      ['trainer_id', readStringField(payload, 'trainer_id')],
-      ['date', readDateField(payload, 'date')],
-    ]);
+    assignIfDefined(data, 'reservation_id', readStringField(payload, 'reservation_id'));
+    assignIfDefined(data, 'member_id', readStringField(payload, 'member_id'));
+    assignIfDefined(data, 'trainer_id', readStringField(payload, 'trainer_id'));
+    assignIfDefined(data, 'date', readDateField(payload, 'date'));
   }
 
-  assignOptionalFields(data, [
-    ['activity_type', readStringField(payload, 'activity_type')],
-    ['time_slot', readTimeSlotField(payload, 'time_slot')],
-    ['status', readEnumField(payload, 'status', RESERVATION_STATUS)],
-    ['price', readNumberField(payload, 'price')],
-  ]);
+  assignIfDefined(data, 'activity_type', readStringField(payload, 'activity_type'));
+  assignIfDefined(data, 'time_slot', readTimeSlotField(payload, 'time_slot'));
+  assignIfDefined(data, 'status', readEnumField(payload, 'status', RESERVATION_STATUS));
+  assignIfDefined(data, 'price', readNumberField(payload, 'price'));
 
   return data;
 };

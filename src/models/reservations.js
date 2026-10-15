@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
-const { isValidTimeSlot } = require('../config/validation');
+const { isValidTimeSlot, normalizeDateOnly } = require('../config/validation');
 
 const reservationSchema = new mongoose.Schema({
   reservation_id: { type: String, required: true, unique: true, trim: true },
   member: { type: mongoose.Schema.Types.ObjectId, ref: 'Member', required: true },
   trainer: { type: mongoose.Schema.Types.ObjectId, ref: 'Trainer', required: true },
   activity_type: { type: String },
-  date: { type: Date, required: true },
+  date: { type: Date, required: true, set: normalizeDateOnly },
   time_slot: {
     type: String,
     trim: true,

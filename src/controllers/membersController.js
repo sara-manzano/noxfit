@@ -5,13 +5,13 @@ const { sendCollection, sendItem, sendNoContent } = require('../http/responses')
 const { sanitizeLoginPayload, sanitizeMemberPayload } = require('../middleware/validators');
 const {
   ensureFound,
-  ensureNoLinkedRecords,
   listAccountRecords,
   getAccountRecord,
   createAccountRecord,
   createAccountAuthResponse,
   authenticateAccount,
   updateAccountRecord,
+  deleteAccountRecord,
 } = require('./accountControllerHelpers');
 
 const buildMemberToken = (member) => signToken({
@@ -75,7 +75,7 @@ const updateCurrentMember = async (req, res) => {
   const member = await updateAccountRecord(
     Member,
     { member_id: req.auth.identifier },
-    sanitizeMemberPayload(req.body, { partial: true }),
+    sanitizeMemberPayload(req.body, { partial: true, allowIdentifierUpdate: false }),
     hashPassword
   );
 
@@ -98,18 +98,14 @@ const updateMember = async (req, res) => {
 };
 
 const deleteMember = async (req, res) => {
-  const member = ensureFound(
-    await Member.findOne({ member_id: req.params.member_id }).select('_id').lean(),
-    'Member'
-  );
-
-  await ensureNoLinkedRecords(
-    Reservation.exists({ member: member._id }),
-    'Member cannot be deleted while reservations are linked to the account'
-  );
-
-  await Member.findOneAndDelete({ member_id: req.params.member_id });
-
+  await deleteAccountRecord({
+    Model: Member,
+    ReservationModel: Reservation,
+    identifierField: 'member_id',
+    identifierValue: req.params.member_id,
+    reservationField: 'member',
+    resourceName: 'Member',
+  });
   return sendNoContent(res);
 };
 

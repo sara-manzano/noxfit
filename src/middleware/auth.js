@@ -6,7 +6,7 @@ const Trainer = require('../models/trainers');
 const createAuthError = (message, statusCode) => createStatusError(message, statusCode);
 
 const createForbiddenError = (message) => createAuthError(message, 403);
-const createDeletedAccountError = () => createAuthError('Account for this token no longer exists', 401);
+const createDeletedAccountError = () => createAuthError('La cuenta asociada a este token ya no existe', 401);
 
 const normalizeAuthError = (error) => {
   if (error.statusCode) {
@@ -14,7 +14,7 @@ const normalizeAuthError = (error) => {
   }
 
   if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-    return createAuthError('Token is invalid or expired', 401);
+    return createAuthError('El token no es valido o ha caducado', 401);
   }
 
   return error;
@@ -24,13 +24,13 @@ const getBearerToken = (req) => {
   const authorizationHeader = req.headers.authorization;
 
   if (!authorizationHeader) {
-    throw createAuthError('Authorization header is required', 401);
+    throw createAuthError('La cabecera Authorization es obligatoria', 401);
   }
 
   const [scheme, token] = authorizationHeader.split(' ');
 
   if (scheme !== 'Bearer' || !token) {
-    throw createAuthError('Authorization header must use Bearer <token>', 401);
+    throw createAuthError('La cabecera Authorization debe usar Bearer <token>', 401);
   }
 
   return token;
@@ -38,7 +38,7 @@ const getBearerToken = (req) => {
 
 const resolveAccount = async (payload) => {
   if (!payload?.sub || !payload?.role) {
-    throw createAuthError('Token is invalid or expired', 401);
+    throw createAuthError('El token no es valido o ha caducado', 401);
   }
 
   if (payload.role === 'member') {
@@ -51,7 +51,7 @@ const resolveAccount = async (payload) => {
     }
 
     if (member.active === false) {
-      throw createAuthError('Account is inactive', 403);
+      throw createAuthError('La cuenta esta inactiva', 403);
     }
 
     return {
@@ -70,7 +70,7 @@ const resolveAccount = async (payload) => {
     }
 
     if (trainer.active === false) {
-      throw createAuthError('Account is inactive', 403);
+      throw createAuthError('La cuenta esta inactiva', 403);
     }
 
     return {
@@ -79,7 +79,7 @@ const resolveAccount = async (payload) => {
     };
   }
 
-  throw createAuthError('Token is invalid or expired', 401);
+  throw createAuthError('El token no es valido o ha caducado', 401);
 };
 
 const buildAuthContext = async (req) => {
@@ -102,7 +102,8 @@ const loadAuthContext = async (req) => {
 
 const ensureRole = (auth, role) => {
   if (auth.role !== role) {
-    throw createForbiddenError(`${role[0].toUpperCase()}${role.slice(1)} access is required`);
+    const roleLabel = role === 'member' ? 'miembro' : 'entrenador';
+    throw createForbiddenError(`Hace falta acceso de ${roleLabel}`);
   }
 };
 
@@ -110,7 +111,7 @@ const ensureTrainerAdmin = (auth) => {
   ensureRole(auth, 'trainer');
 
   if (!auth.isAdmin) {
-    throw createForbiddenError('Trainer admin access is required');
+    throw createForbiddenError('Hace falta acceso de entrenador admin');
   }
 };
 
@@ -137,7 +138,7 @@ const requireReservationAccess = withAuth((auth) => {
     || (auth.role === 'trainer' && auth.isAdmin);
 
   if (!canAccessReservations) {
-    throw createForbiddenError('Reservations require member or trainer admin access');
+    throw createForbiddenError('Las reservas requieren acceso de miembro o entrenador admin');
   }
 });
 

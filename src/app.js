@@ -20,17 +20,17 @@ const handleMulterError = (error, res) => {
   }
 
   if (error.code === 'LIMIT_FILE_SIZE') {
-    sendError(res, 400, 'Image must be 2 MB or smaller');
+    sendError(res, 400, 'La imagen debe ocupar 2 MB o menos');
     return true;
   }
 
-  sendError(res, 400, 'Image upload could not be completed');
+  sendError(res, 400, 'No se pudo completar la subida de imagen');
   return true;
 };
 
 const handleKnownAppError = (error, res) => {
   if (error.message === INVALID_FILE_TYPE_MESSAGE) {
-    sendError(res, 400, `Invalid image format. Allowed formats: ${allowedImageFormats}`);
+    sendError(res, 400, `Formato de imagen no valido. Formatos permitidos: ${allowedImageFormats}`);
     return true;
   }
 
@@ -42,12 +42,12 @@ const handleKnownAppError = (error, res) => {
 
   if (error.code === 11000) {
     const duplicatedField = Object.keys(error.keyPattern || {})[0] || 'field';
-    sendError(res, 409, `${duplicatedField} is already in use`);
+    sendError(res, 409, `${duplicatedField} ya esta en uso`);
     return true;
   }
 
   if (error.name === 'CastError') {
-    sendError(res, 400, 'Invalid identifier');
+    sendError(res, 400, 'Identificador no valido');
     return true;
   }
 
@@ -76,6 +76,8 @@ app.use('/api/members', membersRoutes);
 app.use('/api/trainers', trainersRoutes);
 app.use('/api/reservations', reservationsRoutes);
 
+app.use('/api', (_req, res) => sendError(res, 404, 'Recurso no encontrado'));
+
 app.use((error, _req, res, _next) => {
   if (shouldLogError(error)) {
     console.error(error);
@@ -85,7 +87,7 @@ app.use((error, _req, res, _next) => {
     return;
   }
 
-  return sendError(res, 500, 'Internal server error');
+  return sendError(res, 500, 'Error interno del servidor');
 });
 
 

@@ -7,7 +7,17 @@ const trainerSchema = new mongoose.Schema({
   years_experience: { type: Number, min: 0 },
   hourly_rate: { type: Number, min: 0 },
   is_admin: { type: Boolean, default: false },
+  bootstrap_admin: { type: Boolean, default: false, select: false },
 });
+
+trainerSchema.index(
+  { bootstrap_admin: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { bootstrap_admin: true },
+    name: 'unique_bootstrap_admin',
+  }
+);
 
 applyAccountResponseTransform(trainerSchema);
 

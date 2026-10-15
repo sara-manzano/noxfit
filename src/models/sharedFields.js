@@ -12,6 +12,7 @@ const sanitizeAccountResponse = (_, ret) => {
   delete ret._id;
   delete ret.__v;
   delete ret.password_hash;
+  delete ret.bootstrap_admin;
 
   return ret;
 };

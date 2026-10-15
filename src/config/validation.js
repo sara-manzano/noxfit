@@ -1,5 +1,16 @@
 const TIME_SLOT_PATTERN = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
 
+const normalizeDateOnly = (value) => {
+  const date = value instanceof Date ? new Date(value) : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return date;
+  }
+
+  date.setUTCHours(0, 0, 0, 0);
+  return date;
+};
+
 const isValidTimeSlot = (value) => {
   if (typeof value !== 'string' || value.trim() === '') {
     return false;
@@ -20,4 +31,5 @@ const isValidTimeSlot = (value) => {
 module.exports = {
   TIME_SLOT_PATTERN,
   isValidTimeSlot,
+  normalizeDateOnly,
 };

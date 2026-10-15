@@ -1,12 +1,9 @@
 const { createStatusError } = require('../http/errors');
+const { normalizeDateOnly } = require('../config/validation');
 
 const ACTIVE_RESERVATION_STATUSES = ['Confirmada', 'Completada'];
 
-const normalizeReservationDate = (value) => {
-  const date = new Date(value);
-  date.setUTCHours(0, 0, 0, 0);
-  return date;
-};
+const normalizeReservationDate = (value) => normalizeDateOnly(value);
 
 const getReferenceId = (reference) => reference?._id?.toString() || reference?.toString();
 
@@ -62,14 +59,14 @@ const ensureNoReservationConflicts = async (ReservationModel, {
   }
 
   if (trainer && getReferenceId(conflict.trainer) === trainer.toString()) {
-    throw createStatusError('Trainer is already booked for that time slot', 409);
+    throw createStatusError('El entrenador ya esta ocupado en esa franja horaria', 409);
   }
 
   if (member && getReferenceId(conflict.member) === member.toString()) {
-    throw createStatusError('Member already has a reservation for that time slot', 409);
+    throw createStatusError('El miembro ya tiene una reserva en esa franja horaria', 409);
   }
 
-  throw createStatusError('Time slot is already reserved', 409);
+  throw createStatusError('La franja horaria ya esta reservada', 409);
 };
 
 module.exports = {
