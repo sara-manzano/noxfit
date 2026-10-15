@@ -2,9 +2,9 @@ const { createStatusError } = require('../http/errors');
 
 const createConflictError = (message) => createStatusError(message, 409);
 
-const createNotFoundError = (resourceName) => createStatusError(`${resourceName} no existe`, 404);
+const createNotFoundError = (resourceName) => createStatusError(`${resourceName} was not found`, 404);
 
-const createUnauthorizedError = () => createStatusError('Email o contrasena incorrectos', 401);
+const createUnauthorizedError = () => createStatusError('Invalid email or password', 401);
 
 const ensureFound = (record, resourceName) => {
   if (!record) {
@@ -127,7 +127,7 @@ const deleteAccountRecord = async ({
 
   await ensureNoLinkedRecords(
     ReservationModel.exists({ [reservationField]: account._id }),
-    `${resourceName} no se puede borrar mientras tenga reservas asociadas`
+    `${resourceName} cannot be deleted while reservations are linked to the account`
   );
 
   await Model.findOneAndDelete({ [identifierField]: identifierValue });
@@ -135,7 +135,7 @@ const deleteAccountRecord = async ({
 
 const ensureActiveAccount = (account, roleLabel) => {
   if (account.active === false) {
-    throw createStatusError(`La cuenta de ${roleLabel} esta inactiva`, 403);
+    throw createStatusError(`${roleLabel} account is inactive`, 403);
   }
 };
 

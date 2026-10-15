@@ -23,7 +23,7 @@ const buildTrainerToken = (trainer) => signToken({
 
 const ensureBootstrapTokenIsConfigured = () => {
   if (!process.env.TRAINER_BOOTSTRAP_TOKEN) {
-    throw createStatusError('TRAINER_BOOTSTRAP_TOKEN es obligatorio para crear el primer entrenador admin', 503);
+    throw createStatusError('TRAINER_BOOTSTRAP_TOKEN is required to bootstrap the first trainer admin', 503);
   }
 
   return process.env.TRAINER_BOOTSTRAP_TOKEN;
@@ -33,14 +33,14 @@ const ensurePublicTrainerRegistrationAllowed = async (req) => {
   const trainerExists = await Trainer.exists({});
 
   if (trainerExists) {
-    throw createStatusError('El registro publico de entrenadores esta cerrado; pide a un admin que cree la cuenta', 403);
+    throw createStatusError('Public trainer registration is closed; ask an admin to create the account', 403);
   }
 
   const bootstrapToken = ensureBootstrapTokenIsConfigured();
   const providedToken = req.headers['x-bootstrap-token'];
 
   if (providedToken !== bootstrapToken) {
-    throw createStatusError('Hace falta un bootstrap token valido para crear el primer entrenador admin', 403);
+    throw createStatusError('A valid bootstrap token is required to create the first trainer admin', 403);
   }
 };
 

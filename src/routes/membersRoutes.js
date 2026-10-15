@@ -15,7 +15,7 @@ const {
   deleteMember,
 } = require('../controllers/membersController');
 
-const rejectPut = methodNotAllowed('PUT no esta soportado para miembros; usa PATCH para cambios parciales');
+const rejectPut = methodNotAllowed('PUT is not supported for members; use PATCH for partial updates');
 
 router.post('/register', asyncHandler(registerMember));
 router.post('/login', asyncHandler(loginMember));

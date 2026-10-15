@@ -11,7 +11,7 @@ const {
   deleteReservation,
 } = require('../controllers/reservationsController');
 
-const rejectPut = methodNotAllowed('PUT no esta soportado para reservas; usa PATCH para cambios parciales');
+const rejectPut = methodNotAllowed('PUT is not supported for reservations; use PATCH for partial updates');
 
 router.use(requireReservationAccess);
 

@@ -2,8 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const multer = require('multer');
+const swaggerUi = require('swagger-ui-express');
 const { ALLOWED_FORMATS, INVALID_FILE_TYPE_MESSAGE } = require('./config/cloudinary');
 const { sendError } = require('./http/responses');
+const openApiDocument = require('../openapi.json');
 
 const membersRoutes = require('./routes/membersRoutes');
 const trainersRoutes = require('./routes/trainersRoutes');
@@ -20,17 +22,17 @@ const handleMulterError = (error, res) => {
   }
 
   if (error.code === 'LIMIT_FILE_SIZE') {
-    sendError(res, 400, 'La imagen debe ocupar 2 MB o menos');
+    sendError(res, 400, 'Image must be 2 MB or smaller');
     return true;
   }
 
-  sendError(res, 400, 'No se pudo completar la subida de imagen');
+  sendError(res, 400, 'Image upload could not be completed');
   return true;
 };
 
 const handleKnownAppError = (error, res) => {
   if (error.message === INVALID_FILE_TYPE_MESSAGE) {
-    sendError(res, 400, `Formato de imagen no valido. Formatos permitidos: ${allowedImageFormats}`);
+    sendError(res, 400, `Invalid image format. Allowed formats: ${allowedImageFormats}`);
     return true;
   }
 
@@ -42,12 +44,12 @@ const handleKnownAppError = (error, res) => {
 
   if (error.code === 11000) {
     const duplicatedField = Object.keys(error.keyPattern || {})[0] || 'field';
-    sendError(res, 409, `${duplicatedField} ya esta en uso`);
+    sendError(res, 409, `${duplicatedField} is already in use`);
     return true;
   }
 
   if (error.name === 'CastError') {
-    sendError(res, 400, 'Identificador no valido');
+    sendError(res, 400, 'Invalid identifier');
     return true;
   }
 
@@ -63,6 +65,13 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.get('/api/openapi.json', (_req, res) => {
+  res.status(200).json(openApiDocument);
+});
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument, {
+  explorer: true,
+}));
 
 app.get('/api/health', (_req, res) => {
   res.status(200).json({
@@ -76,7 +85,7 @@ app.use('/api/members', membersRoutes);
 app.use('/api/trainers', trainersRoutes);
 app.use('/api/reservations', reservationsRoutes);
 
-app.use('/api', (_req, res) => sendError(res, 404, 'Recurso no encontrado'));
+app.use('/api', (_req, res) => sendError(res, 404, 'Resource was not found'));
 
 app.use((error, _req, res, _next) => {
   if (shouldLogError(error)) {
@@ -87,8 +96,7 @@ app.use((error, _req, res, _next) => {
     return;
   }
 
-  return sendError(res, 500, 'Error interno del servidor');
+  return sendError(res, 500, 'Internal server error');
 });
-
 
 module.exports = app;

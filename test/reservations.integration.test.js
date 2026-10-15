@@ -167,7 +167,7 @@ test('trainer admin can list all reservations while a non-admin trainer is rejec
   assert.equal(adminResponse.status, 200);
   assert.equal(adminResponse.body.total, 2);
   assert.equal(standardResponse.status, 403);
-  assert.equal(standardResponse.body.error, 'Las reservas requieren acceso de miembro o entrenador admin');
+  assert.equal(standardResponse.body.error, 'Reservations require member or trainer admin access');
 });
 
 test('public trainer registration bootstraps the first admin and then closes', async () => {
@@ -195,7 +195,7 @@ test('public trainer registration bootstraps the first admin and then closes', a
   assert.equal(firstResponse.status, 201);
   assert.equal(firstResponse.body.user.is_admin, true);
   assert.equal(secondResponse.status, 403);
-  assert.equal(secondResponse.body.error, 'El registro publico de entrenadores esta cerrado; pide a un admin que cree la cuenta');
+  assert.equal(secondResponse.body.error, 'Public trainer registration is closed; ask an admin to create the account');
 });
 
 test('public trainer bootstrap requires the configured bootstrap token', async () => {
@@ -210,7 +210,7 @@ test('public trainer bootstrap requires the configured bootstrap token', async (
     });
 
   assert.equal(response.status, 403);
-  assert.equal(response.body.error, 'Hace falta un bootstrap token valido para crear el primer entrenador admin');
+  assert.equal(response.body.error, 'A valid bootstrap token is required to create the first trainer admin');
 });
 
 test('unknown api routes return a JSON 404 error', async () => {
@@ -218,7 +218,7 @@ test('unknown api routes return a JSON 404 error', async () => {
 
   assert.equal(response.status, 404);
   assert.equal(response.headers['content-type'], 'application/json; charset=utf-8');
-  assert.deepEqual(response.body, { error: 'Recurso no encontrado' });
+  assert.deepEqual(response.body, { error: 'Resource was not found' });
 });
 
 test('reservation dates are normalized before persistence', async () => {
@@ -249,7 +249,7 @@ test('member only sees their own reservations and cannot query another member by
   assert.equal(ownReservations.body.total, 1);
   assert.equal(ownReservations.body.items[0].member.member_id, 'member-a');
   assert.equal(forbiddenQuery.status, 403);
-  assert.equal(forbiddenQuery.body.error, 'Solo puedes ver tus propias reservas');
+  assert.equal(forbiddenQuery.body.error, 'You can only view your own reservations');
 });
 
 test('member cannot change their own member_id through /me', async () => {
@@ -309,7 +309,7 @@ test('PUT member self-update is rejected with 405', async () => {
     });
 
   assert.equal(response.status, 405);
-  assert.equal(response.body.error, 'PUT no esta soportado para miembros; usa PATCH para cambios parciales');
+  assert.equal(response.body.error, 'PUT is not supported for members; use PATCH for partial updates');
 });
 
 test('PUT reservation update is rejected with 405', async () => {
@@ -325,7 +325,7 @@ test('PUT reservation update is rejected with 405', async () => {
     });
 
   assert.equal(response.status, 405);
-  assert.equal(response.body.error, 'PUT no esta soportado para reservas; usa PATCH para cambios parciales');
+  assert.equal(response.body.error, 'PUT is not supported for reservations; use PATCH for partial updates');
 });
 
 test('creating a reservation rejects trainer slot conflicts with 409', async () => {
@@ -347,7 +347,7 @@ test('creating a reservation rejects trainer slot conflicts with 409', async () 
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'El entrenador ya esta ocupado en esa franja horaria');
+  assert.equal(response.body.error, 'Trainer is already booked for that time slot');
 });
 
 test('creating a reservation rejects member slot conflicts with 409', async () => {
@@ -368,7 +368,7 @@ test('creating a reservation rejects member slot conflicts with 409', async () =
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'El miembro ya tiene una reserva en esa franja horaria');
+  assert.equal(response.body.error, 'Member already has a reservation for that time slot');
 });
 
 test('updating a reservation rejects moving it into an occupied trainer slot', async () => {
@@ -405,7 +405,7 @@ test('updating a reservation rejects moving it into an occupied trainer slot', a
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'El entrenador ya esta ocupado en esa franja horaria');
+  assert.equal(response.body.error, 'Trainer is already booked for that time slot');
 });
 
 test('updating a reservation rejects moving it into an occupied member slot', async () => {
@@ -442,5 +442,5 @@ test('updating a reservation rejects moving it into an occupied member slot', as
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'El miembro ya tiene una reserva en esa franja horaria');
+  assert.equal(response.body.error, 'Member already has a reservation for that time slot');
 });

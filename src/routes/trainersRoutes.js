@@ -15,7 +15,7 @@ const {
   deleteTrainer,
 } = require('../controllers/trainersController');
 
-const rejectPut = methodNotAllowed('PUT no esta soportado para entrenadores; usa PATCH para cambios parciales');
+const rejectPut = methodNotAllowed('PUT is not supported for trainers; use PATCH for partial updates');
 
 router.post('/register', asyncHandler(registerTrainer));
 router.post('/login', asyncHandler(loginTrainer));

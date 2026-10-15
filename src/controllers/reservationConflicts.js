@@ -59,14 +59,14 @@ const ensureNoReservationConflicts = async (ReservationModel, {
   }
 
   if (trainer && getReferenceId(conflict.trainer) === trainer.toString()) {
-    throw createStatusError('El entrenador ya esta ocupado en esa franja horaria', 409);
+    throw createStatusError('Trainer is already booked for that time slot', 409);
   }
 
   if (member && getReferenceId(conflict.member) === member.toString()) {
-    throw createStatusError('El miembro ya tiene una reserva en esa franja horaria', 409);
+    throw createStatusError('Member already has a reservation for that time slot', 409);
   }
 
-  throw createStatusError('La franja horaria ya esta reservada', 409);
+  throw createStatusError('Time slot is already reserved', 409);
 };
 
 module.exports = {
