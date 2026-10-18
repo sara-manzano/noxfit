@@ -11,7 +11,13 @@ const getJwtSecret = () => {
 
 const hashPassword = async (password) => bcrypt.hash(password, 10);
 
-const comparePassword = async (password, passwordHash) => bcrypt.compare(password, passwordHash);
+const comparePassword = async (password, passwordHash) => {
+  if (typeof password !== 'string' || typeof passwordHash !== 'string' || passwordHash.length === 0) {
+    return false;
+  }
+
+  return bcrypt.compare(password, passwordHash);
+};
 
 const signToken = (payload) => jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
 

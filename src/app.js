@@ -7,6 +7,7 @@ const { ALLOWED_FORMATS, INVALID_FILE_TYPE_MESSAGE } = require('./config/cloudin
 const { sendError } = require('./http/responses');
 const openApiDocument = require('../openapi.json');
 
+const authRoutes = require('./routes/authRoutes');
 const membersRoutes = require('./routes/membersRoutes');
 const trainersRoutes = require('./routes/trainersRoutes');
 const reservationsRoutes = require('./routes/reservationsRoutes');
@@ -81,6 +82,7 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api/members', membersRoutes);
 app.use('/api/trainers', trainersRoutes);
 app.use('/api/reservations', reservationsRoutes);

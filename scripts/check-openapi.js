@@ -5,8 +5,8 @@ const specPath = path.join(__dirname, '..', 'openapi.json');
 
 const requiredPaths = [
   '/health',
+  '/auth/login',
   '/members',
-  '/members/register',
   '/trainers',
   '/trainers/register',
   '/reservations',

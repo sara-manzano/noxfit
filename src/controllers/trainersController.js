@@ -1,8 +1,8 @@
 const Trainer = require('../models/trainers');
 const Reservation = require('../models/reservations');
-const { hashPassword, comparePassword, signToken } = require('../config/auth');
+const { hashPassword, signToken } = require('../config/auth');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
-const { sanitizeLoginPayload, sanitizeTrainerPayload } = require('../middleware/validators');
+const { sanitizeTrainerPayload } = require('../middleware/validators');
 const {
   createStatusError,
   ensureFound,
@@ -10,7 +10,6 @@ const {
   getAccountRecord,
   createAccountRecord,
   createAccountAuthResponse,
-  authenticateAccount,
   updateAccountRecord,
   deleteAccountRecord,
 } = require('./accountControllerHelpers');
@@ -66,20 +65,6 @@ const registerTrainer = async (req, res) => {
   });
 
   return sendItem(res, createAccountAuthResponse(trainer, buildTrainerToken), 201);
-};
-
-const loginTrainer = async (req, res) => {
-  const { email, password } = sanitizeLoginPayload(req.body);
-  const response = await authenticateAccount({
-    Model: Trainer,
-    email,
-    password,
-    comparePassword,
-    buildToken: buildTrainerToken,
-    roleLabel: 'trainer',
-  });
-
-  return sendItem(res, response);
 };
 
 const getCurrentTrainer = async (req, res) => {
@@ -147,7 +132,6 @@ module.exports = {
   listTrainers,
   getTrainerById,
   registerTrainer,
-  loginTrainer,
   getCurrentTrainer,
   createTrainer,
   updateCurrentTrainer,

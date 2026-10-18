@@ -10,9 +10,13 @@ test('openapi json endpoint exposes the shared contract', async () => {
   assert.equal(response.status, 200);
   assert.equal(response.headers['content-type'], 'application/json; charset=utf-8');
   assert.equal(response.body.openapi, '3.1.0');
+  assert.ok(response.body.paths['/auth/login']);
   assert.ok(response.body.paths['/members']);
   assert.ok(response.body.paths['/trainers']);
   assert.ok(response.body.paths['/reservations']);
+  assert.equal(response.body.paths['/members/register'], undefined);
+  assert.equal(response.body.paths['/members/login'], undefined);
+  assert.equal(response.body.paths['/trainers/login'], undefined);
 });
 
 test('swagger ui is served from the backend', async () => {

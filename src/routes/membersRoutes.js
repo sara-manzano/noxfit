@@ -6,8 +6,6 @@ const { requireMemberAuth, requireTrainerAdmin } = require('../middleware/auth')
 const {
   listMembers,
   getMemberById,
-  registerMember,
-  loginMember,
   getCurrentMember,
   createMember,
   updateCurrentMember,
@@ -17,24 +15,19 @@ const {
 
 const rejectPut = methodNotAllowed('PUT is not supported for members; use PATCH for partial updates');
 
-router.post('/register', asyncHandler(registerMember));
-router.post('/login', asyncHandler(loginMember));
-
 router.route('/me')
   .get(requireMemberAuth, asyncHandler(getCurrentMember))
   .patch(requireMemberAuth, asyncHandler(updateCurrentMember))
   .put(requireMemberAuth, rejectPut);
 
-router.use(requireTrainerAdmin);
-
 router.route('/')
-  .get(asyncHandler(listMembers))
-  .post(asyncHandler(createMember));
+  .get(requireTrainerAdmin, asyncHandler(listMembers))
+  .post(requireTrainerAdmin, asyncHandler(createMember));
 
 router.route('/:member_id')
-  .get(asyncHandler(getMemberById))
-  .patch(asyncHandler(updateMember))
+  .get(requireTrainerAdmin, asyncHandler(getMemberById))
+  .patch(requireTrainerAdmin, asyncHandler(updateMember))
   .put(rejectPut)
-  .delete(asyncHandler(deleteMember));
+  .delete(requireTrainerAdmin, asyncHandler(deleteMember));
 
 module.exports = router;

@@ -6,6 +6,12 @@ const createNotFoundError = (resourceName) => createStatusError(`${resourceName}
 
 const createUnauthorizedError = () => createStatusError('Invalid email or password', 401);
 
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const findAccountByEmail = (Model, email) => Model.findOne({
+  email: { $regex: `^${escapeRegExp(email)}$`, $options: 'i' },
+}).select('+password_hash');
+
 const ensureFound = (record, resourceName) => {
   if (!record) {
     throw createNotFoundError(resourceName);
@@ -86,7 +92,7 @@ const authenticateAccount = async ({
   buildToken,
   roleLabel,
 }) => {
-  const account = await Model.findOne({ email }).select('+password_hash');
+  const account = await findAccountByEmail(Model, email);
 
   if (!account) {
     throw createUnauthorizedError();

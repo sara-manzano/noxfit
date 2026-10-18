@@ -47,56 +47,19 @@
         }
       }
     },
-    "/members/register": {
+    "/auth/login": {
       "post": {
         "tags": [
-          "Members"
+          "Auth"
         ],
-        "summary": "Public member registration",
-        "operationId": "registerMember",
+        "summary": "Authenticate a member or trainer",
+        "operationId": "loginAccount",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MemberRegisterRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Member registered",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountAuthResponseMember"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          }
-        }
-      }
-    },
-    "/members/login": {
-      "post": {
-        "tags": [
-          "Members"
-        ],
-        "summary": "Member login",
-        "operationId": "loginMember",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
+                "$ref": "#/components/schemas/RoleLoginRequest"
               }
             }
           }
@@ -107,7 +70,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AccountAuthResponseMember"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AccountAuthResponseMember"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AccountAuthResponseTrainer"
+                    }
+                  ]
                 }
               }
             }
@@ -502,46 +472,6 @@
           },
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
-          }
-        }
-      }
-    },
-    "/trainers/login": {
-      "post": {
-        "tags": [
-          "Trainers"
-        ],
-        "summary": "Trainer login",
-        "operationId": "loginTrainer",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Authentication successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountAuthResponseTrainer"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
@@ -1568,6 +1498,32 @@
           "password"
         ],
         "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoleLoginRequest": {
+        "type": "object",
+        "required": [
+          "role",
+          "email",
+          "password"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "member",
+              "trainer"
+            ]
+          },
           "email": {
             "type": "string",
             "format": "email"

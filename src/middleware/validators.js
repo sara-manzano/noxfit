@@ -228,6 +228,17 @@ const sanitizeLoginPayload = (payload) => {
   return { email, password };
 };
 
+const sanitizeRoleLoginPayload = (payload) => {
+  const role = readStringField(payload, 'role');
+
+  requireField(role, 'role');
+
+  return {
+    role: role.toLowerCase(),
+    ...sanitizeLoginPayload(payload),
+  };
+};
+
 const sanitizeReservationPayload = (
   payload,
   { partial = false, requireMemberId = true, requireTrainerId = true } = {}
@@ -263,4 +274,5 @@ module.exports = {
   sanitizeTrainerPayload,
   sanitizeReservationPayload,
   sanitizeLoginPayload,
+  sanitizeRoleLoginPayload,
 };

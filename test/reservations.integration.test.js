@@ -56,12 +56,12 @@ const createReservation = (overrides = {}) => Reservation.create({
 });
 
 const loginMember = (email) => request(app)
-  .post('/api/members/login')
-  .send({ email, password: PASSWORD });
+  .post('/api/auth/login')
+  .send({ role: 'member', email, password: PASSWORD });
 
 const loginTrainer = (email) => request(app)
-  .post('/api/trainers/login')
-  .send({ email, password: PASSWORD });
+  .post('/api/auth/login')
+  .send({ role: 'trainer', email, password: PASSWORD });
 
 const createFixtures = async () => {
   const memberA = await createMember({
@@ -148,6 +148,57 @@ test('member login returns a token and sanitized user payload', async () => {
   assert.equal(response.body.user.member_id, 'member-a');
   assert.equal(response.body.user.email, 'member-a@noxfit.test');
   assert.equal(response.body.user.password_hash, undefined);
+});
+
+test('member login works through the unified auth route', async () => {
+  await createFixtures();
+
+  const response = await request(app)
+    .post('/api/auth/login')
+    .send({
+      role: 'member',
+      email: 'member-a@noxfit.test',
+      password: PASSWORD,
+    });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.user.member_id, 'member-a');
+});
+
+test('trainer login with a record missing password hash returns 401 instead of 500', async () => {
+  await Trainer.collection.insertOne({
+    trainer_id: 'trainer-no-hash',
+    full_name: 'Trainer No Hash',
+    email: 'trainer-no-hash@noxfit.test',
+    activity_type: 'CrossFit',
+    active: true,
+  });
+
+  const response = await request(app)
+    .post('/api/auth/login')
+    .send({
+      role: 'trainer',
+      email: 'trainer-no-hash@noxfit.test',
+      password: PASSWORD,
+    });
+
+  assert.equal(response.status, 401);
+  assert.equal(response.body.error, 'Invalid email or password');
+});
+
+test('public member registration route no longer exists', async () => {
+  const response = await request(app)
+    .post('/api/members/register')
+    .send({
+      member_id: 'member-public',
+      full_name: 'Member Public',
+      email: 'member-public@noxfit.test',
+      password: PASSWORD,
+      membership_type: 'Premium',
+    });
+
+  assert.equal(response.status, 404);
+  assert.equal(response.body.error, 'Resource was not found');
 });
 
 test('trainer admin can list all reservations while a non-admin trainer is rejected', async () => {

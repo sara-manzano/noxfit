@@ -1,11 +1,11 @@
-trainer_id,full_name,email,activity_type,phone,years_experience,hourly_rate,active
-60193ac1-fdd8-48b2-aa66-303181dfb3e0,Alberto,Albert@noxfit.es,Entenamiento Funcinal,652369412,3,25,True
-843d66cb-b0bf-4655-919f-01081bf4da2d,Natalia,Naty@noxfit.es,Pilates,717153694,6,30,True
-7bfec265-e18e-45d2-a450-50c27262d939,Javier,Javi@noxfit.es,Musculación,660239581,4,25,True
-1f85ffeb-12b0-4c41-a99e-7132027a9697,Arturo,Arturo@noxfit.es,CrossFit,606329487,10,25,True
-e01130ba-66ef-4987-b6c5-e0698e4c5821,Aida,Aida@noxfit.es,Entrenamiento Funcional,688254710,8,25,True
-871f3289-88ee-44f2-810d-120bcffb95ad,Maria,Mery@noxfit.es,Pilates,717364501,3,30,True
-12e6cf50-c2a2-4ce6-81ed-2a35cc5ccf8e,Samuel,Samuel@noxfit.es,Musculación,620222478,10,50,True
-86e2fa9a-8e0e-4ffd-b579-158c593f73d8,Pablo,Pablo@noxfit.es,CrossFit,649151566,10,30,True
-3d3dea57-9218-437f-8e02-bbb7f1233278,Oscar,Oscar@noxfit.es,Spinning,636262665,12,50,True
-02209175-c6ee-4658-90d6-5683263b4b70,Susana,Susann@noxfit.es,Spinning,717993625,5,40,True
+trainer_id,full_name,email,password,activity_type,phone,years_experience,hourly_rate,active
+60193ac1-fdd8-48b2-aa66-303181dfb3e0,Alberto,Albert@noxfit.es,nmYcYwavmLUl7Sgs,Entenamiento Funcinal,652369412,3,25,True
+843d66cb-b0bf-4655-919f-01081bf4da2d,Natalia,Naty@noxfit.es,qcm9pZ4jtb4zMwku,Pilates,717153694,6,30,True
+7bfec265-e18e-45d2-a450-50c27262d939,Javier,Javi@noxfit.es,daL8dqGVpGNvcPE0,Musculación,660239581,4,25,True
+1f85ffeb-12b0-4c41-a99e-7132027a9697,Arturo,Arturo@noxfit.es,wn3z98NAEx2vpyTB,CrossFit,606329487,10,25,True
+e01130ba-66ef-4987-b6c5-e0698e4c5821,Aida,Aida@noxfit.es,Cuw472wzbP9V7Uub,Entrenamiento Funcional,688254710,8,25,True
+871f3289-88ee-44f2-810d-120bcffb95ad,Maria,Mery@noxfit.es,tyl3oamQFqRrmFOk,Pilates,717364501,3,30,True
+12e6cf50-c2a2-4ce6-81ed-2a35cc5ccf8e,Samuel,Samuel@noxfit.es,P9IiUIPlKopgwPJN,Musculación,620222478,10,50,True
+86e2fa9a-8e0e-4ffd-b579-158c593f73d8,Pablo,Pablo@noxfit.es,YBVQshJd5PVnNPPu,CrossFit,649151566,10,30,True
+3d3dea57-9218-437f-8e02-bbb7f1233278,Oscar,Oscar@noxfit.es,Gr4jhX73JU8qKuk3,Spinning,636262665,12,50,True
+02209175-c6ee-4658-90d6-5683263b4b70,Susana,Susann@noxfit.es,ftvsVXcGLHfAPQuX,Spinning,717993625,5,40,True

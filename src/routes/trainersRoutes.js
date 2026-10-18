@@ -7,7 +7,6 @@ const {
   listTrainers,
   getTrainerById,
   registerTrainer,
-  loginTrainer,
   getCurrentTrainer,
   createTrainer,
   updateCurrentTrainer,
@@ -18,23 +17,20 @@ const {
 const rejectPut = methodNotAllowed('PUT is not supported for trainers; use PATCH for partial updates');
 
 router.post('/register', asyncHandler(registerTrainer));
-router.post('/login', asyncHandler(loginTrainer));
 
 router.route('/me')
   .get(requireTrainerAuth, asyncHandler(getCurrentTrainer))
   .patch(requireTrainerAuth, asyncHandler(updateCurrentTrainer))
   .put(requireTrainerAuth, rejectPut);
 
-router.use(requireTrainerAdmin);
-
 router.route('/')
-  .get(asyncHandler(listTrainers))
-  .post(asyncHandler(createTrainer));
+  .get(requireTrainerAdmin, asyncHandler(listTrainers))
+  .post(requireTrainerAdmin, asyncHandler(createTrainer));
 
 router.route('/:trainer_id')
-  .get(asyncHandler(getTrainerById))
-  .patch(asyncHandler(updateTrainer))
+  .get(requireTrainerAdmin, asyncHandler(getTrainerById))
+  .patch(requireTrainerAdmin, asyncHandler(updateTrainer))
   .put(rejectPut)
-  .delete(asyncHandler(deleteTrainer));
+  .delete(requireTrainerAdmin, asyncHandler(deleteTrainer));
 
 module.exports = router;

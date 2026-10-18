@@ -4,10 +4,13 @@ API REST para gestionar members, trainers y reservations de Noxfit.
 
 El backend está construido con Express 5, MongoDB con Mongoose y autenticación JWT Bearer. Todas las rutas públicas del contrato viven bajo el prefijo `/api`.
 
+El repositorio ahora incluye además un frontend React separado en `frontend/`, pensado como panel operativo para trabajar sobre members, trainers y reservations.
+
 ## Resumen técnico
 
 - Runtime: Node.js 20.19+
 - Framework HTTP: Express 5
+- Frontend: React 19 + Vite
 - Base de datos: MongoDB
 - ODM: Mongoose
 - Auth: JWT Bearer
@@ -29,9 +32,13 @@ src/
   http/                    -> helpers de respuestas y errores
 scripts/
   seed.js                  -> carga inicial desde CSV
+  build-workbook.js        -> genera un Excel a partir de los CSV actuales
   check-openapi.js         -> validación del contrato OpenAPI
+frontend/
+  src/                     -> app React, hooks, componentes y estilos
 data/
-  *.csv                    -> datos fuente para seed
+  *.csv                    -> datos tabulares fuente
+  noxfit-data.xlsx         -> workbook Excel generado para el seed
 test/
   *.test.js                -> pruebas unitarias e integración
 ```
@@ -71,7 +78,7 @@ Obligatoria para el bootstrap público del primer trainer admin:
 Opcionales:
 
 - `PORT`: puerto HTTP; por defecto `3000`
-- `SEED_DEFAULT_PASSWORD`: contraseña inicial usada por el seed; por defecto `Noxfit123`
+- `SEED_DEFAULT_PASSWORD`: contraseña fallback usada por el seed cuando una fila no trae `password`; por defecto `Noxfit123`
 - `SEED_ADMIN_TRAINER_ID`: selecciona qué trainer del CSV será admin inicial
 - `CLOUDINARY_*`: infraestructura de subida de imágenes ya preparada, pero sin endpoints públicos en esta versión
 
@@ -79,6 +86,7 @@ Opcionales:
 
 ```bash
 npm install
+npm install --prefix frontend
 ```
 
 ## Ejecución
@@ -87,6 +95,12 @@ Desarrollo:
 
 ```bash
 npm run dev
+```
+
+Frontend en desarrollo:
+
+```bash
+npm run frontend:dev
 ```
 
 Ejecución local:
@@ -106,6 +120,14 @@ La base URL del API es:
 ```text
 http://localhost:3000/api
 ```
+
+El frontend de Vite arranca por defecto en:
+
+```text
+http://localhost:5173
+```
+
+Si el API no está en `http://localhost:3000`, configura `VITE_API_BASE_URL` antes de arrancar el frontend.
 
 ## OpenAPI
 
@@ -131,6 +153,12 @@ Chequeo rápido del proyecto:
 npm run check
 ```
 
+Build del frontend:
+
+```bash
+npm run frontend:build
+```
+
 Suite de tests:
 
 ```bash
@@ -145,13 +173,20 @@ El proyecto incluye una carga inicial a partir de CSV.
 npm run seed
 ```
 
+También puedes generar el workbook Excel que el seed detecta automáticamente:
+
+```bash
+npm run data:workbook
+```
+
 El seed:
 
 - limpia las colecciones antes de insertar datos
-- carga `data/members.csv`, `data/trainers.csv` y `data/reservations.csv`
+- prioriza `data/noxfit-data.xlsx` si existe, y en caso contrario usa `data/members.csv`, `data/trainers.csv` y `data/reservations.csv`
 - normaliza fechas a día UTC
 - convierte campos numéricos
-- asigna una contraseña inicial común a las cuentas
+- usa la columna `password` de cada fila para crear el hash de acceso
+- usa `SEED_DEFAULT_PASSWORD` solo si una fila no trae `password`
 - marca un único trainer admin inicial
 
 Regla de admin inicial:
@@ -201,8 +236,6 @@ Actualizaciones:
 
 | Método | Ruta | Auth | Descripción |
 | --- | --- | --- | --- |
-| POST | `/api/members/register` | No | Registro público de member |
-| POST | `/api/members/login` | No | Login de member |
 | GET | `/api/members/me` | Member | Obtiene el perfil autenticado |
 | PATCH | `/api/members/me` | Member | Actualiza el perfil autenticado |
 | PUT | `/api/members/me` | Member | No permitido |
@@ -229,7 +262,6 @@ Campos relevantes de member:
 | Método | Ruta | Auth | Descripción |
 | --- | --- | --- | --- |
 | POST | `/api/trainers/register` | No + `x-bootstrap-token` | Crea el primer trainer admin si todavía no existen trainers |
-| POST | `/api/trainers/login` | No | Login de trainer |
 | GET | `/api/trainers/me` | Trainer | Obtiene el perfil autenticado |
 | PATCH | `/api/trainers/me` | Trainer | Actualiza el perfil autenticado |
 | PUT | `/api/trainers/me` | Trainer | No permitido |
@@ -239,6 +271,12 @@ Campos relevantes de member:
 | PATCH | `/api/trainers/:trainer_id` | Trainer admin | Actualiza un trainer |
 | PUT | `/api/trainers/:trainer_id` | Trainer admin | No permitido |
 | DELETE | `/api/trainers/:trainer_id` | Trainer admin | Elimina un trainer si no tiene reservas vinculadas |
+
+### Auth
+
+| Método | Ruta | Auth | Descripción |
+| --- | --- | --- | --- |
+| POST | `/api/auth/login` | No | Login unificado para `member` o `trainer` usando `role`, `email` y `password` |
 
 Campos relevantes de trainer:
 

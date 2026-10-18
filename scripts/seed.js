@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
 const mongoose = require('mongoose');
+const xlsx = require('xlsx');
 
 const Member = require('../src/models/members');
 const Trainer = require('../src/models/trainers');
@@ -13,9 +14,59 @@ const { normalizeDateOnly } = require('../src/config/validation');
 
 const dataDirectory = path.join(__dirname, '..', 'data');
 const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || 'Noxfit123';
-const ADMIN_TRAINER_ID = process.env.SEED_ADMIN_TRAINER_ID;
+const ADMIN_TRAINER_ID = process.env.SEED_ADMIN_TRAINER_ID || '843d66cb-b0bf-4655-919f-01081bf4da2d';
+const DEFAULT_WORKBOOK_NAME = 'noxfit-data.xlsx';
+const DEFAULT_WORKBOOK_PATH = path.join(dataDirectory, DEFAULT_WORKBOOK_NAME);
 const ACTIVITY_TYPE_NORMALIZATION = {
   'Entenamiento Funcinal': 'Entrenamiento Funcional'
+};
+
+const normalizePassword = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value.trim();
+};
+
+const mergePasswordFieldFromRows = (rows, passwordRows, identifierField) => {
+  const passwordByIdentifier = new Map(
+    passwordRows
+      .filter((row) => row[identifierField])
+      .map((row) => [String(row[identifierField]).trim(), normalizePassword(row.password)])
+  );
+
+  return rows.map((row) => {
+    if (normalizePassword(row.password)) {
+      return row;
+    }
+
+    const identifier = row[identifierField] ? String(row[identifierField]).trim() : '';
+    const password = passwordByIdentifier.get(identifier);
+
+    if (!password) {
+      return row;
+    }
+
+    return {
+      ...row,
+      password,
+    };
+  });
+};
+
+const buildPasswordHashResolver = async () => {
+  const cache = new Map();
+
+  return async (rawPassword) => {
+    const normalizedPassword = normalizePassword(rawPassword) || DEFAULT_SEED_PASSWORD;
+
+    if (!cache.has(normalizedPassword)) {
+      cache.set(normalizedPassword, await hashPassword(normalizedPassword));
+    }
+
+    return cache.get(normalizedPassword);
+  };
 };
 
 const resolveAdminTrainerId = (trainerRows) => {
@@ -141,11 +192,67 @@ const loadCsv = (fileName) => {
   });
 };
 
-const loadSeedRows = () => Promise.all([
-  loadCsv('members.csv'),
-  loadCsv('trainers.csv'),
-  loadCsv('reservations.csv')
-]);
+const loadWorkbookRows = (workbookPath, sheetName) => {
+  if (!fs.existsSync(workbookPath)) {
+    throw new Error(`The workbook ${path.basename(workbookPath)} was not found in data/`);
+  }
+
+  const workbook = xlsx.readFile(workbookPath, { cellDates: false });
+  const worksheet = workbook.Sheets[sheetName];
+
+  if (!worksheet) {
+    throw new Error(`The workbook sheet ${sheetName} was not found in ${path.basename(workbookPath)}`);
+  }
+
+  return xlsx.utils.sheet_to_json(worksheet, {
+    defval: '',
+    raw: false,
+  });
+};
+
+const resolveSeedWorkbookPath = () => {
+  const configuredWorkbook = process.env.SEED_WORKBOOK_PATH;
+
+  if (configuredWorkbook) {
+    return path.isAbsolute(configuredWorkbook)
+      ? configuredWorkbook
+      : path.join(dataDirectory, configuredWorkbook);
+  }
+
+  return fs.existsSync(DEFAULT_WORKBOOK_PATH) ? DEFAULT_WORKBOOK_PATH : null;
+};
+
+const loadSeedRows = async () => {
+  const workbookPath = resolveSeedWorkbookPath();
+
+  if (workbookPath) {
+    const [memberCsvRows, trainerCsvRows] = await Promise.all([
+      loadCsv('members.csv'),
+      loadCsv('trainers.csv'),
+    ]);
+
+    const workbookMemberRows = loadWorkbookRows(workbookPath, 'members');
+    const workbookTrainerRows = loadWorkbookRows(workbookPath, 'trainers');
+
+    return {
+      sourceLabel: `Excel workbook (${path.basename(workbookPath)})`,
+      rows: [
+        mergePasswordFieldFromRows(workbookMemberRows, memberCsvRows, 'member_id'),
+        mergePasswordFieldFromRows(workbookTrainerRows, trainerCsvRows, 'trainer_id'),
+        loadWorkbookRows(workbookPath, 'reservations'),
+      ],
+    };
+  }
+
+  return {
+    sourceLabel: 'CSV files',
+    rows: await Promise.all([
+      loadCsv('members.csv'),
+      loadCsv('trainers.csv'),
+      loadCsv('reservations.csv')
+    ]),
+  };
+};
 
 const buildLookupMap = (items, fieldName) => new Map(
   items.map((item) => [item[fieldName], item])
@@ -160,13 +267,13 @@ const clearCollections = async () => {
 };
 
 const createAccountsPayload = async (memberRows, trainerRows) => {
-  const passwordHash = await hashPassword(DEFAULT_SEED_PASSWORD);
+  const resolvePasswordHash = await buildPasswordHashResolver();
   const adminTrainerId = resolveAdminTrainerId(trainerRows);
 
   return {
     adminTrainerId,
-    members: mapMembers(memberRows, passwordHash),
-    trainers: mapTrainers(trainerRows, passwordHash, adminTrainerId),
+    members: await mapMembers(memberRows, resolvePasswordHash),
+    trainers: await mapTrainers(trainerRows, resolvePasswordHash, adminTrainerId),
   };
 };
 
@@ -179,29 +286,30 @@ const insertAccounts = async (members, trainers) => {
   return { insertedMembers, insertedTrainers };
 };
 
-const logSeedSummary = ({ insertedMembers, insertedTrainers, reservations, adminTrainerId }) => {
+const logSeedSummary = ({ insertedMembers, insertedTrainers, reservations, adminTrainerId, sourceLabel }) => {
+  console.log(`Seed source: ${sourceLabel}`);
   console.log(`Members inserted: ${insertedMembers.length}`);
   console.log(`Trainers inserted: ${insertedTrainers.length}`);
   console.log(`Reservations inserted: ${reservations.length}`);
   console.log(`Initial admin trainer: ${adminTrainerId}`);
 };
 
-const mapMembers = (rows, passwordHash) => rows.map((row) => ({
+const mapMembers = (rows, resolvePasswordHash) => Promise.all(rows.map(async (row) => ({
   member_id: row.member_id,
   full_name: row.full_name,
   email: row.email,
-  password_hash: passwordHash,
+  password_hash: await resolvePasswordHash(row.password),
   phone: row.phone || undefined,
   membership_type: row.membership_type || undefined,
   join_date: parseDate(row.join_date, { normalizeDate: true }),
   active: row.active === undefined || row.active === '' ? true : parseBoolean(row.active)
-}));
+})));
 
-const mapTrainers = (rows, passwordHash, adminTrainerId) => rows.map((row) => ({
+const mapTrainers = (rows, resolvePasswordHash, adminTrainerId) => Promise.all(rows.map(async (row) => ({
   trainer_id: row.trainer_id,
   full_name: row.full_name,
   email: row.email,
-  password_hash: passwordHash,
+  password_hash: await resolvePasswordHash(row.password),
   activity_type: normalizeActivityType(row.activity_type),
   phone: row.phone || undefined,
   years_experience: parseNumber(row.years_experience),
@@ -209,7 +317,7 @@ const mapTrainers = (rows, passwordHash, adminTrainerId) => rows.map((row) => ({
   is_admin: row.trainer_id === adminTrainerId,
   bootstrap_admin: row.trainer_id === adminTrainerId,
   active: row.active === undefined || row.active === '' ? true : parseBoolean(row.active)
-}));
+})));
 
 const mapReservations = (rows, membersById, trainersById) => rows.map((row) => {
   const member = membersById.get(row.member_id);
@@ -239,7 +347,7 @@ const seed = async () => {
   await connectToDatabase();
 
   try {
-    const [memberRows, trainerRows, reservationRows] = await loadSeedRows();
+    const { sourceLabel, rows: [memberRows, trainerRows, reservationRows] } = await loadSeedRows();
     const { adminTrainerId, members, trainers } = await createAccountsPayload(memberRows, trainerRows);
 
     await clearCollections();
@@ -252,7 +360,7 @@ const seed = async () => {
 
     await Reservation.insertMany(reservations);
 
-    logSeedSummary({ insertedMembers, insertedTrainers, reservations, adminTrainerId });
+    logSeedSummary({ insertedMembers, insertedTrainers, reservations, adminTrainerId, sourceLabel });
   } finally {
     await mongoose.connection.close();
   }
