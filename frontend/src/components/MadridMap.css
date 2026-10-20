@@ -1,0 +1,15 @@
+.madrid-map {
+  height: min(55vh, 460px);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.gym-marker span {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--color-ink);
+  border-radius: 50% 50% 50% 0;
+  background: var(--color-primary);
+  transform: rotate(-45deg);
+}

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import gymImage from '../assets/gym.jpg';
 import { MadridMap, gyms } from './MadridMap.jsx';
 import { RegisterForm } from './RegisterForm.jsx';
+import './AuthCard.css';
+import './LoginForm.css';
 
 const initialCredentials = {
   role: 'trainer',

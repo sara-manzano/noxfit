@@ -1,0 +1,79 @@
+.collection-shell {
+  display: grid;
+  grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+  gap: var(--space-lg);
+}
+
+.panel-form {
+  position: sticky;
+  top: 1rem;
+  align-self: start;
+}
+
+.panel-list {
+  position: relative;
+  overflow: hidden;
+}
+
+.panel-list::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.45;
+  background-image:
+    linear-gradient(rgba(20, 20, 20, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 20, 20, 0.025) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+.panel-list > * {
+  position: relative;
+  z-index: 1;
+}
+
+.panel-topline {
+  display: inline-flex;
+  margin-bottom: var(--space-sm);
+  padding: 0.38rem 0.78rem;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.08);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.field-inline {
+  min-width: 220px;
+  flex: 1;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+@media (max-width: 1080px) {
+  .collection-shell,
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-form {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .toolbar {
+    flex-direction: column;
+  }
+}

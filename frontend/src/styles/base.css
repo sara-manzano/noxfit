@@ -1,0 +1,81 @@
+:root {
+  --font-heading: 'Bebas Neue', sans-serif;
+  --font-body: 'Manrope', sans-serif;
+  --color-ink: #141414;
+  --color-muted: #6d6a62;
+  --color-surface: rgba(247, 241, 230, 0.82);
+  --color-surface-strong: #fcf8ee;
+  --color-border: rgba(20, 20, 20, 0.08);
+  --color-primary: #c7ff4a;
+  --color-primary-deep: #98cb2a;
+  --color-secondary: #f3ede1;
+  --color-danger: #be4253;
+  --color-success: #5c8f11;
+  --color-warning: #8f6619;
+  --color-shadow: 0 30px 80px rgba(20, 20, 20, 0.13);
+  --radius-xl: 32px;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --space-2xs: 0.35rem;
+  --space-xs: 0.6rem;
+  --space-sm: 0.9rem;
+  --space-md: 1.2rem;
+  --space-lg: 1.6rem;
+  --space-xl: 2.4rem;
+  --space-2xl: 3.4rem;
+  --content-max: 1280px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background:
+    radial-gradient(circle at top left, rgba(199, 255, 74, 0.2), transparent 24%),
+    radial-gradient(circle at 82% 12%, rgba(20, 20, 20, 0.08), transparent 20%),
+    linear-gradient(180deg, #f8f1e4 0%, #f3eadc 38%, #efe9de 100%);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(20, 20, 20, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(20, 20, 20, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.68), transparent 92%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.68), transparent 92%);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.page {
+  width: min(calc(100% - 2rem), var(--content-max));
+  margin: 0 auto;
+  padding: var(--space-2xl) 0 4rem;
+}
+
+@media (max-width: 720px) {
+  .page {
+    width: min(calc(100% - 1rem), var(--content-max));
+    padding-top: var(--space-xl);
+  }
+}

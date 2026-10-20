@@ -1,0 +1,413 @@
+.page-auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.8fr);
+  align-items: start;
+  gap: var(--space-xl);
+}
+
+.login-showcase {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.login-hero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: var(--space-xl);
+  padding: clamp(1.6rem, 3vw, 2.8rem);
+  border-radius: 48px 48px 48px 8px;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(199, 255, 74, 0.22), transparent 42%),
+    linear-gradient(135deg, rgba(20, 20, 20, 0.97) 0%, rgba(32, 32, 32, 0.95) 60%, rgba(60, 60, 60, 0.93) 100%);
+  color: #fcf8ee;
+  box-shadow: 0 32px 90px rgba(20, 20, 20, 0.24);
+}
+
+.login-hero-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-md);
+  justify-items: start;
+}
+
+.login-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(199, 255, 74, 0.45);
+  color: var(--color-primary);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.login-badge::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(199, 255, 74, 0.2);
+}
+
+.login-wordmark {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(4.6rem, 10vw, 8.6rem);
+  font-weight: 400;
+  line-height: 0.85;
+  letter-spacing: 0.02em;
+}
+
+.login-wordmark span {
+  color: transparent;
+  -webkit-text-stroke: 2px var(--color-primary);
+}
+
+.login-hero .hero-lead {
+  max-width: 44ch;
+}
+
+.login-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.login-figure {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  transform: rotate(2.5deg);
+}
+
+.login-figure::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translate(-14px, 14px);
+  border-radius: 140px 28px 140px 28px;
+  background: var(--color-primary);
+}
+
+.login-figure img {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 140px 28px 140px 28px;
+  border: 3px solid #141414;
+}
+
+.login-figure figcaption {
+  position: absolute;
+  left: -1.2rem;
+  bottom: 2rem;
+  display: grid;
+  padding: 0.7rem 1.1rem;
+  border-radius: 20px;
+  background: #fcf8ee;
+  color: var(--color-ink);
+  box-shadow: 0 16px 36px rgba(20, 20, 20, 0.3);
+  transform: rotate(-4deg);
+}
+
+.login-figure figcaption strong {
+  font-family: var(--font-heading);
+  font-size: 2.6rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.login-figure figcaption span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.login-bento {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.bento-tile {
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.bento-tile:hover {
+  transform: translateY(-3px) rotate(-0.4deg);
+}
+
+.bento-kicker {
+  display: inline-block;
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  letter-spacing: 0.05em;
+}
+
+.bento-why {
+  grid-column: span 4;
+  grid-row: span 2;
+  border-radius: 8px 40px 8px 40px;
+  background: var(--color-ink);
+  color: #fcf8ee;
+}
+
+.bento-why .bento-kicker {
+  color: var(--color-primary);
+}
+
+.bento-intro {
+  margin: 0 0 var(--space-md);
+  color: rgba(252, 248, 238, 0.72);
+}
+
+.bento-differentiators {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bento-differentiators li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(252, 248, 238, 0.14);
+}
+
+.bento-index {
+  font-family: var(--font-heading);
+  font-size: 2.4rem;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--color-primary);
+}
+
+.bento-differentiators h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+}
+
+.bento-differentiators p {
+  margin: 0.25rem 0 0;
+  color: rgba(252, 248, 238, 0.7);
+  font-size: 0.94rem;
+}
+
+.bento-highlight {
+  grid-column: span 2;
+  display: grid;
+  align-content: space-between;
+  gap: var(--space-sm);
+  border-radius: 40px 8px 40px 8px;
+  background: linear-gradient(135deg, #d6ff77 0%, #a9de2f 100%);
+  color: #1f2800;
+}
+
+.bento-highlight strong {
+  font-family: var(--font-heading);
+  font-size: clamp(3.6rem, 6vw, 5rem);
+  font-weight: 400;
+  line-height: 0.9;
+}
+
+.bento-highlight span {
+  font-weight: 800;
+}
+
+.bento-services {
+  grid-column: span 2;
+  border-radius: 28px;
+  background: rgba(252, 248, 238, 0.94);
+}
+
+.service-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.service-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.08);
+  font-weight: 700;
+}
+
+.bento-services .service-chip-grid {
+  gap: 0.4rem;
+}
+
+.bento-services .service-chip {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.86rem;
+}
+
+.bento-services .service-chip:nth-child(odd) {
+  background: var(--color-ink);
+  color: #fcf8ee;
+}
+
+.bento-services .service-chip:nth-child(3n) {
+  background: #000;
+  color: #fcf8ee;
+}
+
+.bento-cities {
+  grid-column: span 2;
+  border-radius: 28px 28px 8px 28px;
+  border: 2px dashed rgba(20, 20, 20, 0.28);
+  background: transparent;
+}
+
+.bento-cities ul {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bento-cities li {
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+
+.bento-cities li::before {
+  content: '\2197';
+  margin-right: 0.5rem;
+  color: var(--color-primary-deep);
+}
+
+.city-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--color-primary-deep);
+  text-underline-offset: 4px;
+}
+
+.city-link:hover,
+.city-link:focus-visible {
+  color: var(--color-primary-deep);
+}
+
+/* Dialogo del mapa */
+.map-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: var(--space-md);
+  background: rgba(20, 20, 20, 0.6);
+}
+
+.map-dialog {
+  width: min(900px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-strong);
+  box-shadow: var(--color-shadow);
+}
+
+.map-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.map-dialog-header h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+}
+
+.map-close {
+  border: 0;
+  background: none;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-addresses {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.map-addresses li {
+  display: grid;
+  gap: 0.2rem;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 1080px) {
+  .page-auth,
+  .login-hero,
+  .login-bento {
+    grid-template-columns: 1fr;
+  }
+
+  .login-figure {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  .bento-why,
+  .bento-highlight,
+  .bento-services,
+  .bento-cities {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .login-hero {
+    border-radius: 32px 32px 32px 8px;
+  }
+
+  .login-figure figcaption {
+    left: 0;
+  }
+}

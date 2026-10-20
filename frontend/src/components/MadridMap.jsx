@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import './MadridMap.css';
 
-// Límites aproximados de la Comunidad de Madrid.
 const madridRegionBounds = [
   [39.88, -4.58],
   [41.17, -3.05],

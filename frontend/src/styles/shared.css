@@ -1,0 +1,347 @@
+.auth-card,
+.panel,
+.stat-card,
+.profile-card,
+.entity-card,
+.empty-card,
+.loading-card,
+.subpanel {
+  background: var(--color-surface);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--color-shadow);
+}
+
+.auth-card,
+.panel,
+.profile-card,
+.subpanel {
+  border-radius: var(--radius-xl);
+}
+
+.auth-card {
+  padding: var(--space-2xl);
+}
+
+.auth-card h2,
+.section-heading h2,
+.section-heading h3,
+.profile-card h2,
+.entity-card h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  line-height: 1.05;
+}
+
+.auth-card p,
+.section-heading p,
+.profile-card p,
+.entity-card p,
+.stat-card p,
+.support-copy {
+  color: var(--color-muted);
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin-bottom: var(--space-sm);
+  color: #4e5e1e;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.metric-pill,
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.metric-pill {
+  background: rgba(20, 20, 20, 0.05);
+  color: #27241f;
+}
+
+.status-pill {
+  background: rgba(20, 20, 20, 0.08);
+  color: #1d1d1d;
+}
+
+.status-positive {
+  background: rgba(199, 255, 74, 0.26);
+  color: #425d00;
+}
+
+.status-neutral {
+  background: rgba(20, 20, 20, 0.08);
+  color: #303030;
+}
+
+.status-warning {
+  background: rgba(216, 79, 95, 0.15);
+  color: var(--color-danger);
+}
+
+.metric-pill-dark {
+  background: rgba(20, 20, 20, 0.9);
+  color: #fcf8ee;
+}
+
+.metric-pill-accent {
+  background: rgba(199, 255, 74, 0.9);
+  color: #293800;
+}
+
+.metric-pill-light {
+  background: rgba(252, 248, 238, 0.88);
+  color: #1d1d1d;
+}
+
+.section-heading {
+  display: grid;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.section-heading-tight {
+  margin-bottom: var(--space-md);
+}
+
+.section-heading-inline {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-lg);
+}
+
+.banner {
+  margin: var(--space-lg) 0;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+}
+
+.banner-error {
+  background: rgba(216, 79, 95, 0.14);
+  color: #9e243f;
+}
+
+.banner-success {
+  background: rgba(31, 143, 103, 0.14);
+  color: #17694d;
+}
+
+.stack-form {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.field span {
+  font-size: 0.92rem;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  border: 1px solid rgba(20, 20, 20, 0.12);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem;
+  background: rgba(255, 251, 245, 0.92);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: rgba(152, 203, 42, 0.7);
+  box-shadow: 0 0 0 4px rgba(199, 255, 74, 0.22);
+  transform: translateY(-1px);
+}
+
+.field-checkbox {
+  align-items: center;
+}
+
+.checkbox-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: 700;
+}
+
+.checkbox-field input {
+  width: auto;
+}
+
+.button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.9rem 1.2rem;
+  font-weight: 800;
+  transition: transform 160ms ease, opacity 160ms ease, background 160ms ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.button-primary {
+  background: linear-gradient(135deg, #d6ff77 0%, #a9de2f 100%);
+  color: #1f2800;
+}
+
+.button-secondary {
+  background: rgba(20, 20, 20, 0.08);
+  color: var(--color-ink);
+}
+
+.button-ghost {
+  background: rgba(20, 20, 20, 0.9);
+  color: #fcf8ee;
+}
+
+.support-copy {
+  margin-top: var(--space-lg);
+}
+
+.panel {
+  padding: var(--space-lg);
+  background: linear-gradient(180deg, rgba(252, 248, 238, 0.88) 0%, rgba(247, 241, 230, 0.72) 100%);
+}
+
+.entity-card,
+.empty-card,
+.loading-card {
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  background: rgba(255, 251, 245, 0.72);
+  border: 1px solid rgba(20, 20, 20, 0.06);
+}
+
+.empty-card,
+.loading-card,
+.loading-inline {
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.loading-inline {
+  margin-bottom: var(--space-md);
+  font-weight: 700;
+}
+
+.hero-lead {
+  max-width: 62ch;
+  margin: 0;
+  color: rgba(252, 248, 238, 0.76);
+  font-size: 1.02rem;
+}
+
+.hero-grid-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  background-image:
+    linear-gradient(rgba(252, 248, 238, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(252, 248, 238, 0.08) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: radial-gradient(circle at top left, rgba(0, 0, 0, 0.95), transparent 78%);
+  mask-image: radial-gradient(circle at top left, rgba(0, 0, 0, 0.95), transparent 78%);
+}
+
+/* Vistas con cabecera (agenda, entrenadores, servicios) */
+.view-section {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.view-heading h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(3rem, 6vw, 5rem);
+  line-height: 0.95;
+  letter-spacing: 0.03em;
+}
+
+.view-heading p {
+  max-width: 60ch;
+  color: var(--color-muted);
+}
+
+.profile-card,
+.auth-card,
+.panel,
+.stat-card,
+.entity-card,
+.feature-panel,
+.brand-hero,
+.tab-button,
+.button,
+.field input,
+.field select {
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.stat-card:hover,
+.entity-card:hover,
+.feature-panel:hover,
+.tab-button:hover,
+.panel:hover,
+.auth-card:hover {
+  transform: translateY(-2px);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.brand-hero,
+.auth-card,
+.stats-grid,
+.collection-shell {
+  animation: rise-in 520ms ease both;
+}
+
+@media (max-width: 720px) {
+  .auth-card,
+  .panel,
+  .profile-card,
+  .subpanel,
+  .entity-card,
+  .stat-card {
+    padding: var(--space-lg);
+  }
+
+  .section-heading-inline {
+    flex-direction: column;
+  }
+}

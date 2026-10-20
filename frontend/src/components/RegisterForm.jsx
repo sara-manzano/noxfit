@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import './AuthCard.css';
 
 const initialValues = {
   full_name: '',
