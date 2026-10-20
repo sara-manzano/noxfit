@@ -108,7 +108,7 @@ export const useDashboardData = (session) => {
     ),
     createTrainer: (payload) => runMutation(
       () => accountsApi.createTrainer(session, payload),
-      'Trainer creado correctamente'
+      'Entrenador creado correctamente'
     ),
     createReservation: (payload) => runMutation(
       () => reservationsApi.create(session, payload),
@@ -120,7 +120,7 @@ export const useDashboardData = (session) => {
     ),
     deleteTrainer: (trainerId) => runMutation(
       () => accountsApi.deleteTrainer(session, trainerId),
-      'Trainer eliminado correctamente'
+      'Entrenador eliminado correctamente'
     ),
     deleteReservation: (reservationId) => runMutation(
       () => reservationsApi.delete(session, reservationId),

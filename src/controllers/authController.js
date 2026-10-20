@@ -21,7 +21,6 @@ const login = async (req, res) => {
   return sendItem(res, await authenticateAccount(Model, role, email, password));
 };
 
-// Only whitelisted fields are accepted so self-registration cannot set plan, status or id.
 const registerMember = async (req, res) => {
   const { full_name, email, password, phone } = req.body || {};
   const data = sanitizeMemberPayload(
