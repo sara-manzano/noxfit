@@ -3,7 +3,8 @@ const Trainer = require('../models/trainers');
 const Reservation = require('../models/reservations');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeReservationPayload } = require('../middleware/validators');
-const { createStatusError, ensureFound } = require('./accountControllerHelpers');
+const { createStatusError } = require('../http/errors');
+const { ensureFound } = require('./accountControllerHelpers');
 const { ensureNoReservationConflicts } = require('./reservationConflicts');
 
 const reservationPopulation = [
@@ -32,22 +33,6 @@ const findReservationForOwnershipCheck = (reservation_id) => findReservationByCo
   .populate({ path: 'member', select: 'member_id' })
   .lean();
 
-const resolveFilterReference = async (value, resolver) => {
-  if (!value) {
-    return undefined;
-  }
-
-  try {
-    return await resolver(value);
-  } catch (error) {
-    if (error.statusCode === 404) {
-      return null;
-    }
-
-    throw error;
-  }
-};
-
 const ensureReservationOwner = (reservation, accountId, action) => {
   ensureFound(reservation, 'Reservation');
 
@@ -59,35 +44,33 @@ const ensureReservationOwner = (reservation, accountId, action) => {
 const buildReservationFilters = async (query) => {
   const filters = {};
 
-  if (query.status) {
-    filters.status = query.status;
-  }
-
-  if (query.activity_type) {
-    filters.activity_type = query.activity_type;
-  }
-
-  if (query.date) {
-    filters.date = query.date;
+  for (const field of ['status', 'activity_type', 'date']) {
+    if (query[field]) {
+      filters[field] = query[field];
+    }
   }
 
   if (query.member_id) {
-    filters.member = await resolveFilterReference(query.member_id, findMemberIdByCode);
+    const member = await Member.findOne({ member_id: query.member_id }).select('_id').lean();
 
-    if (filters.member === null) {
-      return { filters: null, emptyResult: true };
+    if (!member) {
+      return null;
     }
+
+    filters.member = member._id;
   }
 
   if (query.trainer_id) {
-    filters.trainer = await resolveFilterReference(query.trainer_id, findTrainerIdByCode);
+    const trainer = await Trainer.findOne({ trainer_id: query.trainer_id }).select('_id').lean();
 
-    if (filters.trainer === null) {
-      return { filters: null, emptyResult: true };
+    if (!trainer) {
+      return null;
     }
+
+    filters.trainer = trainer._id;
   }
 
-  return { filters, emptyResult: false };
+  return filters;
 };
 
 const resolveReservationReferences = async (payload) => {
@@ -120,9 +103,9 @@ const assignCurrentMember = (req, reservationData) => {
 };
 
 const listReservations = async (req, res) => {
-  const { filters, emptyResult } = await buildReservationFilters(req.query);
+  const filters = await buildReservationFilters(req.query);
 
-  if (emptyResult) {
+  if (!filters) {
     return sendCollection(res, []);
   }
 

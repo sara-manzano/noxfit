@@ -1,52 +1,38 @@
 const Trainer = require('../models/trainers');
-const Reservation = require('../models/reservations');
-const { hashPassword, signToken } = require('../config/auth');
+const { signAccountToken } = require('../config/auth');
+const { createStatusError } = require('../http/errors');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeTrainerPayload } = require('../middleware/validators');
 const {
-  createStatusError,
   ensureFound,
   listAccountRecords,
   getAccountRecord,
   createAccountRecord,
-  createAccountAuthResponse,
   updateAccountRecord,
   deleteAccountRecord,
 } = require('./accountControllerHelpers');
 
-const buildTrainerToken = (trainer) => signToken({
-  sub: trainer.trainer_id,
-  role: 'trainer',
-  is_admin: trainer.is_admin,
-});
-
-const ensureBootstrapTokenIsConfigured = () => {
-  if (!process.env.TRAINER_BOOTSTRAP_TOKEN) {
-    throw createStatusError('TRAINER_BOOTSTRAP_TOKEN is required to bootstrap the first trainer admin', 503);
-  }
-
-  return process.env.TRAINER_BOOTSTRAP_TOKEN;
-};
-
+// Only the very first trainer can self-register, and only with the bootstrap token.
 const ensurePublicTrainerRegistrationAllowed = async (req) => {
-  const trainerExists = await Trainer.exists({});
-
-  if (trainerExists) {
+  if (await Trainer.exists({})) {
     throw createStatusError('Public trainer registration is closed; ask an admin to create the account', 403);
   }
 
-  const bootstrapToken = ensureBootstrapTokenIsConfigured();
-  const providedToken = req.headers['x-bootstrap-token'];
+  const bootstrapToken = process.env.TRAINER_BOOTSTRAP_TOKEN;
 
-  if (providedToken !== bootstrapToken) {
+  if (!bootstrapToken) {
+    throw createStatusError('TRAINER_BOOTSTRAP_TOKEN is required to bootstrap the first trainer admin', 503);
+  }
+
+  if (req.headers['x-bootstrap-token'] !== bootstrapToken) {
     throw createStatusError('A valid bootstrap token is required to create the first trainer admin', 403);
   }
 };
 
 const listTrainers = async (req, res) => {
-  const response = await listAccountRecords(Trainer, req.query, 'activity_type');
+  const trainers = await listAccountRecords(Trainer, req.query, 'activity_type');
 
-  return sendCollection(res, response.items);
+  return sendCollection(res, trainers);
 };
 
 const getTrainerById = async (req, res) => {
@@ -59,12 +45,12 @@ const registerTrainer = async (req, res) => {
   await ensurePublicTrainerRegistrationAllowed(req);
 
   const payload = sanitizeTrainerPayload(req.body, { requirePassword: true });
-  const trainer = await createAccountRecord(Trainer, payload, hashPassword, {
+  const trainer = await createAccountRecord(Trainer, payload, {
     is_admin: true,
     bootstrap_admin: true,
   });
 
-  return sendItem(res, createAccountAuthResponse(trainer, buildTrainerToken), 201);
+  return sendItem(res, { token: signAccountToken('trainer', trainer), user: trainer }, 201);
 };
 
 const getCurrentTrainer = async (req, res) => {
@@ -79,8 +65,7 @@ const createTrainer = async (req, res) => {
     sanitizeTrainerPayload(req.body, {
       requirePassword: true,
       allowAdminField: true,
-    }),
-    hashPassword
+    })
   );
 
   return sendItem(res, trainer, 201);
@@ -90,8 +75,7 @@ const updateCurrentTrainer = async (req, res) => {
   const trainer = await updateAccountRecord(
     Trainer,
     { trainer_id: req.auth.identifier },
-    sanitizeTrainerPayload(req.body, { partial: true, allowIdentifierUpdate: false }),
-    hashPassword
+    sanitizeTrainerPayload(req.body, { partial: true, allowIdentifierUpdate: false })
   );
 
   ensureFound(trainer, 'Trainer');
@@ -106,8 +90,7 @@ const updateTrainer = async (req, res) => {
     sanitizeTrainerPayload(req.body, {
       partial: true,
       allowAdminField: true,
-    }),
-    hashPassword
+    })
   );
 
   ensureFound(trainer, 'Trainer');
@@ -116,14 +99,7 @@ const updateTrainer = async (req, res) => {
 };
 
 const deleteTrainer = async (req, res) => {
-  await deleteAccountRecord({
-    Model: Trainer,
-    ReservationModel: Reservation,
-    identifierField: 'trainer_id',
-    identifierValue: req.params.trainer_id,
-    reservationField: 'trainer',
-    resourceName: 'Trainer',
-  });
+  await deleteAccountRecord(Trainer, 'trainer_id', req.params.trainer_id, 'trainer', 'Trainer');
 
   return sendNoContent(res);
 };

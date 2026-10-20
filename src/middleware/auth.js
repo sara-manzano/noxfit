@@ -3,10 +3,8 @@ const { verifyToken } = require('../config/auth');
 const Member = require('../models/members');
 const Trainer = require('../models/trainers');
 
-const createAuthError = (message, statusCode) => createStatusError(message, statusCode);
-
-const createForbiddenError = (message) => createAuthError(message, 403);
-const createDeletedAccountError = () => createAuthError('Account for this token no longer exists', 401);
+const createForbiddenError = (message) => createStatusError(message, 403);
+const createDeletedAccountError = () => createStatusError('Account for this token no longer exists', 401);
 
 const normalizeAuthError = (error) => {
   if (error.statusCode) {
@@ -14,7 +12,7 @@ const normalizeAuthError = (error) => {
   }
 
   if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-    return createAuthError('Token is invalid or expired', 401);
+    return createStatusError('Token is invalid or expired', 401);
   }
 
   return error;
@@ -24,13 +22,13 @@ const getBearerToken = (req) => {
   const authorizationHeader = req.headers.authorization;
 
   if (!authorizationHeader) {
-    throw createAuthError('Authorization header is required', 401);
+    throw createStatusError('Authorization header is required', 401);
   }
 
   const [scheme, token] = authorizationHeader.split(' ');
 
   if (scheme !== 'Bearer' || !token) {
-    throw createAuthError('Authorization header must use Bearer <token>', 401);
+    throw createStatusError('Authorization header must use Bearer <token>', 401);
   }
 
   return token;
@@ -38,48 +36,31 @@ const getBearerToken = (req) => {
 
 const resolveAccount = async (payload) => {
   if (!payload?.sub || !payload?.role) {
-    throw createAuthError('Token is invalid or expired', 401);
+    throw createStatusError('Token is invalid or expired', 401);
   }
+
+  let account;
 
   if (payload.role === 'member') {
-    const member = await Member.findOne({ member_id: payload.sub })
-      .select('_id active')
-      .lean();
-
-    if (!member) {
-      throw createDeletedAccountError();
-    }
-
-    if (member.active === false) {
-      throw createAuthError('Account is inactive', 403);
-    }
-
-    return {
-      accountId: member._id.toString(),
-      isAdmin: false,
-    };
+    account = await Member.findOne({ member_id: payload.sub }).select('_id active').lean();
+  } else if (payload.role === 'trainer') {
+    account = await Trainer.findOne({ trainer_id: payload.sub }).select('_id active is_admin').lean();
+  } else {
+    throw createStatusError('Token is invalid or expired', 401);
   }
 
-  if (payload.role === 'trainer') {
-    const trainer = await Trainer.findOne({ trainer_id: payload.sub })
-      .select('_id active is_admin')
-      .lean();
-
-    if (!trainer) {
-      throw createDeletedAccountError();
-    }
-
-    if (trainer.active === false) {
-      throw createAuthError('Account is inactive', 403);
-    }
-
-    return {
-      accountId: trainer._id.toString(),
-      isAdmin: Boolean(trainer.is_admin),
-    };
+  if (!account) {
+    throw createDeletedAccountError();
   }
 
-  throw createAuthError('Token is invalid or expired', 401);
+  if (account.active === false) {
+    throw createStatusError('Account is inactive', 403);
+  }
+
+  return {
+    accountId: account._id.toString(),
+    isAdmin: Boolean(account.is_admin),
+  };
 };
 
 const buildAuthContext = async (req) => {

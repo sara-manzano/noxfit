@@ -1,7 +1,7 @@
 const TIME_SLOT_PATTERN = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
 
 const normalizeDateOnly = (value) => {
-  const date = value instanceof Date ? new Date(value) : new Date(value);
+  const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return date;

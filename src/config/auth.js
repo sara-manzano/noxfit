@@ -23,9 +23,18 @@ const signToken = (payload) => jwt.sign(payload, getJwtSecret(), { expiresIn: '7
 
 const verifyToken = (token) => jwt.verify(token, getJwtSecret());
 
+const signAccountToken = (role, account) => {
+  if (role === 'trainer') {
+    return signToken({ sub: account.trainer_id, role, is_admin: account.is_admin });
+  }
+
+  return signToken({ sub: account.member_id, role });
+};
+
 module.exports = {
   hashPassword,
   comparePassword,
   signToken,
+  signAccountToken,
   verifyToken,
 };

@@ -26,14 +26,17 @@ src/
   app.js                   -> middlewares, rutas y manejo global de errores
   config/                  -> auth, base de datos, validaciones, Cloudinary
   controllers/             -> lógica de negocio
+    accountControllerHelpers.js -> CRUD y login compartidos entre members y trainers
+    reservationConflicts.js     -> detección de conflictos de agenda
   routes/                  -> definición de endpoints
   middleware/              -> auth, validación, asyncHandler, 405
   models/                  -> esquemas e índices Mongoose
   http/                    -> helpers de respuestas y errores
 scripts/
-  seed.js                  -> carga inicial desde CSV
+  seed.js                  -> carga inicial desde el workbook Excel o los CSV
   build-workbook.js        -> genera un Excel a partir de los CSV actuales
   check-openapi.js         -> validación del contrato OpenAPI
+  repair-legacy-auth.js    -> repara cuentas antiguas (emails, ids, hashes y flag admin)
 frontend/
   src/                     -> app React, hooks, componentes y estilos
 data/
@@ -167,7 +170,7 @@ npm test
 
 ## Seed de datos
 
-El proyecto incluye una carga inicial a partir de CSV.
+El proyecto incluye una carga inicial a partir del workbook Excel o de los CSV.
 
 ```bash
 npm run seed
@@ -193,6 +196,14 @@ Regla de admin inicial:
 
 - si `SEED_ADMIN_TRAINER_ID` está definido, ese trainer será admin
 - si no está definido, se usa el primer trainer del CSV
+
+### Reparar cuentas antiguas
+
+```bash
+npm run repair:auth
+```
+
+Normaliza emails e identificadores de members y trainers, asigna un hash de contraseña (a partir de `SEED_DEFAULT_PASSWORD`) a las cuentas que no lo tienen y ajusta `is_admin` según `SEED_ADMIN_TRAINER_ID`.
 
 ## Convenciones HTTP
 
@@ -337,7 +348,7 @@ Restricciones de acceso:
 
 ## Respuestas de autenticación
 
-El registro público y login de members devuelven:
+El login de members (`POST /api/auth/login` con `role: "member"`) devuelve:
 
 ```json
 {
@@ -350,7 +361,11 @@ El registro público y login de members devuelven:
 }
 ```
 
-El registro bootstrap y login de trainers devuelven el mismo formato, con `user` adaptado al recurso trainer.
+El registro bootstrap y el login de trainers devuelven el mismo formato, con `user` adaptado al recurso trainer.
+
+Las cuentas de members no tienen registro público: las crea un trainer admin con `POST /api/members`.
+
+Si el email no existe o la contraseña es incorrecta, el login devuelve el mismo `401 Invalid email or password`.
 
 Las respuestas saneadas no exponen `password_hash`.
 
@@ -402,9 +417,10 @@ Comportamiento:
 La suite actual cubre, entre otros casos:
 
 - exposición del contrato OpenAPI y Swagger UI
-- login de members
-- login de trainers
-- bootstrap del primer trainer admin
+- login de members y trainers, incluido el caso de un trainer sin hash de contraseña
+- ausencia de registro público de members
+- bootstrap del primer trainer admin y su cierre posterior
+- `/me` no permite cambiar `member_id` ni `trainer_id`
 - restricciones de acceso a reservations
 - rechazo de `PUT` en endpoints que solo admiten `PATCH`
 - normalización de fechas

@@ -1,8 +1,9 @@
+const { createStatusError } = require('../http/errors');
+const { isValidTimeSlot, normalizeDateOnly } = require('../config/validation');
+
 const MEMBER_TYPES = ['Básica', 'Premium', 'VIP'];
 const RESERVATION_STATUS = ['Confirmada', 'Completada', 'Cancelada'];
 const MIN_PASSWORD_LENGTH = 8;
-const { createStatusError } = require('../http/errors');
-const { isValidTimeSlot, normalizeDateOnly } = require('../config/validation');
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim() !== '';
 
@@ -17,9 +18,7 @@ const isValidDate = (value) => {
   return !Number.isNaN(date.getTime());
 };
 
-const isBoolean = (value) => typeof value === 'boolean';
-
-const isPositiveNumber = (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+const isNonNegativeNumber = (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0;
 
 const createValidationError = (message) => createStatusError(message, 400);
 
@@ -86,7 +85,7 @@ const readBooleanField = (payload, fieldName) => {
     return undefined;
   }
 
-  if (!isBoolean(payload[fieldName])) {
+  if (typeof payload[fieldName] !== 'boolean') {
     throw createValidationError(`${fieldName} must be true or false`);
   }
 
@@ -98,7 +97,7 @@ const readNumberField = (payload, fieldName) => {
     return undefined;
   }
 
-  if (!isPositiveNumber(payload[fieldName])) {
+  if (!isNonNegativeNumber(payload[fieldName])) {
     throw createValidationError(`${fieldName} must be a positive number or zero`);
   }
 
@@ -147,32 +146,39 @@ const readPasswordField = (payload, fieldName = 'password') => {
   return value;
 };
 
-const sanitizeMemberPayload = (
-  payload,
-  { partial = false, requirePassword = false, allowIdentifierUpdate = true } = {}
-) => {
+
+const readAccountFields = (payload, idField, { partial, requirePassword, allowIdentifierUpdate }) => {
   const data = {};
 
   if (partial) {
     if (allowIdentifierUpdate) {
-      assignIfDefined(data, 'member_id', readStringField(payload, 'member_id'));
+      assignIfDefined(data, idField, readStringField(payload, idField));
     }
 
     assignIfDefined(data, 'full_name', readStringField(payload, 'full_name'));
     assignIfDefined(data, 'email', readEmailField(payload, 'email'));
   } else {
-    data.member_id = readRequiredStringField(payload, 'member_id');
+    data[idField] = readRequiredStringField(payload, idField);
     data.full_name = readRequiredStringField(payload, 'full_name');
     data.email = requireField(readEmailField(payload, 'email'), 'email');
   }
 
   const password = readPasswordField(payload, 'password');
   assignIfDefined(data, 'password', requirePassword ? requireField(password, 'password') : password);
-
   assignIfDefined(data, 'phone', readStringField(payload, 'phone'));
+  assignIfDefined(data, 'active', readBooleanField(payload, 'active'));
+
+  return data;
+};
+
+const sanitizeMemberPayload = (
+  payload,
+  { partial = false, requirePassword = false, allowIdentifierUpdate = true } = {}
+) => {
+  const data = readAccountFields(payload, 'member_id', { partial, requirePassword, allowIdentifierUpdate });
+
   assignIfDefined(data, 'membership_type', readEnumField(payload, 'membership_type', MEMBER_TYPES));
   assignIfDefined(data, 'join_date', readDateField(payload, 'join_date'));
-  assignIfDefined(data, 'active', readBooleanField(payload, 'active'));
 
   return data;
 };
@@ -186,34 +192,15 @@ const sanitizeTrainerPayload = (
     allowIdentifierUpdate = true,
   } = {}
 ) => {
-  const data = {};
-
-  if (partial) {
-    if (allowIdentifierUpdate) {
-      assignIfDefined(data, 'trainer_id', readStringField(payload, 'trainer_id'));
-    }
-
-    assignIfDefined(data, 'full_name', readStringField(payload, 'full_name'));
-    assignIfDefined(data, 'email', readEmailField(payload, 'email'));
-  } else {
-    data.trainer_id = readRequiredStringField(payload, 'trainer_id');
-    data.full_name = readRequiredStringField(payload, 'full_name');
-    data.email = requireField(readEmailField(payload, 'email'), 'email');
-  }
-
-  const password = readPasswordField(payload, 'password');
-  assignIfDefined(data, 'password', requirePassword ? requireField(password, 'password') : password);
+  const data = readAccountFields(payload, 'trainer_id', { partial, requirePassword, allowIdentifierUpdate });
 
   assignIfDefined(data, 'activity_type', readStringField(payload, 'activity_type'));
-  assignIfDefined(data, 'phone', readStringField(payload, 'phone'));
   assignIfDefined(data, 'years_experience', readNumberField(payload, 'years_experience'));
   assignIfDefined(data, 'hourly_rate', readNumberField(payload, 'hourly_rate'));
 
   if (allowAdminField) {
     assignIfDefined(data, 'is_admin', readBooleanField(payload, 'is_admin'));
   }
-
-  assignIfDefined(data, 'active', readBooleanField(payload, 'active'));
 
   return data;
 };

@@ -17,49 +17,42 @@ const allowedImageFormats = Object.values(ALLOWED_FORMATS).join(', ');
 
 const shouldLogError = (error) => !error?.statusCode || error.statusCode >= 500;
 
-const handleMulterError = (error, res) => {
-  if (!(error instanceof multer.MulterError)) {
-    return false;
+const handleError = (error, _req, res, _next) => {
+  if (shouldLogError(error)) {
+    console.error(error);
   }
 
-  if (error.code === 'LIMIT_FILE_SIZE') {
-    sendError(res, 400, 'Image must be 2 MB or smaller');
-    return true;
+  if (error instanceof multer.MulterError) {
+    const message = error.code === 'LIMIT_FILE_SIZE'
+      ? 'Image must be 2 MB or smaller'
+      : 'Image upload could not be completed';
+
+    return sendError(res, 400, message);
   }
 
-  sendError(res, 400, 'Image upload could not be completed');
-  return true;
-};
-
-const handleKnownAppError = (error, res) => {
   if (error.message === INVALID_FILE_TYPE_MESSAGE) {
-    sendError(res, 400, `Invalid image format. Allowed formats: ${allowedImageFormats}`);
-    return true;
+    return sendError(res, 400, `Invalid image format. Allowed formats: ${allowedImageFormats}`);
   }
 
   if (error.name === 'ValidationError') {
     const messages = Object.values(error.errors).map((entry) => entry.message);
-    sendError(res, 400, messages.join(', '));
-    return true;
+    return sendError(res, 400, messages.join(', '));
   }
 
   if (error.code === 11000) {
     const duplicatedField = Object.keys(error.keyPattern || {})[0] || 'field';
-    sendError(res, 409, `${duplicatedField} is already in use`);
-    return true;
+    return sendError(res, 409, `${duplicatedField} is already in use`);
   }
 
   if (error.name === 'CastError') {
-    sendError(res, 400, 'Invalid identifier');
-    return true;
+    return sendError(res, 400, 'Invalid identifier');
   }
 
   if (error.statusCode) {
-    sendError(res, error.statusCode, error.message);
-    return true;
+    return sendError(res, error.statusCode, error.message);
   }
 
-  return false;
+  return sendError(res, 500, 'Internal server error');
 };
 
 app.use(cors());
@@ -89,16 +82,6 @@ app.use('/api/reservations', reservationsRoutes);
 
 app.use('/api', (_req, res) => sendError(res, 404, 'Resource was not found'));
 
-app.use((error, _req, res, _next) => {
-  if (shouldLogError(error)) {
-    console.error(error);
-  }
-
-  if (handleMulterError(error, res) || handleKnownAppError(error, res)) {
-    return;
-  }
-
-  return sendError(res, 500, 'Internal server error');
-});
+app.use(handleError);
 
 module.exports = app;

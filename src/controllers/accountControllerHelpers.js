@@ -1,59 +1,28 @@
+const Reservation = require('../models/reservations');
 const { createStatusError } = require('../http/errors');
-
-const createConflictError = (message) => createStatusError(message, 409);
-
-const createNotFoundError = (resourceName) => createStatusError(`${resourceName} was not found`, 404);
-
-const createUnauthorizedError = () => createStatusError('Invalid email or password', 401);
+const { hashPassword, comparePassword, signAccountToken } = require('../config/auth');
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const findAccountByEmail = (Model, email) => Model.findOne({
-  email: { $regex: `^${escapeRegExp(email)}$`, $options: 'i' },
-}).select('+password_hash');
-
 const ensureFound = (record, resourceName) => {
   if (!record) {
-    throw createNotFoundError(resourceName);
+    throw createStatusError(`${resourceName} was not found`, 404);
   }
 
   return record;
 };
 
-const ensureNoLinkedRecords = async (existsPromise, message) => {
-  const hasLinkedRecords = await existsPromise;
-
-  if (hasLinkedRecords) {
-    throw createConflictError(message);
-  }
-};
-
-const buildAccountFilters = (query, fieldName) => {
+const listAccountRecords = (Model, query, extraFilterField) => {
   const filters = {};
 
-  if (query.active === 'true') {
-    filters.active = true;
+  if (query.active === 'true') filters.active = true;
+  if (query.active === 'false') filters.active = false;
+
+  if (extraFilterField && query[extraFilterField]) {
+    filters[extraFilterField] = query[extraFilterField];
   }
 
-  if (query.active === 'false') {
-    filters.active = false;
-  }
-
-  if (fieldName && query[fieldName]) {
-    filters[fieldName] = query[fieldName];
-  }
-
-  return filters;
-};
-
-const listAccountRecords = async (Model, query, fieldName) => {
-  const filters = buildAccountFilters(query, fieldName);
-  const items = await Model.find(filters).sort({ full_name: 1 });
-
-  return {
-    items,
-    total: items.length,
-  };
+  return Model.find(filters).sort({ full_name: 1 });
 };
 
 const getAccountRecord = async (Model, identifierField, identifierValue, resourceName) => ensureFound(
@@ -61,56 +30,22 @@ const getAccountRecord = async (Model, identifierField, identifierValue, resourc
   resourceName
 );
 
-const withHashedPassword = async (data, hashPassword) => {
+const withHashedPassword = async (data) => {
   if (!data.password) {
     return data;
   }
 
-  const password_hash = await hashPassword(data.password);
-  const nextData = { ...data, password_hash };
-
-  delete nextData.password;
-
-  return nextData;
+  const { password, ...rest } = data;
+  return { ...rest, password_hash: await hashPassword(password) };
 };
 
-const createAccountRecord = async (Model, payload, hashPassword, extraData = {}) => {
-  const data = await withHashedPassword(payload, hashPassword);
+const createAccountRecord = async (Model, payload, extraData = {}) => {
+  const data = await withHashedPassword(payload);
   return Model.create({ ...data, ...extraData });
 };
 
-const createAccountAuthResponse = (account, buildToken) => ({
-  token: buildToken(account),
-  user: account,
-});
-
-const authenticateAccount = async ({
-  Model,
-  email,
-  password,
-  comparePassword,
-  buildToken,
-  roleLabel,
-}) => {
-  const account = await findAccountByEmail(Model, email);
-
-  if (!account) {
-    throw createUnauthorizedError();
-  }
-
-  const passwordMatches = await comparePassword(password, account.password_hash);
-
-  if (!passwordMatches) {
-    throw createUnauthorizedError();
-  }
-
-  ensureActiveAccount(account, roleLabel);
-
-  return createAccountAuthResponse(account, buildToken);
-};
-
-const updateAccountRecord = async (Model, filter, payload, hashPassword) => {
-  const data = await withHashedPassword(payload, hashPassword);
+const updateAccountRecord = async (Model, filter, payload) => {
+  const data = await withHashedPassword(payload);
 
   return Model.findOneAndUpdate(filter, data, {
     returnDocument: 'after',
@@ -118,48 +53,42 @@ const updateAccountRecord = async (Model, filter, payload, hashPassword) => {
   });
 };
 
-const deleteAccountRecord = async ({
-  Model,
-  ReservationModel,
-  identifierField,
-  identifierValue,
-  reservationField,
-  resourceName,
-}) => {
+const deleteAccountRecord = async (Model, identifierField, identifierValue, reservationField, resourceName) => {
   const account = ensureFound(
     await Model.findOne({ [identifierField]: identifierValue }).select('_id').lean(),
     resourceName
   );
 
-  await ensureNoLinkedRecords(
-    ReservationModel.exists({ [reservationField]: account._id }),
-    `${resourceName} cannot be deleted while reservations are linked to the account`
-  );
+  if (await Reservation.exists({ [reservationField]: account._id })) {
+    throw createStatusError(`${resourceName} cannot be deleted while reservations are linked to the account`, 409);
+  }
 
   await Model.findOneAndDelete({ [identifierField]: identifierValue });
 };
 
-const ensureActiveAccount = (account, roleLabel) => {
-  if (account.active === false) {
-    throw createStatusError(`${roleLabel} account is inactive`, 403);
+const authenticateAccount = async (Model, role, email, password) => {
+  const account = await Model.findOne({
+    email: { $regex: `^${escapeRegExp(email)}$`, $options: 'i' },
+  }).select('+password_hash');
+
+  // Same error for unknown email and wrong password so we don't leak which one failed.
+  if (!account || !(await comparePassword(password, account.password_hash))) {
+    throw createStatusError('Invalid email or password', 401);
   }
+
+  if (account.active === false) {
+    throw createStatusError(`${role} account is inactive`, 403);
+  }
+
+  return { token: signAccountToken(role, account), user: account };
 };
 
 module.exports = {
-  createStatusError,
-  createConflictError,
-  createNotFoundError,
-  createUnauthorizedError,
   ensureFound,
-  ensureNoLinkedRecords,
-  buildAccountFilters,
   listAccountRecords,
   getAccountRecord,
-  withHashedPassword,
   createAccountRecord,
-  createAccountAuthResponse,
-  authenticateAccount,
   updateAccountRecord,
   deleteAccountRecord,
-  ensureActiveAccount,
+  authenticateAccount,
 };

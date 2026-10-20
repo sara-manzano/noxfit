@@ -1,6 +1,4 @@
 const Member = require('../models/members');
-const Reservation = require('../models/reservations');
-const { hashPassword } = require('../config/auth');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeMemberPayload } = require('../middleware/validators');
 const {
@@ -13,9 +11,9 @@ const {
 } = require('./accountControllerHelpers');
 
 const listMembers = async (req, res) => {
-  const response = await listAccountRecords(Member, req.query, 'membership_type');
+  const members = await listAccountRecords(Member, req.query, 'membership_type');
 
-  return sendCollection(res, response.items);
+  return sendCollection(res, members);
 };
 
 const getMemberById = async (req, res) => {
@@ -33,8 +31,7 @@ const getCurrentMember = async (req, res) => {
 const createMember = async (req, res) => {
   const member = await createAccountRecord(
     Member,
-    sanitizeMemberPayload(req.body, { requirePassword: true }),
-    hashPassword
+    sanitizeMemberPayload(req.body, { requirePassword: true })
   );
 
   return sendItem(res, member, 201);
@@ -44,8 +41,7 @@ const updateCurrentMember = async (req, res) => {
   const member = await updateAccountRecord(
     Member,
     { member_id: req.auth.identifier },
-    sanitizeMemberPayload(req.body, { partial: true, allowIdentifierUpdate: false }),
-    hashPassword
+    sanitizeMemberPayload(req.body, { partial: true, allowIdentifierUpdate: false })
   );
 
   ensureFound(member, 'Member');
@@ -57,8 +53,7 @@ const updateMember = async (req, res) => {
   const member = await updateAccountRecord(
     Member,
     { member_id: req.params.member_id },
-    sanitizeMemberPayload(req.body, { partial: true }),
-    hashPassword
+    sanitizeMemberPayload(req.body, { partial: true })
   );
 
   ensureFound(member, 'Member');
@@ -67,14 +62,8 @@ const updateMember = async (req, res) => {
 };
 
 const deleteMember = async (req, res) => {
-  await deleteAccountRecord({
-    Model: Member,
-    ReservationModel: Reservation,
-    identifierField: 'member_id',
-    identifierValue: req.params.member_id,
-    reservationField: 'member',
-    resourceName: 'Member',
-  });
+  await deleteAccountRecord(Member, 'member_id', req.params.member_id, 'member', 'Member');
+
   return sendNoContent(res);
 };
 
