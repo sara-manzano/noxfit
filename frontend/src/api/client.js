@@ -51,6 +51,12 @@ export const accountsApi = {
   listTrainers(session) {
     return request('/trainers', { token: session.token });
   },
+  listMemberDirectory(session) {
+    return request('/members/directory', { token: session.token });
+  },
+  listTrainerDirectory(session) {
+    return request('/trainers/directory', { token: session.token });
+  },
   createMember(session, payload) {
     return request('/members', { method: 'POST', token: session.token, body: payload });
   },

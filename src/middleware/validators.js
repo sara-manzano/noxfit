@@ -3,6 +3,7 @@ const { isValidTimeSlot, normalizeDateOnly } = require('../config/validation');
 
 const MEMBER_TYPES = ['Básica', 'Premium', 'VIP'];
 const RESERVATION_STATUS = ['Confirmada', 'Completada', 'Cancelada'];
+const RESERVATION_BOOKERS = ['member', 'trainer'];
 const MIN_PASSWORD_LENGTH = 8;
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim() !== '';
@@ -228,12 +229,22 @@ const sanitizeRoleLoginPayload = (payload) => {
 
 const sanitizeReservationPayload = (
   payload,
-  { partial = false, requireMemberId = true, requireTrainerId = true } = {}
+  {
+    partial = false,
+    requireMemberId = true,
+    requireTrainerId = true,
+    requireReservationId = true,
+  } = {}
 ) => {
   const data = {};
 
   if (!partial) {
-    data.reservation_id = readRequiredStringField(payload, 'reservation_id');
+    const reservationId = readStringField(payload, 'reservation_id');
+    assignIfDefined(
+      data,
+      'reservation_id',
+      requireReservationId ? requireField(reservationId, 'reservation_id') : reservationId
+    );
 
     const memberId = readStringField(payload, 'member_id');
     const trainerId = readStringField(payload, 'trainer_id');
@@ -251,6 +262,7 @@ const sanitizeReservationPayload = (
   assignIfDefined(data, 'activity_type', readStringField(payload, 'activity_type'));
   assignIfDefined(data, 'time_slot', readTimeSlotField(payload, 'time_slot'));
   assignIfDefined(data, 'status', readEnumField(payload, 'status', RESERVATION_STATUS));
+  assignIfDefined(data, 'booked_by', readEnumField(payload, 'booked_by', RESERVATION_BOOKERS));
   assignIfDefined(data, 'price', readNumberField(payload, 'price'));
 
   return data;

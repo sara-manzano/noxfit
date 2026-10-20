@@ -7,6 +7,8 @@ const emptyWorkspace = {
   members: [],
   trainers: [],
   reservations: [],
+  memberDirectory: [],
+  trainerDirectory: [],
 };
 
 export const useDashboardData = (session) => {
@@ -38,35 +40,36 @@ export const useDashboardData = (session) => {
         ]);
 
         setWorkspace({
+          ...emptyWorkspace,
           profile,
           members: members.items,
           trainers: trainers.items,
           reservations: reservations.items,
+          memberDirectory: members.items,
+          trainerDirectory: trainers.items,
         });
         return;
       }
 
-      if (session.role === 'member') {
-        const [profile, reservations] = await Promise.all([
-          accountsApi.getProfile(session),
-          reservationsApi.list(session),
-        ]);
+      // Cada rol necesita la contraparte para elegirla al reservar.
+      // Si el directorio falla, las reservas propias deben seguir cargando.
+      const directoryRequest = (session.role === 'trainer'
+        ? accountsApi.listMemberDirectory(session)
+        : accountsApi.listTrainerDirectory(session)
+      ).catch(() => ({ items: [] }));
 
-        setWorkspace({
-          profile,
-          members: [],
-          trainers: [],
-          reservations: reservations.items,
-        });
-        return;
-      }
+      const [profile, reservations, directory] = await Promise.all([
+        accountsApi.getProfile(session),
+        reservationsApi.list(session),
+        directoryRequest,
+      ]);
 
-      const profile = await accountsApi.getProfile(session);
       setWorkspace({
+        ...emptyWorkspace,
         profile,
-        members: [],
-        trainers: [],
-        reservations: [],
+        reservations: reservations.items,
+        memberDirectory: session.role === 'trainer' ? directory.items : [],
+        trainerDirectory: session.role === 'member' ? directory.items : [],
       });
     } catch (requestError) {
       setError(requestError.message);

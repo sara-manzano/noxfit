@@ -1,0 +1,41 @@
+.booker-switch {
+  display: grid;
+  gap: var(--space-xs);
+  order: -3;
+}
+
+.booker-switch-label {
+  font-size: 0.92rem;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.booker-switch-control {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(20, 20, 20, 0.12);
+  background: rgba(255, 251, 245, 0.92);
+}
+
+.booker-switch-control button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.6rem 1rem;
+  background: transparent;
+  color: var(--color-muted);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.booker-switch-control button.is-active {
+  background: var(--color-primary);
+  color: var(--color-ink);
+}
+
+.booker-switch-control button:disabled:not(.is-active) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

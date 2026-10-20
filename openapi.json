@@ -1459,6 +1459,10 @@
           "trainer": {
             "$ref": "#/components/schemas/ReservationTrainer"
           },
+          "booked_by": {
+            "type": "string",
+            "enum": ["member", "trainer"]
+          },
           "activity_type": {
             "type": "string"
           },
@@ -1842,6 +1846,11 @@
           "trainer_id": {
             "type": "string"
           },
+          "booked_by": {
+            "type": "string",
+            "enum": ["member", "trainer"],
+            "description": "Only honored for admin trainers; members and standard trainers are set automatically"
+          },
           "activity_type": {
             "type": "string"
           },
@@ -1869,6 +1878,11 @@
         "properties": {
           "reservation_id": {
             "type": "string"
+          },
+          "booked_by": {
+            "type": "string",
+            "enum": ["member", "trainer"],
+            "description": "Only honored for admin trainers"
           },
           "member_id": {
             "type": "string"

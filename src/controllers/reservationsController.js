@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const Member = require('../models/members');
 const Trainer = require('../models/trainers');
 const Reservation = require('../models/reservations');
@@ -13,6 +14,8 @@ const reservationPopulation = [
 ];
 
 const isTrainerAdmin = (req) => req.auth?.role === 'trainer' && req.auth?.isAdmin;
+const isMemberAuth = (req) => req.auth?.role === 'member';
+const isStandardTrainer = (req) => req.auth?.role === 'trainer' && !req.auth?.isAdmin;
 
 const createForbiddenError = (message) => createStatusError(message, 403);
 const getReferenceId = (reference) => reference?._id || reference;
@@ -31,12 +34,18 @@ const findReservationByCode = (reservation_id) => Reservation.findOne({ reservat
 
 const findReservationForOwnershipCheck = (reservation_id) => findReservationByCode(reservation_id)
   .populate({ path: 'member', select: 'member_id' })
+  .populate({ path: 'trainer', select: 'trainer_id' })
   .lean();
 
-const ensureReservationOwner = (reservation, accountId, action) => {
+const isReservationOwner = (req, reservation) => {
+  const ownerReference = isMemberAuth(req) ? reservation.member : reservation.trainer;
+  return ownerReference?._id?.toString() === req.auth.accountId;
+};
+
+const ensureReservationOwner = (req, reservation, action) => {
   ensureFound(reservation, 'Reservation');
 
-  if (reservation.member?._id?.toString() !== accountId) {
+  if (!isReservationOwner(req, reservation)) {
     throw createForbiddenError(`You can only ${action} your own reservations`);
   }
 };
@@ -91,14 +100,26 @@ const resolveReservationReferences = async (payload) => {
 };
 
 const ensureMemberReservationAccess = (req, memberId, message) => {
-  if (!isTrainerAdmin(req) && memberId && memberId !== req.auth.identifier) {
+  if (isMemberAuth(req) && memberId && memberId !== req.auth.identifier) {
     throw createForbiddenError(message);
   }
 };
 
 const assignCurrentMember = (req, reservationData) => {
-  if (!isTrainerAdmin(req)) {
+  if (isMemberAuth(req)) {
     reservationData.member_id = req.auth.identifier;
+  }
+};
+
+const ensureTrainerReservationAccess = (req, trainerId, message) => {
+  if (isStandardTrainer(req) && trainerId && trainerId !== req.auth.identifier) {
+    throw createForbiddenError(message);
+  }
+};
+
+const assignCurrentTrainer = (req, reservationData) => {
+  if (isStandardTrainer(req)) {
+    reservationData.trainer_id = req.auth.identifier;
   }
 };
 
@@ -109,9 +130,14 @@ const listReservations = async (req, res) => {
     return sendCollection(res, []);
   }
 
-  if (!isTrainerAdmin(req)) {
+  if (isMemberAuth(req)) {
     ensureMemberReservationAccess(req, req.query.member_id, 'You can only view your own reservations');
     filters.member = req.auth.accountId;
+  }
+
+  if (isStandardTrainer(req)) {
+    ensureTrainerReservationAccess(req, req.query.trainer_id, 'You can only view your own reservations');
+    filters.trainer = req.auth.accountId;
   }
 
   const reservations = await Reservation.find(filters)
@@ -130,7 +156,7 @@ const getReservationById = async (req, res) => {
     'Reservation'
   );
 
-  if (!isTrainerAdmin(req) && reservation.member?._id?.toString() !== req.auth.accountId) {
+  if (!isTrainerAdmin(req) && !isReservationOwner(req, reservation)) {
     throw createForbiddenError('You can only view your own reservations');
   }
 
@@ -138,12 +164,24 @@ const getReservationById = async (req, res) => {
 };
 
 const createReservation = async (req, res) => {
+  const requestedBooker = req.body?.booked_by === 'trainer' ? 'trainer' : 'member';
+  const bookedBy = isMemberAuth(req)
+    ? 'member'
+    : isStandardTrainer(req) ? 'trainer' : requestedBooker;
+
   const reservationData = sanitizeReservationPayload(req.body, {
-    requireMemberId: isTrainerAdmin(req),
+    requireMemberId: !isMemberAuth(req),
+    requireTrainerId: !isStandardTrainer(req),
+    requireReservationId: false,
   });
 
+  reservationData.booked_by = bookedBy;
+  reservationData.reservation_id ||= `R-${crypto.randomBytes(5).toString('hex')}`;
+
   ensureMemberReservationAccess(req, reservationData.member_id, 'You can only create reservations for your own account');
+  ensureTrainerReservationAccess(req, reservationData.trainer_id, 'You can only create reservations for your own account');
   assignCurrentMember(req, reservationData);
+  assignCurrentTrainer(req, reservationData);
 
   const payload = await resolveReservationReferences(reservationData);
 
@@ -163,16 +201,26 @@ const createReservation = async (req, res) => {
   return sendItem(res, createdReservation, 201);
 };
 
+const ensureNotStandardTrainer = (req) => {
+  if (isStandardTrainer(req)) {
+    throw createForbiddenError('Trainer admin access is required to modify or delete reservations');
+  }
+};
+
 const updateReservation = async (req, res) => {
+  ensureNotStandardTrainer(req);
+
   const reservationData = sanitizeReservationPayload(req.body, { partial: true });
   const existingReservation = await findReservationForOwnershipCheck(req.params.reservation_id);
 
   ensureFound(existingReservation, 'Reservation');
 
   if (!isTrainerAdmin(req)) {
-    ensureReservationOwner(existingReservation, req.auth.accountId, 'update');
+    ensureReservationOwner(req, existingReservation, 'update');
     ensureMemberReservationAccess(req, reservationData.member_id, 'You cannot move a reservation to another member');
+    ensureTrainerReservationAccess(req, reservationData.trainer_id, 'You cannot move a reservation to another trainer');
     assignCurrentMember(req, reservationData);
+    delete reservationData.booked_by;
   }
 
   const payload = await resolveReservationReferences(reservationData);
@@ -200,9 +248,11 @@ const updateReservation = async (req, res) => {
 };
 
 const deleteReservation = async (req, res) => {
+  ensureNotStandardTrainer(req);
+
   if (!isTrainerAdmin(req)) {
     const reservation = await findReservationForOwnershipCheck(req.params.reservation_id);
-    ensureReservationOwner(reservation, req.auth.accountId, 'delete');
+    ensureReservationOwner(req, reservation, 'delete');
   }
 
   ensureFound(

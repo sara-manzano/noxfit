@@ -3,8 +3,13 @@ const { isValidTimeSlot, normalizeDateOnly } = require('../config/validation');
 
 const reservationSchema = new mongoose.Schema({
   reservation_id: { type: String, required: true, unique: true, trim: true },
-  member: { type: mongoose.Schema.Types.ObjectId, ref: 'Member', required: true },
+  member: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Member',
+    required() { return this.booked_by !== 'trainer'; },
+  },
   trainer: { type: mongoose.Schema.Types.ObjectId, ref: 'Trainer', required: true },
+  booked_by: { type: String, enum: ['member', 'trainer'], default: 'member' },
   activity_type: { type: String },
   date: { type: Date, required: true, set: normalizeDateOnly },
   time_slot: {
@@ -41,6 +46,7 @@ reservationSchema.index(
     unique: true,
     partialFilterExpression: {
       status: { $in: ['Confirmada', 'Completada'] },
+      member: { $type: 'objectId' },
     },
     name: 'unique_active_member_slot',
   }

@@ -35,6 +35,15 @@ const listTrainers = async (req, res) => {
   return sendCollection(res, trainers);
 };
 
+const listTrainerDirectory = async (_req, res) => {
+  const trainers = await Trainer.find({ active: { $ne: false } })
+    .select('trainer_id full_name activity_type -_id')
+    .sort({ full_name: 1 })
+    .lean();
+
+  return sendCollection(res, trainers);
+};
+
 const getTrainerById = async (req, res) => {
   const trainer = await getAccountRecord(Trainer, 'trainer_id', req.params.trainer_id, 'Trainer');
 
@@ -105,6 +114,7 @@ const deleteTrainer = async (req, res) => {
 };
 
 module.exports = {
+  listTrainerDirectory,
   listTrainers,
   getTrainerById,
   registerTrainer,

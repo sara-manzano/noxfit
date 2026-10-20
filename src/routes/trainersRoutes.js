@@ -1,9 +1,10 @@
 const router = require('express').Router();
 const asyncHandler = require('../middleware/asyncHandler');
 const { methodNotAllowed } = require('../middleware/methodNotAllowed');
-const { requireTrainerAdmin, requireTrainerAuth } = require('../middleware/auth');
+const { requireTrainerAdmin, requireTrainerAuth, authenticateRequest } = require('../middleware/auth');
 
 const {
+  listTrainerDirectory,
   listTrainers,
   getTrainerById,
   registerTrainer,
@@ -20,8 +21,10 @@ router.post('/register', asyncHandler(registerTrainer));
 
 router.route('/me')
   .get(requireTrainerAuth, asyncHandler(getCurrentTrainer))
-  .patch(requireTrainerAuth, asyncHandler(updateCurrentTrainer))
+  .patch(requireTrainerAdmin, asyncHandler(updateCurrentTrainer))
   .put(requireTrainerAuth, rejectPut);
+
+router.get('/directory', authenticateRequest, asyncHandler(listTrainerDirectory));
 
 router.route('/')
   .get(requireTrainerAdmin, asyncHandler(listTrainers))

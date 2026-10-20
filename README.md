@@ -312,12 +312,12 @@ Notas de acceso:
 
 | Método | Ruta | Auth | Descripción |
 | --- | --- | --- | --- |
-| GET | `/api/reservations` | Member o Trainer admin | Lista reservas |
-| POST | `/api/reservations` | Member o Trainer admin | Crea una reserva |
-| GET | `/api/reservations/:reservation_id` | Member o Trainer admin | Obtiene una reserva |
-| PATCH | `/api/reservations/:reservation_id` | Member o Trainer admin | Actualiza una reserva |
-| PUT | `/api/reservations/:reservation_id` | Member o Trainer admin | No permitido |
-| DELETE | `/api/reservations/:reservation_id` | Member o Trainer admin | Elimina una reserva |
+| GET | `/api/reservations` | Member o Trainer | Lista reservas (member y trainer no admin solo las propias) |
+| POST | `/api/reservations` | Member o Trainer | Crea una reserva. Un trainer reserva como él mismo solo con `activity_type`, `date` y `time_slot` (`reservation_id` se genera, `booked_by` = `trainer`, sin member) |
+| GET | `/api/reservations/:reservation_id` | Member o Trainer | Obtiene una reserva |
+| PATCH | `/api/reservations/:reservation_id` | Member o Trainer | Actualiza una reserva |
+| PUT | `/api/reservations/:reservation_id` | Member o Trainer | No permitido |
+| DELETE | `/api/reservations/:reservation_id` | Member o Trainer | Elimina una reserva |
 
 Campos relevantes de reservation:
 

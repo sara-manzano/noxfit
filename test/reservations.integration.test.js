@@ -201,7 +201,7 @@ test('public member registration route no longer exists', async () => {
   assert.equal(response.body.error, 'Resource was not found');
 });
 
-test('trainer admin can list all reservations while a non-admin trainer is rejected', async () => {
+test('trainer admin lists all reservations while a standard trainer only sees their own', async () => {
   await createFixtures();
 
   const adminLogin = await loginTrainer('trainer-admin@noxfit.test');
@@ -217,8 +217,163 @@ test('trainer admin can list all reservations while a non-admin trainer is rejec
 
   assert.equal(adminResponse.status, 200);
   assert.equal(adminResponse.body.total, 2);
-  assert.equal(standardResponse.status, 403);
-  assert.equal(standardResponse.body.error, 'Reservations require member or trainer admin access');
+  assert.equal(standardResponse.status, 200);
+  assert.equal(standardResponse.body.total, 1);
+  assert.equal(standardResponse.body.items[0].reservation_id, 'reservation-b');
+});
+
+test('standard trainer creates reservations as themselves and cannot book for another trainer', async () => {
+  await createFixtures();
+
+  const standardLogin = await loginTrainer('trainer-standard@noxfit.test');
+  const token = standardLogin.body.token;
+
+  const created = await request(app)
+    .post('/api/reservations')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      reservation_id: 'reservation-by-trainer',
+      member_id: 'member-a',
+      date: '2026-12-01',
+      time_slot: '10:00 - 11:00',
+    });
+
+  assert.equal(created.status, 201);
+  assert.equal(created.body.trainer.trainer_id, 'trainer-standard');
+  assert.equal(created.body.member.member_id, 'member-a');
+  assert.equal(created.body.booked_by, 'trainer');
+
+  const memberLogin = await loginMember('member-b@noxfit.test');
+  const byMember = await request(app)
+    .post('/api/reservations')
+    .set('Authorization', `Bearer ${memberLogin.body.token}`)
+    .send({
+      reservation_id: 'reservation-by-member',
+      trainer_id: 'trainer-standard',
+      booked_by: 'trainer',
+      date: '2026-12-03',
+      time_slot: '10:00 - 11:00',
+    });
+
+  assert.equal(byMember.status, 201);
+  assert.equal(byMember.body.booked_by, 'member');
+
+  const forbidden = await request(app)
+    .post('/api/reservations')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      reservation_id: 'reservation-other-trainer',
+      member_id: 'member-a',
+      trainer_id: 'trainer-admin',
+      date: '2026-12-02',
+      time_slot: '10:00 - 11:00',
+    });
+
+  assert.equal(forbidden.status, 403);
+});
+
+test('trainer bookings require a member and show up in that member\'s reservations', async () => {
+  await createFixtures();
+
+  const standardLogin = await loginTrainer('trainer-standard@noxfit.test');
+  const adminLogin = await loginTrainer('trainer-admin@noxfit.test');
+  const memberLogin = await loginMember('member-a@noxfit.test');
+
+  const missingMember = await request(app)
+    .post('/api/reservations')
+    .set('Authorization', `Bearer ${standardLogin.body.token}`)
+    .send({ activity_type: 'Pilates', date: '2026-12-05', time_slot: '10:00 - 11:00' });
+
+  assert.equal(missingMember.status, 400);
+
+  const own = await request(app)
+    .post('/api/reservations')
+    .set('Authorization', `Bearer ${standardLogin.body.token}`)
+    .send({ member_id: 'member-a', activity_type: 'Pilates', date: '2026-12-05', time_slot: '10:00 - 11:00' });
+
+  assert.equal(own.status, 201);
+  assert.match(own.body.reservation_id, /^R-/);
+  assert.equal(own.body.booked_by, 'trainer');
+  assert.equal(own.body.trainer.trainer_id, 'trainer-standard');
+  assert.equal(own.body.member.member_id, 'member-a');
+
+  const memberReservations = await request(app)
+    .get('/api/reservations')
+    .set('Authorization', `Bearer ${memberLogin.body.token}`);
+
+  assert.ok(memberReservations.body.items.some((item) => item.reservation_id === own.body.reservation_id));
+
+  const adminBooking = await request(app)
+    .post('/api/reservations')
+    .set('Authorization', `Bearer ${adminLogin.body.token}`)
+    .send({
+      booked_by: 'trainer',
+      member_id: 'member-b',
+      trainer_id: 'trainer-admin',
+      activity_type: 'CrossFit',
+      date: '2026-12-05',
+      time_slot: '10:00 - 11:00',
+    });
+
+  assert.equal(adminBooking.status, 201);
+
+  const conflict = await request(app)
+    .post('/api/reservations')
+    .set('Authorization', `Bearer ${standardLogin.body.token}`)
+    .send({ member_id: 'member-b', activity_type: 'Pilates', date: '2026-12-05', time_slot: '10:00 - 11:00' });
+
+  assert.equal(conflict.status, 409);
+});
+
+test('standard trainers cannot modify reservations or their own profile', async () => {
+  await createFixtures();
+
+  const standardToken = (await loginTrainer('trainer-standard@noxfit.test')).body.token;
+
+  const patchReservation = await request(app)
+    .patch('/api/reservations/reservation-b')
+    .set('Authorization', `Bearer ${standardToken}`)
+    .send({ status: 'Cancelada' });
+  const deleteReservation = await request(app)
+    .delete('/api/reservations/reservation-b')
+    .set('Authorization', `Bearer ${standardToken}`);
+  const patchProfile = await request(app)
+    .patch('/api/trainers/me')
+    .set('Authorization', `Bearer ${standardToken}`)
+    .send({ full_name: 'Changed' });
+  const deleteMember = await request(app)
+    .delete('/api/members/member-a')
+    .set('Authorization', `Bearer ${standardToken}`);
+
+  assert.equal(patchReservation.status, 403);
+  assert.equal(deleteReservation.status, 403);
+  assert.equal(patchProfile.status, 403);
+  assert.equal(deleteMember.status, 403);
+});
+
+test('directories expose minimal fields to the counterpart role', async () => {
+  await createFixtures();
+
+  const memberLogin = await loginMember('member-a@noxfit.test');
+  const trainerLogin = await loginTrainer('trainer-standard@noxfit.test');
+
+  const trainers = await request(app)
+    .get('/api/trainers/directory')
+    .set('Authorization', `Bearer ${memberLogin.body.token}`);
+  const members = await request(app)
+    .get('/api/members/directory')
+    .set('Authorization', `Bearer ${trainerLogin.body.token}`);
+  const membersAsMember = await request(app)
+    .get('/api/members/directory')
+    .set('Authorization', `Bearer ${memberLogin.body.token}`);
+
+  assert.equal(trainers.status, 200);
+  assert.equal(trainers.body.total, 2);
+  assert.equal(trainers.body.items[0].email, undefined);
+  assert.equal(members.status, 200);
+  assert.equal(members.body.total, 2);
+  assert.equal(members.body.items[0].email, undefined);
+  assert.equal(membersAsMember.status, 403);
 });
 
 test('public trainer registration bootstraps the first admin and then closes', async () => {

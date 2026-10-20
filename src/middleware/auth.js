@@ -114,11 +114,8 @@ const requireMemberAuth = withAuth((auth) => ensureRole(auth, 'member'));
 const requireTrainerAuth = withAuth((auth) => ensureRole(auth, 'trainer'));
 const requireTrainerAdmin = withAuth(ensureTrainerAdmin);
 const requireReservationAccess = withAuth((auth) => {
-  const canAccessReservations = auth.role === 'member'
-    || (auth.role === 'trainer' && auth.isAdmin);
-
-  if (!canAccessReservations) {
-    throw createForbiddenError('Reservations require member or trainer admin access');
+  if (auth.role !== 'member' && auth.role !== 'trainer') {
+    throw createForbiddenError('Reservations require member or trainer access');
   }
 });
 

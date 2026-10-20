@@ -15,7 +15,7 @@ export const TrainersView = ({ trainers, isPartial }) => (
       <h2>Entrenadores</h2>
       <p>
         {isPartial
-          ? 'Entrenadores con los que tienes reservas. La lista completa solo está disponible para el trainer admin.'
+          ? 'Entrenadores del centro. Experiencia y tarifa solo están disponibles para el trainer admin.'
           : 'Profesionales del centro con su especialidad, experiencia y tarifa.'}
       </p>
     </div>

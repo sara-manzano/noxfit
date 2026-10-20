@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { reservationStatusOptions, timeSlotOptions } from '../lib/forms.js';
+import { timeSlotOptions } from '../lib/forms.js';
+import './ReservationForm.css';
 
 const initialValues = {
   reservation_id: '',
@@ -12,9 +13,21 @@ const initialValues = {
   price: '',
 };
 
-export const ReservationForm = ({ onSubmit, isSubmitting, trainers, members, isAdmin }) => {
-  const [values, setValues] = useState(initialValues);
+export const ReservationForm = ({
+  onSubmit,
+  isSubmitting,
+  trainers,
+  members,
+  isAdmin,
+  isStandardTrainer,
+  currentTrainer,
+}) => {
+  const defaultActivity = isStandardTrainer ? currentTrainer?.activity_type || '' : '';
+  const [values, setValues] = useState({ ...initialValues, activity_type: defaultActivity });
+  const [bookedBy, setBookedBy] = useState(isStandardTrainer ? 'trainer' : 'member');
   const hasTrainerOptions = trainers.length > 0;
+  const isTrainerBooking = bookedBy === 'trainer';
+  const isTrainer = isAdmin || isStandardTrainer;
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -36,41 +49,71 @@ export const ReservationForm = ({ onSubmit, isSubmitting, trainers, members, isA
     event.preventDefault();
 
     const payload = {
-      reservation_id: values.reservation_id,
-      trainer_id: values.trainer_id,
+      booked_by: bookedBy,
       activity_type: values.activity_type,
       date: values.date,
       time_slot: values.time_slot,
-      status: values.status,
-      price: values.price === '' ? undefined : Number(values.price),
     };
 
-    if (isAdmin) {
+    if (!isStandardTrainer) {
+      payload.trainer_id = values.trainer_id;
+    }
+
+    if (isAdmin && !isTrainerBooking && values.reservation_id) {
+      payload.reservation_id = values.reservation_id;
+    }
+
+    if (isTrainer) {
       payload.member_id = values.member_id;
     }
 
     await onSubmit(payload);
-    setValues(initialValues);
+    setValues({ ...initialValues, activity_type: defaultActivity });
   };
 
   return (
     <section className="subpanel">
       <div className="section-heading">
         <h3>Nueva reserva</h3>
-        <p>Relaciona members y trainers con una franja horaria válida.</p>
       </div>
 
       <form className="stack-form" onSubmit={handleSubmit}>
-        <label className="field">
-          <span>Código</span>
-          <input name="reservation_id" value={values.reservation_id} onChange={handleChange} required />
-        </label>
+        <div className="booker-switch">
+          <span className="booker-switch-label">Reserva hecha por</span>
+          <div className="booker-switch-control" role="group" aria-label="Quién hace la reserva">
+            <button
+              type="button"
+              className={!isTrainerBooking ? 'is-active' : ''}
+              aria-pressed={!isTrainerBooking}
+              disabled={!isAdmin && isTrainerBooking}
+              onClick={() => setBookedBy('member')}
+            >
+              Miembro
+            </button>
+            <button
+              type="button"
+              className={isTrainerBooking ? 'is-active' : ''}
+              aria-pressed={isTrainerBooking}
+              disabled={!isAdmin && !isTrainerBooking}
+              onClick={() => setBookedBy('trainer')}
+            >
+              Entrenador
+            </button>
+          </div>
+        </div>
 
-        {isAdmin ? (
+        {isAdmin && !isTrainerBooking ? (
           <label className="field">
-            <span>Member</span>
+            <span>Código de reserva (opcional)</span>
+            <input name="reservation_id" value={values.reservation_id} onChange={handleChange} />
+          </label>
+        ) : null}
+
+        {isTrainer ? (
+          <label className="field">
+            <span>Socio</span>
             <select name="member_id" value={values.member_id} onChange={handleChange} required>
-              <option value="">Selecciona un member</option>
+              <option value="">Selecciona un socio</option>
               {members.map((member) => (
                 <option key={member.member_id} value={member.member_id}>
                   {member.full_name} · {member.member_id}
@@ -80,27 +123,34 @@ export const ReservationForm = ({ onSubmit, isSubmitting, trainers, members, isA
           </label>
         ) : null}
 
-        <label className="field">
-          <span>Trainer</span>
-          {hasTrainerOptions ? (
-            <select name="trainer_id" value={values.trainer_id} onChange={handleChange} required>
-              <option value="">Selecciona un trainer</option>
-              {trainers.map((trainer) => (
-                <option key={trainer.trainer_id} value={trainer.trainer_id}>
-                  {trainer.full_name} · {trainer.activity_type || 'Sin especialidad'}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              name="trainer_id"
-              value={values.trainer_id}
-              onChange={handleChange}
-              placeholder="trainer-001"
-              required
-            />
-          )}
-        </label>
+        {isStandardTrainer ? (
+          <label className="field">
+            <span>Entrenador</span>
+            <input value={currentTrainer?.full_name || ''} readOnly />
+          </label>
+        ) : (
+          <label className="field">
+            <span>Entrenador</span>
+            {hasTrainerOptions ? (
+              <select name="trainer_id" value={values.trainer_id} onChange={handleChange} required>
+                <option value="">Selecciona un entrenador</option>
+                {trainers.map((trainer) => (
+                  <option key={trainer.trainer_id} value={trainer.trainer_id}>
+                    {trainer.full_name} · {trainer.activity_type || 'Sin especialidad'}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                name="trainer_id"
+                value={values.trainer_id}
+                onChange={handleChange}
+                placeholder="Código del entrenador"
+                required
+              />
+            )}
+          </label>
+        )}
 
         <label className="field">
           <span>Actividad</span>
@@ -121,24 +171,7 @@ export const ReservationForm = ({ onSubmit, isSubmitting, trainers, members, isA
             ))}
           </select>
         </label>
-
-        <label className="field">
-          <span>Estado</span>
-          <select name="status" value={values.status} onChange={handleChange}>
-            {reservationStatusOptions.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="field">
-          <span>Precio</span>
-          <input name="price" type="number" min="0" step="1" value={values.price} onChange={handleChange} />
-        </label>
-
-        <button className="button button-primary" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Registrando...' : 'Crear reserva'}
-        </button>
+        <button className="button button-primary" type="submit" disabled={isSubmitting}>Reservar</button>
       </form>
     </section>
   );

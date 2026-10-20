@@ -91,11 +91,14 @@ export const AppShell = ({ session, onLogout }) => {
   const dashboard = useDashboardData(session);
   const isAdmin = session.role === 'trainer' && session.user.is_admin;
   const isMember = session.role === 'member';
+  const isStandardTrainer = session.role === 'trainer' && !session.user.is_admin;
 
-  // La API solo lista trainers al admin; para el resto se derivan de las reservas.
+  // Sin lista completa (no admin) se usa el directorio; un entrenador sin directorio ve solo su perfil.
   const visibleTrainers = dashboard.trainers.length
     ? dashboard.trainers
-    : Array.from(
+    : dashboard.trainerDirectory.length
+      ? dashboard.trainerDirectory
+      : Array.from(
       new Map(
         dashboard.reservations
           .filter((reservation) => reservation.trainer?.trainer_id)
@@ -152,13 +155,13 @@ export const AppShell = ({ session, onLogout }) => {
         count: dashboard.reservations.length,
       },
     ]
-    : isMember ? [
+    : [
       {
         key: 'reservations',
-        label: 'Mis reservas',
+        label: isMember ? 'Mis reservas' : 'Reservations',
         count: dashboard.reservations.length,
       },
-    ] : [];
+    ];
 
   useEffect(() => {
     if (!panelConfigs.some((panel) => panel.key === activePanel)) {
@@ -247,39 +250,23 @@ export const AppShell = ({ session, onLogout }) => {
         <div className="entity-meta entity-meta-stacked">
           <span><strong>Fecha:</strong> {formatDate(reservation.date)}</span>
           <span><strong>Franja:</strong> {reservation.time_slot || 'Sin hora'}</span>
-          <span><strong>Member:</strong> {reservation.member?.full_name || dashboard.profile?.full_name}</span>
+          <span><strong>Member:</strong> {reservation.member?.full_name || (isMember ? dashboard.profile?.full_name : 'Sin socio')}</span>
           <span><strong>Trainer:</strong> {reservation.trainer?.full_name || 'Sin trainer'}</span>
+          <span><strong>Reservada por:</strong> {reservation.booked_by === 'trainer' ? 'Entrenador' : 'Miembro'}</span>
           <span><strong>Precio:</strong> {formatCurrency(reservation.price)}</span>
         </div>
-        <div className="entity-actions">
-          <button className="button button-secondary" type="button" onClick={() => dashboard.deleteReservation(reservation.reservation_id)} disabled={dashboard.isSubmitting}>
-            Eliminar
-          </button>
-        </div>
+        {isStandardTrainer ? null : (
+          <div className="entity-actions">
+            <button className="button button-secondary" type="button" onClick={() => dashboard.deleteReservation(reservation.reservation_id)} disabled={dashboard.isSubmitting}>
+              Eliminar
+            </button>
+          </div>
+        )}
       </article>
     ));
   };
 
   const renderActivePanel = () => {
-    if (!panelConfigs.length) {
-      return (
-        <section className="collection-shell">
-          <div className="panel panel-list">
-            <div className="section-heading">
-              <h2>Perfil trainer</h2>
-              <p>
-                Este rol puede consultar y actualizar su propia cuenta, pero la gestión global de members, trainers y reservations queda reservada al trainer admin.
-              </p>
-            </div>
-
-            <article className="empty-card">
-              Solicita permisos admin si necesitas operar sobre las colecciones relacionadas del sistema.
-            </article>
-          </div>
-        </section>
-      );
-    }
-
     if (activePanel === 'members') {
       return (
         <CollectionPanel
@@ -347,9 +334,11 @@ export const AppShell = ({ session, onLogout }) => {
           <ReservationForm
             onSubmit={dashboard.createReservation}
             isSubmitting={dashboard.isSubmitting}
-            trainers={dashboard.trainers}
-            members={dashboard.members}
+            trainers={dashboard.trainerDirectory}
+            members={dashboard.memberDirectory}
             isAdmin={isAdmin}
+            isStandardTrainer={isStandardTrainer}
+            currentTrainer={dashboard.profile}
           />
         }
       >

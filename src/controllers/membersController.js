@@ -67,7 +67,17 @@ const deleteMember = async (req, res) => {
   return sendNoContent(res);
 };
 
+const listMemberDirectory = async (_req, res) => {
+  const members = await Member.find({ active: { $ne: false } })
+    .select('member_id full_name -_id')
+    .sort({ full_name: 1 })
+    .lean();
+
+  return sendCollection(res, members);
+};
+
 module.exports = {
+  listMemberDirectory,
   listMembers,
   getMemberById,
   getCurrentMember,
