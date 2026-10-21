@@ -1,9 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const multer = require('multer');
 const swaggerUi = require('swagger-ui-express');
-const { ALLOWED_FORMATS, INVALID_FILE_TYPE_MESSAGE } = require('./config/cloudinary');
 const { sendError } = require('./http/responses');
 const openApiDocument = require('../openapi.json');
 
@@ -13,25 +11,12 @@ const trainersRoutes = require('./routes/trainersRoutes');
 const reservationsRoutes = require('./routes/reservationsRoutes');
 
 const app = express();
-const allowedImageFormats = Object.values(ALLOWED_FORMATS).join(', ');
 
 const shouldLogError = (error) => !error?.statusCode || error.statusCode >= 500;
 
 const handleError = (error, _req, res, _next) => {
   if (shouldLogError(error)) {
     console.error(error);
-  }
-
-  if (error instanceof multer.MulterError) {
-    const message = error.code === 'LIMIT_FILE_SIZE'
-      ? 'Image must be 2 MB or smaller'
-      : 'Image upload could not be completed';
-
-    return sendError(res, 400, message);
-  }
-
-  if (error.message === INVALID_FILE_TYPE_MESSAGE) {
-    return sendError(res, 400, `Invalid image format. Allowed formats: ${allowedImageFormats}`);
   }
 
   if (error.name === 'ValidationError') {

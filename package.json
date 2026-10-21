@@ -10,9 +10,8 @@
     "frontend:build": "npm --prefix frontend run build",
     "test": "node --test",
     "data:workbook": "node scripts/build-workbook.js",
-    "check": "node --check src/server.js && node --check src/app.js && node --check scripts/seed.js && node --check scripts/check-openapi.js && node -e \"require('./src/app'); require('./src/server'); require('./src/config/cloudinary'); require('./scripts/seed')\"",
+    "check": "node --check src/server.js && node --check src/app.js && node --check scripts/seed.js && node --check scripts/check-openapi.js && node -e \"require('./src/app'); require('./src/server'); require('./scripts/seed')\"",
     "seed": "node scripts/seed.js",
-    "repair:auth": "node scripts/repair-legacy-auth.js",
     "openapi:check": "node scripts/check-openapi.js"
   },
   "repository": {
@@ -32,7 +31,6 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "cloudinary": "^2.11.0",
     "cors": "^2.8.6",
     "csv-parser": "^3.2.0",
     "dotenv": "^17.4.2",
@@ -40,7 +38,6 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.0",
     "morgan": "^1.10.1",
-    "multer": "^2.4.0",
     "swagger-ui-express": "^5.0.1",
     "xlsx": "^0.18.5"
   },

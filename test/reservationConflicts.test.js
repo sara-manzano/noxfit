@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const {
   buildReservationConflictFilter,
   ensureNoReservationConflicts,
-  normalizeReservationDate,
 } = require('../src/controllers/reservationConflicts');
+const { normalizeDateOnly } = require('../src/config/validation');
 
 const createReservationModelStub = (result, onFilter) => ({
   findOne(filter) {
@@ -20,8 +20,8 @@ const createReservationModelStub = (result, onFilter) => ({
   },
 });
 
-test('normalizeReservationDate normalizes to UTC midnight', () => {
-  const date = normalizeReservationDate('2026-10-14T18:45:00.000Z');
+test('normalizeDateOnly normalizes to UTC midnight', () => {
+  const date = normalizeDateOnly('2026-10-14T18:45:00.000Z');
 
   assert.equal(date.toISOString(), '2026-10-14T00:00:00.000Z');
 });

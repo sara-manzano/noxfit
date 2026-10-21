@@ -34,7 +34,6 @@ const signAccountToken = (role, account) => {
 module.exports = {
   hashPassword,
   comparePassword,
-  signToken,
   signAccountToken,
   verifyToken,
 };

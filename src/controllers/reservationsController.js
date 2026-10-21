@@ -20,19 +20,12 @@ const isStandardTrainer = (req) => req.auth?.role === 'trainer' && !req.auth?.is
 const createForbiddenError = (message) => createStatusError(message, 403);
 const getReferenceId = (reference) => reference?._id || reference;
 
-const findMemberIdByCode = async (member_id) => {
-  const member = await Member.findOne({ member_id }).select('_id').lean();
-  return ensureFound(member, 'Member')._id;
+const findAccountId = async (Model, identifierField, identifier) => {
+  const account = await Model.findOne({ [identifierField]: identifier }).select('_id').lean();
+  return account?._id;
 };
 
-const findTrainerIdByCode = async (trainer_id) => {
-  const trainer = await Trainer.findOne({ trainer_id }).select('_id').lean();
-  return ensureFound(trainer, 'Trainer')._id;
-};
-
-const findReservationByCode = (reservation_id) => Reservation.findOne({ reservation_id });
-
-const findReservationForOwnershipCheck = (reservation_id) => findReservationByCode(reservation_id)
+const findReservationForOwnershipCheck = (reservation_id) => Reservation.findOne({ reservation_id })
   .populate({ path: 'member', select: 'member_id' })
   .populate({ path: 'trainer', select: 'trainer_id' })
   .lean();
@@ -60,23 +53,23 @@ const buildReservationFilters = async (query) => {
   }
 
   if (query.member_id) {
-    const member = await Member.findOne({ member_id: query.member_id }).select('_id').lean();
+    const member = await findAccountId(Member, 'member_id', query.member_id);
 
     if (!member) {
       return null;
     }
 
-    filters.member = member._id;
+    filters.member = member;
   }
 
   if (query.trainer_id) {
-    const trainer = await Trainer.findOne({ trainer_id: query.trainer_id }).select('_id').lean();
+    const trainer = await findAccountId(Trainer, 'trainer_id', query.trainer_id);
 
     if (!trainer) {
       return null;
     }
 
-    filters.trainer = trainer._id;
+    filters.trainer = trainer;
   }
 
   return filters;
@@ -86,11 +79,11 @@ const resolveReservationReferences = async (payload) => {
   const data = { ...payload };
 
   if (payload.member_id) {
-    data.member = await findMemberIdByCode(payload.member_id);
+    data.member = ensureFound(await findAccountId(Member, 'member_id', payload.member_id), 'Member');
   }
 
   if (payload.trainer_id) {
-    data.trainer = await findTrainerIdByCode(payload.trainer_id);
+    data.trainer = ensureFound(await findAccountId(Trainer, 'trainer_id', payload.trainer_id), 'Trainer');
   }
 
   delete data.member_id;

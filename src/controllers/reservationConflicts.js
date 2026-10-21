@@ -3,8 +3,6 @@ const { normalizeDateOnly } = require('../config/validation');
 
 const ACTIVE_RESERVATION_STATUSES = ['Confirmada', 'Completada'];
 
-const normalizeReservationDate = (value) => normalizeDateOnly(value);
-
 const getReferenceId = (reference) => reference?._id?.toString() || reference?.toString();
 
 const buildReservationConflictFilter = ({ reservation_id, trainer, member, date, time_slot }) => {
@@ -13,7 +11,7 @@ const buildReservationConflictFilter = ({ reservation_id, trainer, member, date,
   }
 
   const filter = {
-    date: normalizeReservationDate(date),
+    date: normalizeDateOnly(date),
     time_slot,
     status: { $in: ACTIVE_RESERVATION_STATUSES },
     $or: [],
@@ -70,8 +68,6 @@ const ensureNoReservationConflicts = async (ReservationModel, {
 };
 
 module.exports = {
-  ACTIVE_RESERVATION_STATUSES,
-  normalizeReservationDate,
   buildReservationConflictFilter,
   ensureNoReservationConflicts,
 };

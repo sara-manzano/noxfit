@@ -29,7 +29,6 @@ const isValidTimeSlot = (value) => {
 };
 
 module.exports = {
-  TIME_SLOT_PATTERN,
   isValidTimeSlot,
   normalizeDateOnly,
 };

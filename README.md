@@ -24,7 +24,7 @@ El repositorio ahora incluye además un frontend React separado en `frontend/`, 
 src/
   server.js                -> arranque del servidor
   app.js                   -> middlewares, rutas y manejo global de errores
-  config/                  -> auth, base de datos, validaciones, Cloudinary
+  config/                  -> auth, base de datos, validaciones
   controllers/             -> lógica de negocio
     accountControllerHelpers.js -> CRUD y login compartidos entre members y trainers
     reservationConflicts.js     -> detección de conflictos de agenda
@@ -36,7 +36,6 @@ scripts/
   seed.js                  -> carga inicial desde el workbook Excel o los CSV
   build-workbook.js        -> genera un Excel a partir de los CSV actuales
   check-openapi.js         -> validación del contrato OpenAPI
-  repair-legacy-auth.js    -> repara cuentas antiguas (emails, ids, hashes y flag admin)
 frontend/
   src/                     -> app React, hooks, componentes y estilos
 data/
@@ -62,11 +61,6 @@ TRAINER_BOOTSTRAP_TOKEN=replace-with-a-one-time-bootstrap-token
 SEED_DEFAULT_PASSWORD=Noxfit123
 SEED_ADMIN_TRAINER_ID=
 PORT=3000
-
-# Opcionales
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
 ```
 
 Obligatorias para ejecutar la API:
@@ -83,7 +77,6 @@ Opcionales:
 - `PORT`: puerto HTTP; por defecto `3000`
 - `SEED_DEFAULT_PASSWORD`: contraseña fallback usada por el seed cuando una fila no trae `password`; por defecto `Noxfit123`
 - `SEED_ADMIN_TRAINER_ID`: selecciona qué trainer del CSV será admin inicial
-- `CLOUDINARY_*`: infraestructura de subida de imágenes ya preparada, pero sin endpoints públicos en esta versión
 
 ## Instalación
 
@@ -196,14 +189,6 @@ Regla de admin inicial:
 
 - si `SEED_ADMIN_TRAINER_ID` está definido, ese trainer será admin
 - si no está definido, se usa el primer trainer del CSV
-
-### Reparar cuentas antiguas
-
-```bash
-npm run repair:auth
-```
-
-Normaliza emails e identificadores de members y trainers, asigna un hash de contraseña (a partir de `SEED_DEFAULT_PASSWORD`) a las cuentas que no lo tienen y ajusta `is_admin` según `SEED_ADMIN_TRAINER_ID`.
 
 ## Convenciones HTTP
 

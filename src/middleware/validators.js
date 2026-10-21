@@ -147,7 +147,6 @@ const readPasswordField = (payload, fieldName = 'password') => {
   return value;
 };
 
-
 const readAccountFields = (payload, idField, { partial, requirePassword, allowIdentifierUpdate }) => {
   const data = {};
 
@@ -206,25 +205,12 @@ const sanitizeTrainerPayload = (
   return data;
 };
 
-const sanitizeLoginPayload = (payload) => {
-  const email = readEmailField(payload, 'email');
-  const password = readPasswordField(payload, 'password');
-
-  requireField(email, 'email');
-  requireField(password, 'password');
-
-  return { email, password };
-};
-
 const sanitizeRoleLoginPayload = (payload) => {
-  const role = readStringField(payload, 'role');
+  const role = requireField(readStringField(payload, 'role'), 'role');
+  const email = requireField(readEmailField(payload, 'email'), 'email');
+  const password = requireField(readPasswordField(payload, 'password'), 'password');
 
-  requireField(role, 'role');
-
-  return {
-    role: role.toLowerCase(),
-    ...sanitizeLoginPayload(payload),
-  };
+  return { role: role.toLowerCase(), email, password };
 };
 
 const sanitizeReservationPayload = (
@@ -272,6 +258,5 @@ module.exports = {
   sanitizeMemberPayload,
   sanitizeTrainerPayload,
   sanitizeReservationPayload,
-  sanitizeLoginPayload,
   sanitizeRoleLoginPayload,
 };
