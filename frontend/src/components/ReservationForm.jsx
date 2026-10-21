@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { timeSlotOptions } from '../lib/forms.js';
+import { gyms } from './MadridMap.jsx';
 import './ReservationForm.css';
 
 const initialValues = {
@@ -21,6 +22,8 @@ export const ReservationForm = ({
   isAdmin,
   isStandardTrainer,
   currentTrainer,
+  center,
+  onCenterChange,
 }) => {
   const defaultActivity = isStandardTrainer ? currentTrainer?.activity_type || '' : '';
   const [values, setValues] = useState({ ...initialValues, activity_type: defaultActivity });
@@ -51,6 +54,7 @@ export const ReservationForm = ({
     const payload = {
       booked_by: bookedBy,
       activity_type: values.activity_type,
+      center,
       date: values.date,
       time_slot: values.time_slot,
     };
@@ -79,23 +83,21 @@ export const ReservationForm = ({
 
       <form className="stack-form" onSubmit={handleSubmit}>
         <div className="booker-switch">
-          <span className="booker-switch-label">Reserva hecha por</span>
+          <span className="booker-switch-label">Reserva</span>
           <div className="booker-switch-control" role="group" aria-label="Quién hace la reserva">
             <button
               type="button"
               className={!isTrainerBooking ? 'is-active' : ''}
               aria-pressed={!isTrainerBooking}
               disabled={!isAdmin && isTrainerBooking}
-              onClick={() => setBookedBy('member')}
             >
-              Miembro
+              Socio
             </button>
             <button
               type="button"
               className={isTrainerBooking ? 'is-active' : ''}
               aria-pressed={isTrainerBooking}
               disabled={!isAdmin && !isTrainerBooking}
-              onClick={() => setBookedBy('trainer')}
             >
               Entrenador
             </button>
@@ -155,6 +157,16 @@ export const ReservationForm = ({
         <label className="field">
           <span>Actividad</span>
           <input name="activity_type" value={values.activity_type} onChange={handleChange} />
+        </label>
+
+        <label className="field">
+          <span>Centro</span>
+          <select name="center" value={center} onChange={(event) => onCenterChange(event.target.value)} required>
+            <option value="">Selecciona un centro</option>
+            {gyms.map((gym) => (
+              <option key={gym.name} value={gym.name}>{gym.name} · {gym.address}</option>
+            ))}
+          </select>
         </label>
 
         <label className="field">

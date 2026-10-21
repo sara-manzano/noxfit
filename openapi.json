@@ -1248,6 +1248,13 @@
           "Cancelada"
         ]
       },
+      "TrainingCenter": {
+        "type": "string",
+        "enum": [
+          "Noxfit Salamanca",
+          "Noxfit Alcobendas"
+        ]
+      },
       "HealthResponse": {
         "type": "object",
         "required": [
@@ -1465,6 +1472,9 @@
           },
           "activity_type": {
             "type": "string"
+          },
+          "center": {
+            "$ref": "#/components/schemas/TrainingCenter"
           },
           "date": {
             "type": "string",
@@ -1854,6 +1864,9 @@
           "activity_type": {
             "type": "string"
           },
+          "center": {
+            "$ref": "#/components/schemas/TrainingCenter"
+          },
           "date": {
             "type": "string",
             "format": "date"
@@ -1892,6 +1905,9 @@
           },
           "activity_type": {
             "type": "string"
+          },
+          "center": {
+            "$ref": "#/components/schemas/TrainingCenter"
           },
           "date": {
             "type": "string",

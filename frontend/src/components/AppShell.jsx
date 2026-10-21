@@ -6,10 +6,11 @@ import { useDashboardData } from '../hooks/useDashboardData.js';
 import { AccountForm } from './AccountForm.jsx';
 import { CollectionPanel } from './CollectionPanel.jsx';
 import { ReservationForm } from './ReservationForm.jsx';
-import { TopNav } from './TopNav.jsx';
 import { TrainersView } from './TrainersView.jsx';
 import { ServicesView } from './ServicesView.jsx';
 import { CalendarView } from './CalendarView.jsx';
+import { gyms } from './MadridMap.jsx';
+import { TopNav } from './TopNav.jsx';
 import './AppShell.css';
 
 const buildFilterOptions = (items, accessor, knownOptions = []) => {
@@ -55,6 +56,10 @@ const renderProfileLabel = (session) => {
   return session.role === 'trainer' ? 'Trainer' : 'Member';
 };
 
+const getInitials = (name = '') => (
+  name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || '?'
+);
+
 const operationalHighlights = [
   'Vista editorial para operaciones diarias',
   'Filtros rapidos por estado, plan o especialidad',
@@ -69,23 +74,9 @@ const serviceFocus = [
   'Control de reservas',
 ];
 
-const footprintHighlights = [
-  {
-    city: 'Madrid',
-    summary: 'Mayor volumen operativo y agenda mas densa.',
-  },
-  {
-    city: 'Barcelona',
-    summary: 'Equipo visible, especialidades y lectura rapida.',
-  },
-  {
-    city: 'Valencia',
-    summary: 'Altas y seguimiento comercial con mas presencia.',
-  },
-];
-
 export const AppShell = ({ session, onLogout }) => {
   const [activePanel, setActivePanel] = useState('members');
+  const [selectedCenter, setSelectedCenter] = useState('');
   const [activeView, setActiveView] = useState('panel');
   const [isSwitchPending, startSwitchTransition] = useTransition();
   const dashboard = useDashboardData(session);
@@ -176,7 +167,7 @@ export const AppShell = ({ session, onLogout }) => {
 
   const renderMemberCards = () => {
     if (!membersFilters.visibleItems.length) {
-      return <article className="empty-card">No hay members que coincidan con el filtro actual.</article>;
+      return <article className="empty-card">No hay socios que coincidan con el filtro actual.</article>;
     }
 
     return membersFilters.visibleItems.map((member) => (
@@ -204,7 +195,7 @@ export const AppShell = ({ session, onLogout }) => {
 
   const renderTrainerCards = () => {
     if (!trainersFilters.visibleItems.length) {
-      return <article className="empty-card">No hay trainers que coincidan con el filtro actual.</article>;
+      return <article className="empty-card">No hay entrenadores que coincidan con el filtro actual.</article>;
     }
 
     return trainersFilters.visibleItems.map((trainer) => (
@@ -250,9 +241,10 @@ export const AppShell = ({ session, onLogout }) => {
         <div className="entity-meta entity-meta-stacked">
           <span><strong>Fecha:</strong> {formatDate(reservation.date)}</span>
           <span><strong>Franja:</strong> {reservation.time_slot || 'Sin hora'}</span>
+          <span><strong>Centro:</strong> {reservation.center || 'Sin centro'}</span>
           <span><strong>Member:</strong> {reservation.member?.full_name || (isMember ? dashboard.profile?.full_name : 'Sin socio')}</span>
           <span><strong>Trainer:</strong> {reservation.trainer?.full_name || 'Sin trainer'}</span>
-          <span><strong>Reservada por:</strong> {reservation.booked_by === 'trainer' ? 'Entrenador' : 'Miembro'}</span>
+          <span><strong>Reservada por:</strong> {reservation.booked_by === 'trainer' ? 'Entrenador' : 'Socio'}</span>
           <span><strong>Precio:</strong> {formatCurrency(reservation.price)}</span>
         </div>
         {isStandardTrainer ? null : (
@@ -339,6 +331,8 @@ export const AppShell = ({ session, onLogout }) => {
             isAdmin={isAdmin}
             isStandardTrainer={isStandardTrainer}
             currentTrainer={dashboard.profile}
+            center={selectedCenter}
+            onCenterChange={setSelectedCenter}
           />
         }
       >
@@ -353,11 +347,9 @@ export const AppShell = ({ session, onLogout }) => {
         <div className="hero-grid-overlay" />
 
         <div className="hero-copy hero-copy-dashboard">
-          <div className="eyebrow eyebrow-accent">PANEL OPERATIVO NOXFIT</div>
-          <h1>Control de cuentas, agenda y equipo con una presencia visual mas cercana a una marca fitness premium.</h1>
-          <p className="hero-lead">
-            La logica sigue igual, pero la interfaz prioriza el mensaje, la conversion interna y la lectura rapida de lo importante.
-          </p>
+          <div className="eyebrow eyebrow-accent">NOXFIT</div>
+          
+        
 
           <div className="hero-callouts hero-callouts-strong">
             {operationalHighlights.map((item) => (
@@ -365,11 +357,13 @@ export const AppShell = ({ session, onLogout }) => {
             ))}
           </div>
 
-          <div className="hero-stat-band hero-stat-band-compact">
-            <article>
-              <strong>{dashboard.members.length}</strong>
-              <span>members registrados</span>
-            </article>
+          <div className={isMember ? 'hero-stat-band hero-stat-band-compact hero-stat-band-member' : 'hero-stat-band hero-stat-band-compact'}>
+            {!isMember ? (
+              <article>
+                <strong>{dashboard.members.length}</strong>
+                <span>socios registrados</span>
+              </article>
+            ) : null}
             <article>
               <strong>{dashboard.trainers.length}</strong>
               <span>trainers visibles</span>
@@ -383,36 +377,50 @@ export const AppShell = ({ session, onLogout }) => {
 
         <div className="dashboard-side-stack">
           <div className="profile-card profile-card-jg">
-            <span className="status-pill status-positive">{renderProfileLabel(session)}</span>
-            <h2>{dashboard.profile?.full_name || session.user.full_name}</h2>
-            <p>{dashboard.profile?.email || session.user.email}</p>
+            <div className="profile-card-header">
+              <div className="profile-avatar" aria-hidden="true">
+                {getInitials(dashboard.profile?.full_name || session.user.full_name)}
+              </div>
+              <div className="profile-card-identity">
+                <h2>{dashboard.profile?.full_name || session.user.full_name}</h2>
+                <p>{dashboard.profile?.email || session.user.email}</p>
+              </div>
+            </div>
+            {session.role === 'member' && dashboard.profile ? (
+              <dl className="profile-details">
+                <div>
+                  <dt>Plan</dt>
+                  <dd>{dashboard.profile.membership_type || 'Sin plan'}</dd>
+                </div>
+                <div>
+                  <dt>Alta</dt>
+                  <dd>{formatDate(dashboard.profile.join_date)}</dd>
+                </div>
+                <div>
+                  <dt>Estado</dt>
+                  <dd>{formatBoolean(dashboard.profile.active)}</dd>
+                </div>
+              </dl>
+            ) : null}
             <div className="profile-actions">
               <button className="button button-secondary" type="button" onClick={dashboard.refreshData} disabled={dashboard.isLoading}>
                 Actualizar
               </button>
-              <button className="button button-ghost" type="button" onClick={onLogout}>
-                Cerrar sesion
-              </button>
             </div>
           </div>
-
-          <article className="feature-panel feature-panel-dark feature-panel-dashboard">
-            <span className="panel-kicker">Cobertura operativa</span>
-            <p>
-              Gestiona altas, equipo y agenda desde el mismo punto. Los formularios siguen reutilizando la API actual y mantienen el comportamiento existente.
-            </p>
-          </article>
         </div>
       </section>
 
-      <section className="stats-grid stats-grid-jg">
+      <section className={isMember ? 'stats-grid stats-grid-jg stats-grid-member' : 'stats-grid stats-grid-jg'}>
+        {!isMember ? (
+          <article className="stat-card">
+            <span>Total socios</span>
+            <strong>{dashboard.members.length}</strong>
+            <p>{activeMembers} activos</p>
+          </article>
+        ) : null}
         <article className="stat-card">
-          <span>Total members</span>
-          <strong>{dashboard.members.length}</strong>
-          <p>{activeMembers} activos</p>
-        </article>
-        <article className="stat-card">
-          <span>Total trainers</span>
+          <span>Total entrenadores</span>
           <strong>{dashboard.trainers.length}</strong>
           <p>{activeTrainers} activos</p>
         </article>
@@ -439,13 +447,23 @@ export const AppShell = ({ session, onLogout }) => {
         </article>
 
         <div className="footprint-grid">
-          {footprintHighlights.map((item) => (
-            <article key={item.city} className="footprint-card">
-              <span className="eyebrow">Centro destacado</span>
-              <h3>{item.city}</h3>
-              <p>{item.summary}</p>
-            </article>
-          ))}
+          {gyms.map((gym) => {
+            const isSelected = selectedCenter === gym.name;
+
+            return (
+              <button
+                key={gym.name}
+                type="button"
+                className={isSelected ? 'footprint-card footprint-card-selected' : 'footprint-card'}
+                aria-pressed={isSelected}
+                onClick={() => setSelectedCenter(isSelected ? '' : gym.name)}
+              >
+                <span className="eyebrow">{isSelected ? 'Centro elegido' : 'Centro de entrenamiento'}</span>
+                <h3>{gym.name}</h3>
+                <p>{gym.address}</p>
+              </button>
+            );
+          })}
         </div>
       </section>
 

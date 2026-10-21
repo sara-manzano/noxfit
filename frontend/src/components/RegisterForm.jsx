@@ -55,7 +55,7 @@ export const RegisterForm = ({ onSubmit, onBack }) => {
 
         <label className="field">
           <span>Email</span>
-          <input name="email" type="email" value={values.email} onChange={handleChange} required />
+          <input name="email" type="email" autoComplete="off" value={values.email} onChange={handleChange} required />
         </label>
 
         <label className="field">
@@ -65,12 +65,12 @@ export const RegisterForm = ({ onSubmit, onBack }) => {
 
         <label className="field">
           <span>Contraseña</span>
-          <input name="password" type="password" minLength={8} value={values.password} onChange={handleChange} required />
+          <input name="password" type="password" autoComplete="new-password" minLength={8} value={values.password} onChange={handleChange} required />
         </label>
 
         <label className="field">
           <span>Repetir contraseña</span>
-          <input name="confirmPassword" type="password" minLength={8} value={values.confirmPassword} onChange={handleChange} required />
+          <input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} value={values.confirmPassword} onChange={handleChange} required />
         </label>
 
         <button className="button button-primary" type="submit" disabled={isSubmitting}>

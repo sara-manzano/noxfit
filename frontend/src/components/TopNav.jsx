@@ -1,7 +1,7 @@
 import './TopNav.css';
 
 const navItems = [
-  { key: 'panel', label: 'Panel' },
+  { key: 'panel', label: 'Perfil' },
   { key: 'trainers', label: 'Entrenadores' },
   { key: 'services', label: 'Servicios' },
   { key: 'calendar', label: 'Calendario de reservas' },

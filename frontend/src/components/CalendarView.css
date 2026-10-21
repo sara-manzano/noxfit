@@ -61,8 +61,68 @@
 
 .calendar-cell-selected {
   background: var(--color-ink);
-  color: #fcf8ee;
+  color: var(--color-primary);
   border-color: var(--color-ink);
+}
+
+.panel.calendar-panel {
+  position: relative;
+  overflow: hidden;
+  padding-top: calc(var(--space-lg) + 0.7rem);
+  border-radius: 40px 8px 40px 8px;
+  background: rgba(252, 248, 238, 0.94);
+}
+
+.calendar-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 0.7rem;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-deep) 55%, var(--color-ink) 55%);
+}
+
+.calendar-toolbar h3 {
+  font-size: 2.4rem;
+}
+
+.calendar-cell {
+  border-radius: 14px;
+  border-width: 2px;
+}
+
+.calendar-cell-today {
+  border-color: var(--color-primary-deep);
+}
+
+.panel.calendar-detail {
+  border-radius: 8px 40px 8px 40px;
+  background: var(--color-ink);
+  color: #fcf8ee;
+}
+
+.calendar-detail .eyebrow {
+  color: var(--color-primary);
+}
+
+.calendar-detail h3 {
+  font-size: 2.4rem;
+}
+
+.calendar-detail .support-copy {
+  color: rgba(252, 248, 238, 0.7);
+}
+
+.calendar-event {
+  background: rgba(252, 248, 238, 0.08);
+  border-radius: 14px;
+}
+
+.calendar-event small {
+  color: rgba(252, 248, 238, 0.6);
+}
+
+.calendar-event-done {
+  border-left-color: rgba(252, 248, 238, 0.6);
 }
 
 .calendar-badge {

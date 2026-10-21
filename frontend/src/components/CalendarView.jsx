@@ -72,7 +72,7 @@ export const CalendarView = ({ reservations }) => {
     <section className="view-section">
       <div className="view-heading">
         <span className="eyebrow">Agenda</span>
-        <h2>Calendario de reservas</h2>
+        <h2>Calendario</h2>
         <p>Consulta qué días tienen sesiones y pulsa un día para ver el detalle.</p>
       </div>
 

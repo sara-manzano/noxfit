@@ -28,7 +28,10 @@ const isValidTimeSlot = (value) => {
   return endMinutes > startMinutes;
 };
 
+const TRAINING_CENTERS = ['Noxfit Salamanca', 'Noxfit Alcobendas'];
+
 module.exports = {
+  TRAINING_CENTERS,
   isValidTimeSlot,
   normalizeDateOnly,
 };

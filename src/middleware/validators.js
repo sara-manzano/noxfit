@@ -1,5 +1,5 @@
 const { createStatusError } = require('../http/errors');
-const { isValidTimeSlot, normalizeDateOnly } = require('../config/validation');
+const { isValidTimeSlot, normalizeDateOnly, TRAINING_CENTERS } = require('../config/validation');
 
 const MEMBER_TYPES = ['Básica', 'Premium', 'VIP'];
 const RESERVATION_STATUS = ['Confirmada', 'Completada', 'Cancelada'];
@@ -246,6 +246,7 @@ const sanitizeReservationPayload = (
   }
 
   assignIfDefined(data, 'activity_type', readStringField(payload, 'activity_type'));
+  assignIfDefined(data, 'center', readEnumField(payload, 'center', TRAINING_CENTERS));
   assignIfDefined(data, 'time_slot', readTimeSlotField(payload, 'time_slot'));
   assignIfDefined(data, 'status', readEnumField(payload, 'status', RESERVATION_STATUS));
   assignIfDefined(data, 'booked_by', readEnumField(payload, 'booked_by', RESERVATION_BOOKERS));

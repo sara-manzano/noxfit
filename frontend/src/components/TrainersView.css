@@ -27,16 +27,54 @@
 }
 
 .trainer-avatar {
+  position: relative;
   display: grid;
   place-items: center;
   width: 4.2rem;
   height: 4.2rem;
-  border-radius: 50%;
+  border-radius: 28px 8px 28px 8px;
   background: var(--color-ink);
   color: var(--color-primary);
   font-family: var(--font-heading);
   font-size: 1.7rem;
   letter-spacing: 0.04em;
+  box-shadow: -5px 5px 0 var(--color-primary);
+}
+
+.trainer-card {
+  transition: transform 200ms ease;
+}
+
+.trainer-card:hover {
+  transform: translateY(-3px) rotate(-0.4deg);
+}
+
+.trainer-card:nth-child(3n + 1) {
+  border-radius: 8px 40px 8px 40px;
+  background: var(--color-ink);
+  color: #fcf8ee;
+}
+
+.trainer-card:nth-child(3n + 1) .trainer-avatar {
+  background: var(--color-primary);
+  color: #1f2800;
+  box-shadow: -5px 5px 0 rgba(252, 248, 238, 0.2);
+}
+
+.trainer-card:nth-child(3n + 1) .trainer-facts dt {
+  color: rgba(252, 248, 238, 0.6);
+}
+
+.trainer-card:nth-child(3n + 2) {
+  border-radius: 40px 8px 40px 8px;
+  background: rgba(252, 248, 238, 0.94);
+}
+
+.trainer-card:nth-child(3n) {
+  border-radius: 28px 28px 8px 28px;
+  border: 2px dashed rgba(20, 20, 20, 0.28);
+  background: transparent;
+  box-shadow: none;
 }
 
 .trainer-facts {

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import gymImage from '../assets/gym.jpg';
+import gymImage from '../assets/Gym.png';
 import { MadridMap, gyms } from './MadridMap.jsx';
 import { RegisterForm } from './RegisterForm.jsx';
 import './AuthCard.css';
 import './LoginForm.css';
 
 const initialCredentials = {
-  role: 'trainer',
+  role: 'member',
   email: '',
   password: '',
 };
@@ -79,7 +79,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
 
           <div className="login-hero-copy">
             <span className="login-badge">Centro multidisciplinar</span>
-            <h1 className="login-wordmark">NOX<span>FIT</span></h1>
+            <h1 className="login-wordmark">NOXFIT</h1>
             <p className="hero-lead">
               Noxfit es un centro multidisciplinar coordinado por entrenadores y orientado a ofrecer una experiencia integral a sus socios.
             </p>
@@ -92,7 +92,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
           <figure className="login-figure">
             <img src={gymImage} alt="Gimnasio Noxfit" />
             <figcaption>
-              <strong>2</strong>
+              <strong>Dos</strong>
               <span>centros</span>
             </figcaption>
           </figure>
@@ -116,7 +116,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
           </article>
 
           <article className="bento-tile bento-highlight">
-            <strong>100%</strong>
+            <strong>100% </strong>
             <span>Agenda confirmada en el momento y acceso controlado al centro.</span>
           </article>
 
@@ -179,7 +179,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
         <div className="section-heading">
           <span className="auth-card-topline">Bienvenido</span>
           <h2>Iniciar sesión</h2>
-          <p>Accede a tu cuenta para gestionar tus reservas y actividades.</p>
+          <p>Accede a tu cuenta para gestionar tus reservas</p>
         </div>
 
         {error ? <div className="banner banner-error">{error}</div> : null}
@@ -188,7 +188,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
           <div className="role-switch" role="radiogroup" aria-label="Perfil">
             {[
               { value: 'trainer', label: 'Entrenador' },
-              { value: 'member', label: 'Miembro' },
+              { value: 'member', label: 'Socio' },
             ].map((option) => (
               <label key={option.value} className={credentials.role === option.value ? 'role-option role-option-active' : 'role-option'}>
                 <input
@@ -205,19 +205,19 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
 
           <label className="field">
             <span>Email</span>
-            <input name="email" type="email" value={credentials.email} onChange={handleChange} required />
+            <input name="email" type="email" autoComplete="off" value={credentials.email} onChange={handleChange} required />
           </label>
 
           <label className="field">
             <span>Contraseña</span>
-            <input name="password" type="password" value={credentials.password} onChange={handleChange} required />
+            <input name="password" type="password" autoComplete="new-password" value={credentials.password} onChange={handleChange} required />
           </label>
 
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Accediendo...' : 'Iniciar sesión'}
           </button>
           <button className="button button-secondary" type="button" onClick={() => setIsRegistering(true)}>
-            Registrarme
+            Registrarse
           </button>
         </form>
 

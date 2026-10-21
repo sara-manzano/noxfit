@@ -107,7 +107,7 @@ export const useDashboardData = (session) => {
     refreshData,
     createMember: (payload) => runMutation(
       () => accountsApi.createMember(session, payload),
-      'Miembro creado correctamente'
+      'Socio creado correctamente'
     ),
     createTrainer: (payload) => runMutation(
       () => accountsApi.createTrainer(session, payload),
@@ -119,7 +119,7 @@ export const useDashboardData = (session) => {
     ),
     deleteMember: (memberId) => runMutation(
       () => accountsApi.deleteMember(session, memberId),
-      'Miembro eliminado correctamente'
+      'Socio eliminado correctamente'
     ),
     deleteTrainer: (trainerId) => runMutation(
       () => accountsApi.deleteTrainer(session, trainerId),
