@@ -20,7 +20,6 @@ const buildSlotFilter = ({ reservation_id, date, time_slot }) => {
   return filter;
 };
 
-// A personal training blocks the trainer; other activities admit up to the per-slot maximum.
 const getTrainerSlotStatus = (slotReservations) => {
   const hasPersonalTraining = slotReservations.some((item) => isPersonalTraining(item.activity_type));
   const spotsLeft = Math.max(MAX_RESERVATIONS_PER_TRAINER_SLOT - slotReservations.length, 0);
@@ -79,7 +78,6 @@ const ensureNoReservationConflicts = async (ReservationModel, {
 };
 
 module.exports = {
-  ACTIVE_RESERVATION_STATUSES,
   buildSlotFilter,
   ensureNoReservationConflicts,
   getTrainerSlotStatus,

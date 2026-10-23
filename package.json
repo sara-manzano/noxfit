@@ -12,6 +12,7 @@
     "data:workbook": "node scripts/build-workbook.js",
     "check": "node --check src/server.js && node --check src/app.js && node --check scripts/seed.js && node --check scripts/check-openapi.js && node -e \"require('./src/app'); require('./src/server'); require('./scripts/seed')\"",
     "seed": "node scripts/seed.js",
+    "seed:reset": "node scripts/seed.js --reset",
     "openapi:check": "node scripts/check-openapi.js"
   },
   "repository": {
@@ -34,14 +35,14 @@
     "cors": "^2.8.6",
     "csv-parser": "^3.2.0",
     "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.0",
     "morgan": "^1.10.1",
     "nodemailer": "^10.2.1",
-    "swagger-ui-express": "^5.0.1",
-    "xlsx": "^0.18.5"
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.3.0",

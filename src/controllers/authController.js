@@ -1,4 +1,4 @@
-const crypto = require('node:crypto');
+const { generateId } = require('../config/ids');
 const Member = require('../models/members');
 const Trainer = require('../models/trainers');
 const { createStatusError } = require('../http/errors');
@@ -20,9 +20,9 @@ const login = async (req, res) => {
 };
 
 const registerMember = async (req, res) => {
-  const { full_name, email, password, phone } = req.body || {};
+  const { full_name, email, password, phone } = req.body;
   const data = sanitizeMemberPayload(
-    { member_id: `M-${crypto.randomBytes(5).toString('hex')}`, full_name, email, password, phone },
+    { member_id: generateId('M'), full_name, email, password, phone },
     { requirePassword: true }
   );
 
@@ -30,7 +30,7 @@ const registerMember = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-  const { role, email } = sanitizeForgotPasswordPayload(req.body || {});
+  const { role, email } = sanitizeForgotPasswordPayload(req.body);
   const Model = getAccountModel(role);
   const token = await requestPasswordReset(Model, email);
 
@@ -38,19 +38,16 @@ const forgotPassword = async (req, res) => {
     const appUrl = process.env.APP_URL || 'http://localhost:5173';
     const resetUrl = `${appUrl}/?reset=${token}&role=${role}`;
 
-    try {
-      await sendPasswordResetEmail(email, resetUrl);
-    } catch (mailError) {
+    sendPasswordResetEmail(email, resetUrl).catch((mailError) => {
       console.error('Password reset email failed:', mailError.message);
-    }
+    });
   }
 
-  // Same response whether or not the account exists, so registered emails are not revealed.
   return res.status(202).json({ message: 'If the account exists, a reset link has been sent' });
 };
 
 const resetPassword = async (req, res) => {
-  const { role, token, password } = sanitizeResetPasswordPayload(req.body || {});
+  const { role, token, password } = sanitizeResetPasswordPayload(req.body);
   await resetAccountPassword(getAccountModel(role), token, password);
 
   return res.status(200).json({ message: 'Password updated' });

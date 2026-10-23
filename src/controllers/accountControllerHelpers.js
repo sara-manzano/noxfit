@@ -1,11 +1,7 @@
 const Reservation = require('../models/reservations');
 const crypto = require('node:crypto');
 const { createStatusError } = require('../http/errors');
-const { hashPassword, comparePassword, signAccountToken } = require('../config/auth');
-
-const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const emailMatch = (email) => ({ $regex: `^${escapeRegExp(email)}$`, $options: 'i' });
+const { hashPassword, comparePassword, signAccountToken, DUMMY_PASSWORD_HASH } = require('../config/auth');
 
 const ensureFound = (record, resourceName) => {
   if (!record) {
@@ -31,6 +27,11 @@ const listAccountRecords = (Model, query, extraFilterField) => {
 
   return Model.find(filters).sort({ full_name: 1 });
 };
+
+const listAccountDirectory = (Model, fields) => Model.find({ active: { $ne: false } })
+  .select(`${fields} -_id`)
+  .sort({ full_name: 1 })
+  .lean();
 
 const getAccountRecord = async (Model, identifierField, identifierValue, resourceName) => ensureFound(
   await Model.findOne({ [identifierField]: identifierValue }),
@@ -74,10 +75,10 @@ const deleteAccountRecord = async (Model, identifierField, identifierValue, rese
 };
 
 const authenticateAccount = async (Model, role, email, password) => {
-  const account = await Model.findOne({ email: emailMatch(email) }).select('+password_hash');
+  const account = await Model.findOne({ email: email.toLowerCase() }).select('+password_hash');
+  const passwordMatches = await comparePassword(password, account?.password_hash || DUMMY_PASSWORD_HASH);
 
-  // Same error for unknown email and wrong password so we don't leak which one failed.
-  if (!account || !(await comparePassword(password, account.password_hash))) {
+  if (!account || !passwordMatches) {
     throw createStatusError('Invalid email or password', 401);
   }
 
@@ -92,10 +93,9 @@ const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 const hashResetToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
-// Returns the plain token only if the account exists and is active; the DB stores its hash.
 const requestPasswordReset = async (Model, email) => {
   const account = await Model.findOne({
-    email: emailMatch(email),
+    email: email.toLowerCase(),
     active: { $ne: false },
   });
 
@@ -134,6 +134,7 @@ module.exports = {
   resetAccountPassword,
   ensureFound,
   listAccountRecords,
+  listAccountDirectory,
   getAccountRecord,
   createAccountRecord,
   updateAccountRecord,

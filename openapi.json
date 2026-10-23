@@ -247,6 +247,38 @@
         }
       }
     },
+    "/members/directory": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "List active members (id and name only)",
+        "operationId": "listMemberDirectory",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List active members (id and name only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDirectoryCollection"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
     "/members/me": {
       "get": {
         "tags": [
@@ -625,6 +657,35 @@
           },
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/trainers/directory": {
+      "get": {
+        "tags": [
+          "Trainers"
+        ],
+        "summary": "List active trainers (id, name, activity and center only)",
+        "operationId": "listTrainerDirectory",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List active trainers (id, name, activity and center only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainerDirectoryCollection"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
@@ -1557,6 +1618,13 @@
           "activity_type": {
             "type": "string"
           },
+          "center": {
+            "type": "string",
+            "enum": [
+              "Noxfit Salamanca",
+              "Noxfit Alcobendas"
+            ]
+          },
           "phone": {
             "type": "string"
           },
@@ -1660,7 +1728,10 @@
           },
           "booked_by": {
             "type": "string",
-            "enum": ["member", "trainer"]
+            "enum": [
+              "member",
+              "trainer"
+            ]
           },
           "activity_type": {
             "type": "string"
@@ -1714,6 +1785,37 @@
           }
         }
       },
+      "MemberDirectoryCollection": {
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "member_id",
+                "full_name"
+              ],
+              "properties": {
+                "member_id": {
+                  "type": "string"
+                },
+                "full_name": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
       "TrainerCollection": {
         "type": "object",
         "required": [
@@ -1725,6 +1827,43 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Trainer"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "TrainerDirectoryCollection": {
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "trainer_id",
+                "full_name"
+              ],
+              "properties": {
+                "trainer_id": {
+                  "type": "string"
+                },
+                "full_name": {
+                  "type": "string"
+                },
+                "activity_type": {
+                  "type": "string"
+                },
+                "center": {
+                  "type": "string"
+                }
+              }
             }
           },
           "total": {
@@ -1924,6 +2063,13 @@
           "activity_type": {
             "type": "string"
           },
+          "center": {
+            "type": "string",
+            "enum": [
+              "Noxfit Salamanca",
+              "Noxfit Alcobendas"
+            ]
+          },
           "phone": {
             "type": "string"
           },
@@ -1973,6 +2119,13 @@
           "activity_type": {
             "type": "string"
           },
+          "center": {
+            "type": "string",
+            "enum": [
+              "Noxfit Salamanca",
+              "Noxfit Alcobendas"
+            ]
+          },
           "phone": {
             "type": "string"
           },
@@ -2009,6 +2162,13 @@
           },
           "activity_type": {
             "type": "string"
+          },
+          "center": {
+            "type": "string",
+            "enum": [
+              "Noxfit Salamanca",
+              "Noxfit Alcobendas"
+            ]
           },
           "phone": {
             "type": "string"
@@ -2050,7 +2210,10 @@
           },
           "booked_by": {
             "type": "string",
-            "enum": ["member", "trainer"],
+            "enum": [
+              "member",
+              "trainer"
+            ],
             "description": "Only honored for admin trainers; members and standard trainers are set automatically"
           },
           "activity_type": {
@@ -2086,7 +2249,10 @@
           },
           "booked_by": {
             "type": "string",
-            "enum": ["member", "trainer"],
+            "enum": [
+              "member",
+              "trainer"
+            ],
             "description": "Only honored for admin trainers"
           },
           "member_id": {

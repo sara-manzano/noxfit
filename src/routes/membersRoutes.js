@@ -1,5 +1,4 @@
 const router = require('express').Router();
-const asyncHandler = require('../middleware/asyncHandler');
 const { rejectPut } = require('../middleware/methodNotAllowed');
 const { requireMemberAuth, requireTrainerAdmin, requireTrainerAuth } = require('../middleware/auth');
 
@@ -17,20 +16,20 @@ const {
 const rejectMemberPut = rejectPut('members');
 
 router.route('/me')
-  .get(requireMemberAuth, asyncHandler(getCurrentMember))
-  .patch(requireMemberAuth, asyncHandler(updateCurrentMember))
+  .get(requireMemberAuth, getCurrentMember)
+  .patch(requireMemberAuth, updateCurrentMember)
   .put(requireMemberAuth, rejectMemberPut);
 
-router.get('/directory', requireTrainerAuth, asyncHandler(listMemberDirectory));
+router.get('/directory', requireTrainerAuth, listMemberDirectory);
 
 router.route('/')
-  .get(requireTrainerAdmin, asyncHandler(listMembers))
-  .post(requireTrainerAdmin, asyncHandler(createMember));
+  .get(requireTrainerAdmin, listMembers)
+  .post(requireTrainerAdmin, createMember);
 
 router.route('/:member_id')
-  .get(requireTrainerAdmin, asyncHandler(getMemberById))
-  .patch(requireTrainerAdmin, asyncHandler(updateMember))
+  .get(requireTrainerAdmin, getMemberById)
+  .patch(requireTrainerAdmin, updateMember)
   .put(rejectMemberPut)
-  .delete(requireTrainerAdmin, asyncHandler(deleteMember));
+  .delete(requireTrainerAdmin, deleteMember);
 
 module.exports = router;

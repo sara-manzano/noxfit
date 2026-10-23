@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { generateId } = require('../config/ids');
 const Trainer = require('../models/trainers');
 const { signAccountToken } = require('../config/auth');
 const { createStatusError } = require('../http/errors');
@@ -7,13 +8,34 @@ const { sanitizeTrainerPayload } = require('../middleware/validators');
 const {
   ensureFound,
   listAccountRecords,
+  listAccountDirectory,
   getAccountRecord,
   createAccountRecord,
   updateAccountRecord,
   deleteAccountRecord,
 } = require('./accountControllerHelpers');
 
-// Only the very first trainer can self-register, and only with the bootstrap token.
+const isSameToken = (received, expected) => {
+  const receivedBuffer = Buffer.from(String(received ?? ''));
+  const expectedBuffer = Buffer.from(expected);
+
+  return receivedBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(receivedBuffer, expectedBuffer);
+};
+
+const ensureAnotherAdminExists = async (trainer_id) => {
+  const target = await Trainer.findOne({ trainer_id, is_admin: true, active: { $ne: false } }).select('_id').lean();
+
+  if (!target) {
+    return;
+  }
+
+  const otherAdmin = await Trainer.exists({ _id: { $ne: target._id }, is_admin: true, active: { $ne: false } });
+
+  if (!otherAdmin) {
+    throw createStatusError('At least one active trainer admin must remain', 409);
+  }
+};
+
 const ensurePublicTrainerRegistrationAllowed = async (req) => {
   if (await Trainer.exists({})) {
     throw createStatusError('Public trainer registration is closed; ask an admin to create the account', 403);
@@ -25,7 +47,7 @@ const ensurePublicTrainerRegistrationAllowed = async (req) => {
     throw createStatusError('TRAINER_BOOTSTRAP_TOKEN is required to bootstrap the first trainer admin', 503);
   }
 
-  if (req.headers['x-bootstrap-token'] !== bootstrapToken) {
+  if (!isSameToken(req.headers['x-bootstrap-token'], bootstrapToken)) {
     throw createStatusError('A valid bootstrap token is required to create the first trainer admin', 403);
   }
 };
@@ -36,14 +58,10 @@ const listTrainers = async (req, res) => {
   return sendCollection(res, trainers);
 };
 
-const listTrainerDirectory = async (_req, res) => {
-  const trainers = await Trainer.find({ active: { $ne: false } })
-    .select('trainer_id full_name activity_type -_id')
-    .sort({ full_name: 1 })
-    .lean();
-
-  return sendCollection(res, trainers);
-};
+const listTrainerDirectory = async (_req, res) => sendCollection(
+  res,
+  await listAccountDirectory(Trainer, 'trainer_id full_name activity_type center')
+);
 
 const getTrainerById = async (req, res) => {
   const trainer = await getAccountRecord(Trainer, 'trainer_id', req.params.trainer_id, 'Trainer');
@@ -72,7 +90,7 @@ const getCurrentTrainer = async (req, res) => {
 const createTrainer = async (req, res) => {
   const trainer = await createAccountRecord(
     Trainer,
-    sanitizeTrainerPayload({ trainer_id: `T-${crypto.randomBytes(5).toString('hex')}`, ...req.body }, {
+    sanitizeTrainerPayload({ trainer_id: generateId('T'), ...req.body }, {
       requirePassword: true,
       allowAdminField: true,
     })
@@ -81,34 +99,36 @@ const createTrainer = async (req, res) => {
   return sendItem(res, trainer, 201);
 };
 
-const updateCurrentTrainer = async (req, res) => {
-  const trainer = await updateAccountRecord(
-    Trainer,
-    { trainer_id: req.auth.identifier },
-    sanitizeTrainerPayload(req.body, { partial: true, allowIdentifierUpdate: false })
-  );
+const applyTrainerUpdate = async (res, trainer_id, body, options) => {
+  const payload = sanitizeTrainerPayload(body, { partial: true, ...options });
+
+  if (payload.is_admin === false || payload.active === false) {
+    await ensureAnotherAdminExists(trainer_id);
+  }
+
+  const trainer = await updateAccountRecord(Trainer, { trainer_id }, payload);
 
   ensureFound(trainer, 'Trainer');
 
   return sendItem(res, trainer);
 };
 
-const updateTrainer = async (req, res) => {
-  const trainer = await updateAccountRecord(
-    Trainer,
-    { trainer_id: req.params.trainer_id },
-    sanitizeTrainerPayload(req.body, {
-      partial: true,
-      allowAdminField: true,
-    })
-  );
+const updateCurrentTrainer = (req, res) => applyTrainerUpdate(
+  res,
+  req.auth.identifier,
+  req.body,
+  { allowIdentifierUpdate: false }
+);
 
-  ensureFound(trainer, 'Trainer');
-
-  return sendItem(res, trainer);
-};
+const updateTrainer = (req, res) => applyTrainerUpdate(
+  res,
+  req.params.trainer_id,
+  req.body,
+  { allowAdminField: true }
+);
 
 const deleteTrainer = async (req, res) => {
+  await ensureAnotherAdminExists(req.params.trainer_id);
   await deleteAccountRecord(Trainer, 'trainer_id', req.params.trainer_id, 'trainer', 'Trainer');
 
   return sendNoContent(res);

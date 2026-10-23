@@ -11,6 +11,8 @@ const getJwtSecret = () => {
 
 const hashPassword = async (password) => bcrypt.hash(password, 10);
 
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('noxfit-dummy-password', 10);
+
 const comparePassword = async (password, passwordHash) => {
   if (typeof password !== 'string' || typeof passwordHash !== 'string' || passwordHash.length === 0) {
     return false;
@@ -34,6 +36,7 @@ const signAccountToken = (role, account) => {
 module.exports = {
   hashPassword,
   comparePassword,
+  DUMMY_PASSWORD_HASH,
   signAccountToken,
   verifyToken,
 };

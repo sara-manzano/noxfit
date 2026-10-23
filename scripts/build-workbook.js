@@ -1,6 +1,6 @@
 require('dotenv').config();
 const path = require('path');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 const { dataDirectory, loadCsv } = require('./loadCsv');
 
 const workbookPath = path.join(dataDirectory, 'noxfit-data.xlsx');
@@ -11,15 +11,18 @@ const collections = [
 ];
 
 const buildWorkbook = async () => {
-  const workbook = xlsx.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
 
   for (const collection of collections) {
     const rows = await loadCsv(collection.fileName);
-    const worksheet = xlsx.utils.json_to_sheet(rows);
-    xlsx.utils.book_append_sheet(workbook, worksheet, collection.sheetName);
+    const worksheet = workbook.addWorksheet(collection.sheetName);
+    const headers = rows.length ? Object.keys(rows[0]) : [];
+
+    worksheet.columns = headers.map((header) => ({ header, key: header }));
+    rows.forEach((row) => worksheet.addRow(row));
   }
 
-  xlsx.writeFile(workbook, workbookPath);
+  await workbook.xlsx.writeFile(workbookPath);
   console.log(`Workbook created at ${workbookPath}`);
 };
 

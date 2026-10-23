@@ -1,9 +1,8 @@
-const { createStatusError } = require('../http/errors');
+const { createStatusError, createForbiddenError } = require('../http/errors');
 const { verifyToken } = require('../config/auth');
 const Member = require('../models/members');
 const Trainer = require('../models/trainers');
 
-const createForbiddenError = (message) => createStatusError(message, 403);
 const createDeletedAccountError = () => createStatusError('Account for this token no longer exists', 401);
 
 const normalizeAuthError = (error) => {
@@ -57,7 +56,6 @@ const resolveAccount = async (payload) => {
     throw createStatusError('Account is inactive', 403);
   }
 
-  // Tokens issued before the last password change are revoked.
   if (account.password_changed_at && Math.floor(account.password_changed_at.getTime() / 1000) > payload.iat) {
     throw createStatusError('Token is invalid or expired', 401);
   }

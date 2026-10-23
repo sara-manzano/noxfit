@@ -2,7 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 
 const Member = require('../src/models/members');
 const Trainer = require('../src/models/trainers');
@@ -12,7 +12,7 @@ const { hashPassword } = require('../src/config/auth');
 const { normalizeDateOnly } = require('../src/config/validation');
 const { dataDirectory, loadCsv } = require('./loadCsv');
 
-const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || 'Noxfit123';
+const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD;
 const ADMIN_TRAINER_ID = process.env.SEED_ADMIN_TRAINER_ID || '843d66cb-b0bf-4655-919f-01081bf4da2d';
 const DEFAULT_WORKBOOK_NAME = 'noxfit-data.xlsx';
 const DEFAULT_WORKBOOK_PATH = path.join(dataDirectory, DEFAULT_WORKBOOK_NAME);
@@ -54,11 +54,33 @@ const mergePasswordFieldFromRows = (rows, passwordRows, identifierField) => {
   });
 };
 
+const mergeCenterFieldFromRows = (rows, csvRows, identifierField) => {
+  const centerByIdentifier = new Map(
+    csvRows
+      .filter((row) => row[identifierField] && row.center)
+      .map((row) => [String(row[identifierField]).trim(), row.center.trim()])
+  );
+
+  return rows.map((row) => {
+    if (row.center) {
+      return row;
+    }
+
+    const center = centerByIdentifier.get(String(row[identifierField] || '').trim());
+
+    return center ? { ...row, center } : row;
+  });
+};
+
 const buildPasswordHashResolver = async () => {
   const cache = new Map();
 
   return async (rawPassword) => {
     const normalizedPassword = normalizePassword(rawPassword) || DEFAULT_SEED_PASSWORD;
+
+    if (!normalizedPassword) {
+      throw new Error('A row has no password and SEED_DEFAULT_PASSWORD is not set');
+    }
 
     if (!cache.has(normalizedPassword)) {
       cache.set(normalizedPassword, await hashPassword(normalizedPassword));
@@ -173,22 +195,43 @@ const normalizeTimeSlot = (value) => {
     : `${rawEnd} - ${rawStart}`;
 };
 
-const loadWorkbookRows = (workbookPath, sheetName) => {
+const loadWorkbookRows = async (workbookPath, sheetName) => {
   if (!fs.existsSync(workbookPath)) {
     throw new Error(`The workbook ${path.basename(workbookPath)} was not found in data/`);
   }
 
-  const workbook = xlsx.readFile(workbookPath, { cellDates: false });
-  const worksheet = workbook.Sheets[sheetName];
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(workbookPath);
+  const worksheet = workbook.getWorksheet(sheetName);
 
   if (!worksheet) {
     throw new Error(`The workbook sheet ${sheetName} was not found in ${path.basename(workbookPath)}`);
   }
 
-  return xlsx.utils.sheet_to_json(worksheet, {
-    defval: '',
-    raw: false,
+  const headers = [];
+  worksheet.getRow(1).eachCell({ includeEmpty: false }, (cell, column) => {
+    headers[column] = cell.text;
   });
+
+  const rows = [];
+
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) {
+      return;
+    }
+
+    const item = {};
+
+    headers.forEach((header, column) => {
+      if (header) {
+        item[header] = row.getCell(column).text;
+      }
+    });
+
+    rows.push(item);
+  });
+
+  return rows;
 };
 
 const resolveSeedWorkbookPath = () => {
@@ -212,15 +255,22 @@ const loadSeedRows = async () => {
       loadCsv('trainers.csv'),
     ]);
 
-    const workbookMemberRows = loadWorkbookRows(workbookPath, 'members');
-    const workbookTrainerRows = loadWorkbookRows(workbookPath, 'trainers');
+    const [workbookMemberRows, workbookTrainerRows, workbookReservationRows] = await Promise.all([
+      loadWorkbookRows(workbookPath, 'members'),
+      loadWorkbookRows(workbookPath, 'trainers'),
+      loadWorkbookRows(workbookPath, 'reservations'),
+    ]);
 
     return {
       sourceLabel: `Excel workbook (${path.basename(workbookPath)})`,
       rows: [
         mergePasswordFieldFromRows(workbookMemberRows, memberCsvRows, 'member_id'),
-        mergePasswordFieldFromRows(workbookTrainerRows, trainerCsvRows, 'trainer_id'),
-        loadWorkbookRows(workbookPath, 'reservations'),
+        mergeCenterFieldFromRows(
+          mergePasswordFieldFromRows(workbookTrainerRows, trainerCsvRows, 'trainer_id'),
+          trainerCsvRows,
+          'trainer_id'
+        ),
+        workbookReservationRows,
       ],
     };
   }
@@ -239,12 +289,39 @@ const buildLookupMap = (items, fieldName) => new Map(
   items.map((item) => [item[fieldName], item])
 );
 
+const RESET_REQUESTED = process.argv.includes('--reset') || process.env.SEED_RESET === 'true';
+
 const clearCollections = async () => {
   await Reservation.deleteMany({});
   await Promise.all([
     Member.deleteMany({}),
     Trainer.deleteMany({}),
   ]);
+};
+
+const withoutUndefined = (document) => Object.fromEntries(
+  Object.entries(document).filter(([, value]) => value !== undefined)
+);
+
+const upsertDocuments = async (Model, identifierField, documents) => {
+  await Model.bulkWrite(documents.map((document) => {
+    const { password_hash, ...fields } = withoutUndefined(document);
+    const update = { $set: fields };
+
+    if (password_hash) {
+      update.$setOnInsert = { password_hash };
+    }
+
+    return {
+      updateOne: {
+        filter: { [identifierField]: document[identifierField] },
+        update,
+        upsert: true,
+      },
+    };
+  }));
+
+  return Model.find({ [identifierField]: { $in: documents.map((document) => document[identifierField]) } });
 };
 
 const createAccountsPayload = async (memberRows, trainerRows) => {
@@ -259,6 +336,13 @@ const createAccountsPayload = async (memberRows, trainerRows) => {
 };
 
 const insertAccounts = async (members, trainers) => {
+  if (!RESET_REQUESTED) {
+    return {
+      insertedMembers: await upsertDocuments(Member, 'member_id', members),
+      insertedTrainers: await upsertDocuments(Trainer, 'trainer_id', trainers),
+    };
+  }
+
   const [insertedMembers, insertedTrainers] = await Promise.all([
     Member.insertMany(members),
     Trainer.insertMany(trainers),
@@ -269,9 +353,10 @@ const insertAccounts = async (members, trainers) => {
 
 const logSeedSummary = ({ insertedMembers, insertedTrainers, reservations, adminTrainerId, sourceLabel }) => {
   console.log(`Seed source: ${sourceLabel}`);
-  console.log(`Members inserted: ${insertedMembers.length}`);
-  console.log(`Trainers inserted: ${insertedTrainers.length}`);
-  console.log(`Reservations inserted: ${reservations.length}`);
+  console.log(RESET_REQUESTED ? 'Mode: reset (all existing data deleted)' : 'Mode: upsert (existing data kept)');
+  console.log(`Members synced: ${insertedMembers.length}`);
+  console.log(`Trainers synced: ${insertedTrainers.length}`);
+  console.log(`Reservations synced: ${reservations.length}`);
   console.log(`Initial admin trainer: ${adminTrainerId}`);
 };
 
@@ -292,6 +377,7 @@ const mapTrainers = (rows, resolvePasswordHash, adminTrainerId) => Promise.all(r
   email: row.email,
   password_hash: await resolvePasswordHash(row.password),
   activity_type: normalizeActivityType(row.activity_type),
+  center: row.center || undefined,
   phone: row.phone || undefined,
   years_experience: parseNumber(row.years_experience),
   hourly_rate: parseNumber(row.hourly_rate),
@@ -317,6 +403,7 @@ const mapReservations = (rows, membersById, trainersById) => rows.map((row) => {
     member: member._id,
     trainer: trainer._id,
     activity_type: normalizeActivityType(row.activity_type),
+    center: row.center || trainer.center,
     date: parseDate(row.date, { normalizeDate: true }),
     time_slot: normalizeTimeSlot(row.time_slot),
     status: row.status || undefined,
@@ -331,7 +418,9 @@ const seed = async () => {
     const { sourceLabel, rows: [memberRows, trainerRows, reservationRows] } = await loadSeedRows();
     const { adminTrainerId, members, trainers } = await createAccountsPayload(memberRows, trainerRows);
 
-    await clearCollections();
+    if (RESET_REQUESTED) {
+      await clearCollections();
+    }
 
     const { insertedMembers, insertedTrainers } = await insertAccounts(members, trainers);
 
@@ -339,7 +428,17 @@ const seed = async () => {
     const trainersById = buildLookupMap(insertedTrainers, 'trainer_id');
     const reservations = mapReservations(reservationRows, membersById, trainersById);
 
-    await Reservation.insertMany(reservations);
+    if (RESET_REQUESTED) {
+      await Reservation.insertMany(reservations);
+    } else {
+      await Reservation.bulkWrite(reservations.map((reservation) => ({
+        updateOne: {
+          filter: { reservation_id: reservation.reservation_id },
+          update: { $set: withoutUndefined(reservation) },
+          upsert: true,
+        },
+      })));
+    }
 
     logSeedSummary({ insertedMembers, insertedTrainers, reservations, adminTrainerId, sourceLabel });
   } finally {

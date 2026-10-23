@@ -1,5 +1,4 @@
 const router = require('express').Router();
-const asyncHandler = require('../middleware/asyncHandler');
 const { authenticateRequest } = require('../middleware/auth');
 const { rejectPut } = require('../middleware/methodNotAllowed');
 
@@ -17,15 +16,15 @@ const rejectReservationPut = rejectPut('reservations');
 router.use(authenticateRequest);
 
 router.route('/')
-  .get(asyncHandler(listReservations))
-  .post(asyncHandler(createReservation));
+  .get(listReservations)
+  .post(createReservation);
 
-router.get('/availability', asyncHandler(getTrainerAvailability));
+router.get('/availability', getTrainerAvailability);
 
 router.route('/:reservation_id')
-  .get(asyncHandler(getReservationById))
-  .patch(asyncHandler(updateReservation))
+  .get(getReservationById)
+  .patch(updateReservation)
   .put(rejectReservationPut)
-  .delete(asyncHandler(deleteReservation));
+  .delete(deleteReservation);
 
 module.exports = router;

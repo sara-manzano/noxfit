@@ -1,10 +1,11 @@
-const crypto = require('node:crypto');
+const { generateId } = require('../config/ids');
 const Member = require('../models/members');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeMemberPayload } = require('../middleware/validators');
 const {
   ensureFound,
   listAccountRecords,
+  listAccountDirectory,
   getAccountRecord,
   createAccountRecord,
   updateAccountRecord,
@@ -33,7 +34,7 @@ const createMember = async (req, res) => {
   const member = await createAccountRecord(
     Member,
     sanitizeMemberPayload(
-      { member_id: `M-${crypto.randomBytes(5).toString('hex')}`, ...req.body },
+      { member_id: generateId('M'), ...req.body },
       { requirePassword: true }
     )
   );
@@ -41,11 +42,11 @@ const createMember = async (req, res) => {
   return sendItem(res, member, 201);
 };
 
-const updateCurrentMember = async (req, res) => {
+const applyMemberUpdate = async (res, member_id, body, options) => {
   const member = await updateAccountRecord(
     Member,
-    { member_id: req.auth.identifier },
-    sanitizeMemberPayload(req.body, { partial: true, allowIdentifierUpdate: false, allowPlanFields: false })
+    { member_id },
+    sanitizeMemberPayload(body, { partial: true, ...options })
   );
 
   ensureFound(member, 'Member');
@@ -53,17 +54,14 @@ const updateCurrentMember = async (req, res) => {
   return sendItem(res, member);
 };
 
-const updateMember = async (req, res) => {
-  const member = await updateAccountRecord(
-    Member,
-    { member_id: req.params.member_id },
-    sanitizeMemberPayload(req.body, { partial: true })
-  );
+const updateCurrentMember = (req, res) => applyMemberUpdate(
+  res,
+  req.auth.identifier,
+  req.body,
+  { allowIdentifierUpdate: false, allowPlanFields: false }
+);
 
-  ensureFound(member, 'Member');
-
-  return sendItem(res, member);
-};
+const updateMember = (req, res) => applyMemberUpdate(res, req.params.member_id, req.body);
 
 const deleteMember = async (req, res) => {
   await deleteAccountRecord(Member, 'member_id', req.params.member_id, 'member', 'Member');
@@ -71,14 +69,10 @@ const deleteMember = async (req, res) => {
   return sendNoContent(res);
 };
 
-const listMemberDirectory = async (_req, res) => {
-  const members = await Member.find({ active: { $ne: false } })
-    .select('member_id full_name -_id')
-    .sort({ full_name: 1 })
-    .lean();
-
-  return sendCollection(res, members);
-};
+const listMemberDirectory = async (_req, res) => sendCollection(
+  res,
+  await listAccountDirectory(Member, 'member_id full_name')
+);
 
 module.exports = {
   listMemberDirectory,

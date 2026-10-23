@@ -1,9 +1,11 @@
 const mongoose = require('mongoose');
 const { createAccountSchemaFields, applyAccountResponseTransform } = require('./sharedFields');
+const { TRAINING_CENTERS } = require('../config/validation');
 
 const trainerSchema = new mongoose.Schema({
   ...createAccountSchemaFields('trainer_id'),
   activity_type: { type: String },
+  center: { type: String, enum: TRAINING_CENTERS },
   years_experience: { type: Number, min: 0 },
   hourly_rate: { type: Number, min: 0 },
   is_admin: { type: Boolean, default: false },

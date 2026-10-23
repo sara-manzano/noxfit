@@ -4,6 +4,9 @@ const createStatusError = (message, statusCode) => {
   return error;
 };
 
+const createForbiddenError = (message) => createStatusError(message, 403);
+
 module.exports = {
   createStatusError,
+  createForbiddenError,
 };

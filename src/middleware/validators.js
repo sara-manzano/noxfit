@@ -177,8 +177,7 @@ const readAccountFields = (payload, idField, { partial, requirePassword, allowId
 const sanitizeMemberPayload = (
   payload,
   { partial = false, requirePassword = false, allowIdentifierUpdate = true, allowPlanFields = true } = {}
-) => {
-  const data = readAccountFields(payload, 'member_id', { partial, requirePassword, allowIdentifierUpdate });
+) => {const data = readAccountFields(payload, 'member_id', { partial, requirePassword, allowIdentifierUpdate });
 
   if (allowPlanFields) {
     assignIfDefined(data, 'membership_type', readEnumField(payload, 'membership_type', MEMBERSHIP_TYPES));
@@ -200,6 +199,7 @@ const sanitizeTrainerPayload = (
   const data = readAccountFields(payload, 'trainer_id', { partial, requirePassword, allowIdentifierUpdate });
 
   assignIfDefined(data, 'activity_type', readStringField(payload, 'activity_type'));
+  assignIfDefined(data, 'center', readEnumField(payload, 'center', TRAINING_CENTERS));
   assignIfDefined(data, 'years_experience', readNumberField(payload, 'years_experience'));
   assignIfDefined(data, 'hourly_rate', readNumberField(payload, 'hourly_rate'));
 

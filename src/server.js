@@ -7,7 +7,6 @@ const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
   await connectToDatabase();
-  // Recreates the member index, which now ignores reservations without a member.
   await Reservation.syncIndexes();
 
   return app.listen(PORT, () => console.log(`Server listening at http://localhost:${PORT}`));

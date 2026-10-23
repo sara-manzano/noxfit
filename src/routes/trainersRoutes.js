@@ -1,5 +1,4 @@
 const router = require('express').Router();
-const asyncHandler = require('../middleware/asyncHandler');
 const { rejectPut } = require('../middleware/methodNotAllowed');
 const { requireTrainerAdmin, requireTrainerAuth, authenticateRequest } = require('../middleware/auth');
 
@@ -17,23 +16,23 @@ const {
 
 const rejectTrainerPut = rejectPut('trainers');
 
-router.post('/register', asyncHandler(registerTrainer));
+router.post('/register', registerTrainer);
 
 router.route('/me')
-  .get(requireTrainerAuth, asyncHandler(getCurrentTrainer))
-  .patch(requireTrainerAdmin, asyncHandler(updateCurrentTrainer))
+  .get(requireTrainerAuth, getCurrentTrainer)
+  .patch(requireTrainerAdmin, updateCurrentTrainer)
   .put(requireTrainerAuth, rejectTrainerPut);
 
-router.get('/directory', authenticateRequest, asyncHandler(listTrainerDirectory));
+router.get('/directory', authenticateRequest, listTrainerDirectory);
 
 router.route('/')
-  .get(requireTrainerAdmin, asyncHandler(listTrainers))
-  .post(requireTrainerAdmin, asyncHandler(createTrainer));
+  .get(requireTrainerAdmin, listTrainers)
+  .post(requireTrainerAdmin, createTrainer);
 
 router.route('/:trainer_id')
-  .get(requireTrainerAdmin, asyncHandler(getTrainerById))
-  .patch(requireTrainerAdmin, asyncHandler(updateTrainer))
+  .get(requireTrainerAdmin, getTrainerById)
+  .patch(requireTrainerAdmin, updateTrainer)
   .put(rejectTrainerPut)
-  .delete(requireTrainerAdmin, asyncHandler(deleteTrainer));
+  .delete(requireTrainerAdmin, deleteTrainer);
 
 module.exports = router;

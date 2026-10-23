@@ -1,10 +1,10 @@
-const crypto = require('node:crypto');
 const Member = require('../models/members');
 const Trainer = require('../models/trainers');
 const Reservation = require('../models/reservations');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeReservationPayload } = require('../middleware/validators');
-const { createStatusError } = require('../http/errors');
+const { createStatusError, createForbiddenError } = require('../http/errors');
+const { generateId } = require('../config/ids');
 const { isValidTimeSlot, normalizeDateOnly } = require('../config/validation');
 const { ensureFound } = require('./accountControllerHelpers');
 const {
@@ -15,14 +15,13 @@ const {
 
 const reservationPopulation = [
   { path: 'member', select: 'member_id full_name email' },
-  { path: 'trainer', select: 'trainer_id full_name activity_type hourly_rate' },
+  { path: 'trainer', select: 'trainer_id full_name activity_type center hourly_rate' },
 ];
 
 const isTrainerAdmin = (req) => req.auth?.role === 'trainer' && req.auth?.isAdmin;
 const isMemberAuth = (req) => req.auth?.role === 'member';
 const isStandardTrainer = (req) => req.auth?.role === 'trainer' && !req.auth?.isAdmin;
 
-const createForbiddenError = (message) => createStatusError(message, 403);
 const getReferenceId = (reference) => reference?._id || reference;
 
 const findAccountId = async (Model, identifierField, identifier) => {
@@ -57,10 +56,20 @@ const buildReservationFilters = async (query) => {
     }
   }
 
-  for (const field of ['status', 'activity_type', 'date']) {
+  for (const field of ['status', 'activity_type']) {
     if (query[field]) {
       filters[field] = query[field];
     }
+  }
+
+  if (query.date) {
+    const date = normalizeDateOnly(query.date);
+
+    if (Number.isNaN(date.getTime())) {
+      throw createStatusError('date must be a valid date', 400);
+    }
+
+    filters.date = date;
   }
 
   if (query.member_id) {
@@ -101,6 +110,18 @@ const resolveReservationReferences = async (payload) => {
   delete data.trainer_id;
 
   return data;
+};
+
+const ensureTrainerWorksAtCenter = async (trainerId, center) => {
+  if (!trainerId || !center) {
+    return;
+  }
+
+  const trainer = await Trainer.findById(trainerId).select('center').lean();
+
+  if (trainer?.center && trainer.center !== center) {
+    throw createStatusError(`This trainer works at ${trainer.center}, not at ${center}`, 409);
+  }
 };
 
 const ensureMemberReservationAccess = (req, memberId, message) => {
@@ -221,7 +242,7 @@ const createReservation = async (req, res) => {
   });
 
   reservationData.booked_by = bookedBy;
-  reservationData.reservation_id ||= `R-${crypto.randomBytes(5).toString('hex')}`;
+  reservationData.reservation_id ||= generateId('R');
 
   if (isMemberAuth(req)) {
     delete reservationData.price;
@@ -235,11 +256,11 @@ const createReservation = async (req, res) => {
 
   const payload = await resolveReservationReferences(reservationData);
 
+  await ensureTrainerWorksAtCenter(payload.trainer, payload.center);
   await ensureSlotIsFree(payload);
 
   const reservation = await Reservation.create(payload);
 
-  // Re-check after insert: concurrent requests can pass the first check together.
   try {
     await ensureSlotIsFree(payload, reservation.reservation_id);
   } catch (error) {
@@ -260,6 +281,12 @@ const ensureNotStandardTrainer = (req) => {
   }
 };
 
+const previousValues = (reservation) => Object.fromEntries(
+  ['member', 'trainer', 'date', 'time_slot', 'activity_type', 'center', 'status', 'reservation_id']
+    .filter((field) => reservation[field] !== undefined)
+    .map((field) => [field, getReferenceId(reservation[field])])
+);
+
 const updateReservation = async (req, res) => {
   ensureNotStandardTrainer(req);
 
@@ -277,7 +304,6 @@ const updateReservation = async (req, res) => {
     delete reservationData.price;
     delete reservationData.reservation_id;
 
-    // Members can only cancel, not complete or reopen reservations.
     if (reservationData.status !== 'Cancelada') {
       delete reservationData.status;
     }
@@ -285,15 +311,20 @@ const updateReservation = async (req, res) => {
 
   const payload = await resolveReservationReferences(reservationData);
 
-  await ensureNoReservationConflicts(Reservation, {
-    reservation_id: req.params.reservation_id,
+  await ensureTrainerWorksAtCenter(
+    payload.trainer || getReferenceId(existingReservation.trainer),
+    payload.center ?? existingReservation.center
+  );
+  const slot = {
     trainer: payload.trainer || getReferenceId(existingReservation.trainer),
     member: payload.member || getReferenceId(existingReservation.member),
     date: payload.date || existingReservation.date,
     time_slot: payload.time_slot || existingReservation.time_slot,
     activity_type: payload.activity_type ?? existingReservation.activity_type,
     status: payload.status || existingReservation.status,
-  });
+  };
+
+  await ensureNoReservationConflicts(Reservation, { reservation_id: req.params.reservation_id, ...slot });
 
   const reservation = await Reservation.findOneAndUpdate(
     { reservation_id: req.params.reservation_id },
@@ -304,6 +335,13 @@ const updateReservation = async (req, res) => {
     .lean();
 
   ensureFound(reservation, 'Reservation');
+
+  try {
+    await ensureNoReservationConflicts(Reservation, { reservation_id: reservation.reservation_id, ...slot });
+  } catch (error) {
+    await Reservation.updateOne({ _id: reservation._id }, previousValues(existingReservation));
+    throw error;
+  }
 
   return sendItem(res, reservation);
 };
