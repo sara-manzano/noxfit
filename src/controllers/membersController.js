@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const Member = require('../models/members');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeMemberPayload } = require('../middleware/validators');
@@ -31,7 +32,10 @@ const getCurrentMember = async (req, res) => {
 const createMember = async (req, res) => {
   const member = await createAccountRecord(
     Member,
-    sanitizeMemberPayload(req.body, { requirePassword: true })
+    sanitizeMemberPayload(
+      { member_id: `M-${crypto.randomBytes(5).toString('hex')}`, ...req.body },
+      { requirePassword: true }
+    )
   );
 
   return sendItem(res, member, 201);

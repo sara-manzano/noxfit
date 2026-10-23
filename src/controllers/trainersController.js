@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const Trainer = require('../models/trainers');
 const { signAccountToken } = require('../config/auth');
 const { createStatusError } = require('../http/errors');
@@ -71,7 +72,7 @@ const getCurrentTrainer = async (req, res) => {
 const createTrainer = async (req, res) => {
   const trainer = await createAccountRecord(
     Trainer,
-    sanitizeTrainerPayload(req.body, {
+    sanitizeTrainerPayload({ trainer_id: `T-${crypto.randomBytes(5).toString('hex')}`, ...req.body }, {
       requirePassword: true,
       allowAdminField: true,
     })
