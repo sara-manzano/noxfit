@@ -15,7 +15,7 @@ export const TrainersView = ({ trainers, isPartial }) => (
       <h2>Entrenadores</h2>
       <p>
         {isPartial
-          ? 'Entrenadores del centro. Experiencia y tarifa solo están disponibles para el trainer admin.'
+          ? 'Entrenadores del centro. Experiencia y tarifa solo están disponibles para el entrenador admin.'
           : 'Profesionales del centro con su especialidad, experiencia y tarifa.'}
       </p>
     </div>
@@ -27,6 +27,7 @@ export const TrainersView = ({ trainers, isPartial }) => (
             <div className="trainer-avatar">{initialsOf(trainer.full_name)}</div>
             <h3>{trainer.full_name}</h3>
             <span className="metric-pill metric-pill-accent">{trainer.activity_type || 'Sin especialidad'}</span>
+            <span className="metric-pill">{trainer.center || 'Sin centro'}</span>
             {trainer.years_experience !== undefined || trainer.hourly_rate !== undefined ? (
               <dl className="trainer-facts">
                 <div>

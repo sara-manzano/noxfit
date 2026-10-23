@@ -1,4 +1,9 @@
 export const membershipOptions = ['Básica', 'Premium', 'VIP'];
+export const centerOptions = ['Noxfit Salamanca', 'Noxfit Alcobendas'];
+export const personalTrainingActivity = 'Entrenamiento personal';
+export const groupTrainingActivity = 'Entrenamiento grupal';
+export const trainingTypeOptions = [personalTrainingActivity, groupTrainingActivity];
+export const isPersonalTraining = (activity = '') => activity.trim().toLowerCase() === personalTrainingActivity.toLowerCase();
 export const reservationStatusOptions = ['Confirmada', 'Completada', 'Cancelada'];
 export const timeSlotOptions = [
   '07:00 - 08:00',
@@ -14,7 +19,6 @@ export const timeSlotOptions = [
 ];
 
 export const memberFields = [
-  { name: 'member_id', label: 'Código', type: 'text', required: true },
   { name: 'full_name', label: 'Nombre completo', type: 'text', required: true },
   { name: 'email', label: 'Email', type: 'email', required: true },
   { name: 'password', label: 'Contraseña inicial', type: 'password', required: true },
@@ -25,11 +29,11 @@ export const memberFields = [
 ];
 
 export const trainerFields = [
-  { name: 'trainer_id', label: 'Código', type: 'text', required: true },
   { name: 'full_name', label: 'Nombre completo', type: 'text', required: true },
   { name: 'email', label: 'Email', type: 'email', required: true },
   { name: 'password', label: 'Contraseña inicial', type: 'password', required: true },
   { name: 'activity_type', label: 'Especialidad', type: 'text' },
+  { name: 'center', label: 'Centro', type: 'select', options: centerOptions },
   { name: 'phone', label: 'Teléfono', type: 'tel' },
   { name: 'years_experience', label: 'Experiencia', type: 'number', min: 0, step: 1 },
   { name: 'hourly_rate', label: 'Tarifa', type: 'number', min: 0, step: 1 },

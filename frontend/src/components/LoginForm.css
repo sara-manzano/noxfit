@@ -302,6 +302,27 @@
   color: var(--color-primary-deep);
 }
 
+.bento-footer {
+  grid-column: span 4;
+  display: grid;
+  align-content: center;
+  border-radius: 28px 8px 28px 28px;
+  background: var(--color-ink);
+  color: #fcf8ee;
+}
+
+.bento-footer .bento-kicker {
+  margin-bottom: 0.25rem;
+  color: var(--color-primary);
+}
+
+.bento-footer p {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  letter-spacing: 0.04em;
+}
+
 .city-link {
   padding: 0;
   border: 0;
@@ -321,7 +342,131 @@
   color: var(--color-primary-deep);
 }
 
-/* Dialogo del mapa */
+.bento-plans {
+  grid-column: span 6;
+  display: grid;
+  gap: var(--space-sm);
+  border-radius: 8px 28px 8px 28px;
+  background: rgba(252, 248, 238, 0.94);
+}
+
+.plan-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-list li {
+  display: grid;
+  gap: 0.2rem;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: rgba(20, 20, 20, 0.06);
+}
+
+.plan-list strong {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+}
+
+.bento-plans .button {
+  justify-self: start;
+}
+
+.password-wrap {
+  position: relative;
+}
+
+.password-wrap input {
+  padding-right: 5.5rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  padding: 0.3rem 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  color: var(--color-ink);
+}
+
+.forgot-link {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.stack-form .banner {
+  margin: 0;
+  background: rgba(20, 20, 20, 0.06);
+  font-size: 0.9rem;
+}
+
+.login-footer {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  border-radius: 28px 28px 8px 8px;
+  background: var(--color-ink);
+  color: #fcf8ee;
+}
+
+.login-footer > div {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+}
+
+.login-footer h3 {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+}
+
+.login-footer a,
+.login-footer span {
+  color: rgba(252, 248, 238, 0.78);
+  font-size: 0.92rem;
+}
+
+.login-footer a:hover,
+.login-footer a:focus-visible {
+  color: var(--color-primary);
+}
+
+.login-footer-copy {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(252, 248, 238, 0.14);
+  color: rgba(252, 248, 238, 0.6);
+  font-size: 0.82rem;
+}
+
 .map-overlay {
   position: fixed;
   inset: 0;
@@ -396,9 +541,16 @@
   .bento-why,
   .bento-highlight,
   .bento-services,
-  .bento-cities {
+  .bento-cities,
+  .bento-footer,
+  .bento-plans {
     grid-column: auto;
     grid-row: auto;
+  }
+
+  .page-auth > .auth-card-jg {
+    order: -1;
+    position: static;
   }
 }
 

@@ -38,6 +38,12 @@ export const authApi = {
   registerMember(payload) {
     return request('/auth/register', { method: 'POST', body: payload });
   },
+  forgotPassword(payload) {
+    return request('/auth/forgot-password', { method: 'POST', body: payload });
+  },
+  resetPassword(payload) {
+    return request('/auth/reset-password', { method: 'POST', body: payload });
+  },
 };
 
 export const accountsApi = {
@@ -77,6 +83,10 @@ export const reservationsApi = {
   },
   create(session, payload) {
     return request('/reservations', { method: 'POST', token: session.token, body: payload });
+  },
+  availability(session, date, timeSlot) {
+    const query = new URLSearchParams({ date, time_slot: timeSlot });
+    return request(`/reservations/availability?${query}`, { token: session.token });
   },
   delete(session, reservationId) {
     return request(`/reservations/${reservationId}`, { method: 'DELETE', token: session.token });

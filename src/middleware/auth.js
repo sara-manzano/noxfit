@@ -56,6 +56,7 @@ const resolveAccount = async (payload) => {
     throw createStatusError('Account is inactive', 403);
   }
 
+  // Tokens issued before the last password change are revoked.
   if (account.password_changed_at && Math.floor(account.password_changed_at.getTime() / 1000) > payload.iat) {
     throw createStatusError('Token is invalid or expired', 401);
   }

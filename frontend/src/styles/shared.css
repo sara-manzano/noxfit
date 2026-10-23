@@ -270,7 +270,6 @@
   mask-image: radial-gradient(circle at top left, rgba(0, 0, 0, 0.95), transparent 78%);
 }
 
-/* Vistas con cabecera (agenda, entrenadores, servicios) */
 .view-section {
   display: grid;
   gap: var(--space-lg);
@@ -328,7 +327,6 @@
   color: rgba(252, 248, 238, 0.76);
 }
 
-/* Campos y botones con el estilo de la tarjeta de login */
 .panel .field input,
 .panel .field select {
   border-radius: 14px;

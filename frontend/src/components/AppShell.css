@@ -16,7 +16,6 @@
   flex-wrap: wrap;
 }
 
-/* Hero del panel */
 .brand-hero {
   position: relative;
   overflow: hidden;
@@ -104,7 +103,6 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-/* Tarjeta de perfil */
 .profile-card-jg {
   display: grid;
   gap: var(--space-lg);
@@ -228,7 +226,6 @@
   letter-spacing: 0.04em;
 }
 
-/* Estadisticas */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -340,7 +337,6 @@
   margin-bottom: 0;
 }
 
-/* Pestañas de colecciones */
 .tab-row {
   margin-bottom: var(--space-lg);
 }
@@ -382,7 +378,6 @@
   color: inherit;
 }
 
-/* Tarjetas de members, trainers y reservas */
 .entity-card-wide {
   grid-column: span 2;
 }
@@ -571,4 +566,173 @@
 .entity-card h3 {
   font-size: 1.7rem;
   letter-spacing: 0.04em;
+}
+
+.card-grid .reservation-empty {
+  grid-column: 1 / -1;
+  padding: var(--space-xl, 2rem) var(--space-lg);
+  border: 2px dashed var(--color-primary-deep);
+  border-radius: 8px 24px 8px 24px;
+  background: var(--color-surface-strong);
+  color: var(--color-ink);
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.card-grid .reservation-card {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px 24px 8px 24px;
+  background: var(--color-surface-strong);
+  color: var(--color-ink);
+  box-shadow: 0 8px 20px rgba(20, 20, 20, 0.08);
+}
+
+.reservation-stub {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: var(--space-sm);
+  background: var(--color-ink);
+  color: var(--color-primary);
+  text-align: center;
+}
+
+.reservation-stub::after {
+  content: '';
+  position: absolute;
+  inset: 0.6rem 0 0.6rem auto;
+  border-right: 2px dashed rgba(199, 255, 74, 0.35);
+}
+
+.reservation-weekday,
+.reservation-month {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.reservation-day {
+  font-family: var(--font-heading);
+  font-size: 2.6rem;
+  font-weight: 400;
+  line-height: 0.9;
+}
+
+.reservation-body {
+  display: grid;
+  gap: 0.45rem;
+  padding: var(--space-md) var(--space-lg);
+  min-width: 0;
+}
+
+.reservation-top,
+.reservation-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.reservation-time {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #1f2800;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.reservation-card h3 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.reservation-card .reservation-people {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.reservation-people strong {
+  color: var(--color-ink);
+}
+
+.reservation-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.reservation-chips span {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--color-secondary);
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.reservation-bottom {
+  margin-top: 0.1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.reservation-price {
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+}
+
+.reservation-delete {
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reservation-delete:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  background: rgba(190, 66, 83, 0.1);
+  color: var(--color-danger);
+}
+
+.reservation-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .card-grid .reservation-card {
+    grid-template-columns: 1fr;
+  }
+
+  .reservation-stub {
+    grid-auto-flow: column;
+    justify-content: center;
+    gap: 0.8rem;
+  }
+
+  .reservation-stub::after {
+    inset: auto 0.8rem 0 0.8rem;
+    border-right: 0;
+    border-bottom: 2px dashed rgba(199, 255, 74, 0.35);
+  }
+
+  .reservation-day {
+    font-size: 2rem;
+  }
 }

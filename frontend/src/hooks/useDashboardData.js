@@ -11,7 +11,7 @@ const emptyWorkspace = {
   trainerDirectory: [],
 };
 
-export const useDashboardData = (session) => {
+export const useDashboardData = (session, onSessionExpired) => {
   const [workspace, setWorkspace] = useState(emptyWorkspace);
   const [isLoading, setIsLoading] = useState(Boolean(session));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,6 +19,15 @@ export const useDashboardData = (session) => {
   const [notice, setNotice] = useState('');
 
   useDismissibleMessage(notice, () => setNotice(''));
+
+  const handleRequestError = (requestError) => {
+    if (requestError.status === 401 && onSessionExpired) {
+      onSessionExpired();
+      return;
+    }
+
+    setError(requestError.message);
+  };
 
   const refreshData = async () => {
     if (!session?.token) {
@@ -51,8 +60,6 @@ export const useDashboardData = (session) => {
         return;
       }
 
-      // Cada rol necesita la contraparte para elegirla al reservar.
-      // Si el directorio falla, las reservas propias deben seguir cargando.
       const directoryRequest = (session.role === 'trainer'
         ? accountsApi.listMemberDirectory(session)
         : accountsApi.listTrainerDirectory(session)
@@ -72,7 +79,7 @@ export const useDashboardData = (session) => {
         trainerDirectory: session.role === 'member' ? directory.items : [],
       });
     } catch (requestError) {
-      setError(requestError.message);
+      handleRequestError(requestError);
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +98,7 @@ export const useDashboardData = (session) => {
       await refreshData();
       setNotice(successMessage);
     } catch (requestError) {
-      setError(requestError.message);
+      handleRequestError(requestError);
     } finally {
       setIsSubmitting(false);
     }
@@ -105,6 +112,7 @@ export const useDashboardData = (session) => {
     notice,
     clearError: () => setError(''),
     refreshData,
+    getTrainerAvailability: (date, timeSlot) => reservationsApi.availability(session, date, timeSlot),
     createMember: (payload) => runMutation(
       () => accountsApi.createMember(session, payload),
       'Socio creado correctamente'

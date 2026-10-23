@@ -17,11 +17,10 @@ export const CollectionPanel = ({
     <aside className="panel panel-form">{form}</aside>
 
     <div className="panel panel-list">
-      <div className="panel-topline">Gestion operativa</div>
       <div className="section-heading section-heading-inline">
         <div>
           <h2>{title}</h2>
-          <p>{description}</p>
+          {description ? <p>{description}</p> : null}
         </div>
         <span className="metric-pill metric-pill-accent">{countLabel}</span>
       </div>

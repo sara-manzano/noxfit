@@ -126,7 +126,7 @@ export const CalendarView = ({ reservations }) => {
                   <strong>{reservation.time_slot || 'Sin hora'}</strong>
                   <span>{reservation.activity_type || 'Reserva'}</span>
                   <small>
-                    {reservation.trainer?.full_name || 'Sin trainer'} · {reservation.status}
+                    {reservation.trainer?.full_name || 'Sin entrenador'} · {reservation.status}
                   </small>
                 </li>
               ))}

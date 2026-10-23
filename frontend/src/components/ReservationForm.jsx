@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { timeSlotOptions } from '../lib/forms.js';
+import { useEffect, useState } from 'react';
+import { isPersonalTraining, timeSlotOptions, trainingTypeOptions } from '../lib/forms.js';
 import { gyms } from './MadridMap.jsx';
 import './ReservationForm.css';
 
@@ -16,6 +16,8 @@ const initialValues = {
 
 export const ReservationForm = ({
   onSubmit,
+  loadAvailability,
+  reservationsVersion,
   isSubmitting,
   trainers,
   members,
@@ -25,25 +27,61 @@ export const ReservationForm = ({
   center,
   onCenterChange,
 }) => {
-  const defaultActivity = isStandardTrainer ? currentTrainer?.activity_type || '' : '';
-  const [values, setValues] = useState({ ...initialValues, activity_type: defaultActivity });
+  const [values, setValues] = useState(initialValues);
   const [bookedBy, setBookedBy] = useState(isStandardTrainer ? 'trainer' : 'member');
+  const [availability, setAvailability] = useState({});
+  const activeTrainer = isStandardTrainer
+    ? currentTrainer
+    : trainers.find((trainer) => trainer.trainer_id === values.trainer_id);
+  const trainerCenter = activeTrainer?.center || '';
+  const centerChoices = trainerCenter ? gyms.filter((gym) => gym.name === trainerCenter) : gyms;
   const hasTrainerOptions = trainers.length > 0;
   const isTrainerBooking = bookedBy === 'trainer';
   const isTrainer = isAdmin || isStandardTrainer;
 
+  useEffect(() => {
+    if (trainerCenter && center !== trainerCenter) {
+      onCenterChange(trainerCenter);
+    }
+  }, [trainerCenter, center]);
+
+  useEffect(() => {
+    if (!values.date || !values.time_slot || !loadAvailability) {
+      setAvailability({});
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    loadAvailability(values.date, values.time_slot)
+      .then((response) => {
+        if (!cancelled) {
+          setAvailability(Object.fromEntries(response.items.map((item) => [item.trainer_id, item])));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAvailability({});
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [values.date, values.time_slot, reservationsVersion]);
+
+  const isTrainerUnavailable = (trainerId) => {
+    const slot = availability[trainerId];
+
+    if (!slot) {
+      return false;
+    }
+
+    return isPersonalTraining(values.activity_type) ? slot.reservations_count > 0 : !slot.available;
+  };
+
   const handleChange = (event) => {
     const { name, value } = event.target;
-
-    if (name === 'trainer_id') {
-      const selectedTrainer = trainers.find((trainer) => trainer.trainer_id === value);
-      setValues((current) => ({
-        ...current,
-        trainer_id: value,
-        activity_type: selectedTrainer?.activity_type || current.activity_type,
-      }));
-      return;
-    }
 
     setValues((current) => ({ ...current, [name]: value }));
   };
@@ -72,7 +110,7 @@ export const ReservationForm = ({
     }
 
     await onSubmit(payload);
-    setValues({ ...initialValues, activity_type: defaultActivity });
+    setValues(initialValues);
   };
 
   return (
@@ -90,6 +128,7 @@ export const ReservationForm = ({
               className={!isTrainerBooking ? 'is-active' : ''}
               aria-pressed={!isTrainerBooking}
               disabled={!isAdmin && isTrainerBooking}
+              onClick={() => setBookedBy('member')}
             >
               Socio
             </button>
@@ -98,6 +137,7 @@ export const ReservationForm = ({
               className={isTrainerBooking ? 'is-active' : ''}
               aria-pressed={isTrainerBooking}
               disabled={!isAdmin && !isTrainerBooking}
+              onClick={() => setBookedBy('trainer')}
             >
               Entrenador
             </button>
@@ -137,8 +177,14 @@ export const ReservationForm = ({
               <select name="trainer_id" value={values.trainer_id} onChange={handleChange} required>
                 <option value="">Selecciona un entrenador</option>
                 {trainers.map((trainer) => (
-                  <option key={trainer.trainer_id} value={trainer.trainer_id}>
+                  <option
+                    key={trainer.trainer_id}
+                    value={trainer.trainer_id}
+                    disabled={isTrainerUnavailable(trainer.trainer_id)}
+                  >
                     {trainer.full_name} · {trainer.activity_type || 'Sin especialidad'}
+                    {trainer.center ? ` · ${trainer.center}` : ''}
+                    {isTrainerUnavailable(trainer.trainer_id) ? ' · No disponible' : ''}
                   </option>
                 ))}
               </select>
@@ -155,15 +201,20 @@ export const ReservationForm = ({
         )}
 
         <label className="field">
-          <span>Actividad</span>
-          <input name="activity_type" value={values.activity_type} onChange={handleChange} />
+          <span>Tipo de entrenamiento</span>
+          <select name="activity_type" value={values.activity_type} onChange={handleChange} required>
+            <option value="">Selecciona un tipo</option>
+            {trainingTypeOptions.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
         </label>
 
         <label className="field">
           <span>Centro</span>
           <select name="center" value={center} onChange={(event) => onCenterChange(event.target.value)} required>
-            <option value="">Selecciona un centro</option>
-            {gyms.map((gym) => (
+            {trainerCenter ? null : <option value="">Selecciona un centro</option>}
+            {centerChoices.map((gym) => (
               <option key={gym.name} value={gym.name}>{gym.name} · {gym.address}</option>
             ))}
           </select>

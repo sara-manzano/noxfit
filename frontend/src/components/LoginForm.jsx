@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import gymImage from '../assets/Gym.png';
 import { MadridMap, gyms } from './MadridMap.jsx';
 import { RegisterForm } from './RegisterForm.jsx';
+import { PasswordResetForm } from './PasswordResetForm.jsx';
 import './AuthCard.css';
 import './LoginForm.css';
 
@@ -36,12 +37,31 @@ const services = [
 
 const cityHighlights = ['Madrid'];
 
+const plans = [
+  { name: 'Básica', description: 'Acceso al centro y reservas de sesiones.' },
+  { name: 'Premium', description: 'Incluye seguimiento y plan personalizado.' },
+  { name: 'VIP', description: 'Atención prioritaria y nutrición deportiva.' },
+];
+
+const contact = {
+  phone: '+34 910 000 000',
+  email: 'info@noxfit.es',
+  instagram: 'https://www.instagram.com/noxfit',
+};
+
 export const LoginForm = ({ onSubmit, onRegister }) => {
   const [credentials, setCredentials] = useState(initialCredentials);
+  const [resetParams, setResetParams] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('reset');
+    return token ? { token, role: params.get('role') === 'trainer' ? 'trainer' : 'member' } : null;
+  });
+  const [isRecovering, setIsRecovering] = useState(Boolean(resetParams));
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!isMapOpen) return undefined;
@@ -69,6 +89,14 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleRecoveryBack = () => {
+    if (resetParams) {
+      window.history.replaceState(null, '', window.location.pathname);
+      setResetParams(null);
+    }
+    setIsRecovering(false);
   };
 
   return (
@@ -141,6 +169,26 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
               ))}
             </ul>
           </article>
+
+          <article className="bento-tile bento-footer">
+            <span className="bento-kicker">Horario</span>
+            <p>Todos los días de 7:00 a 24:00</p>
+          </article>
+
+          <article className="bento-tile bento-plans">
+            <span className="bento-kicker">Planes</span>
+            <ul className="plan-list">
+              {plans.map((plan) => (
+                <li key={plan.name}>
+                  <strong>{plan.name}</strong>
+                  <span>{plan.description}</span>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className="button button-primary" onClick={() => setIsRegistering(true)}>
+              Empieza ahora
+            </button>
+          </article>
         </div>
       </div>
 
@@ -172,7 +220,13 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
         </div>
       ) : null}
 
-      {isRegistering ? (
+      {isRecovering ? (
+        <PasswordResetForm
+          role={resetParams?.role || credentials.role}
+          resetToken={resetParams?.token}
+          onBack={handleRecoveryBack}
+        />
+      ) : isRegistering ? (
         <RegisterForm onSubmit={onRegister} onBack={() => setIsRegistering(false)} />
       ) : (
       <section className="auth-card auth-card-jg">
@@ -182,7 +236,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
           <p>Accede a tu cuenta para gestionar tus reservas</p>
         </div>
 
-        {error ? <div className="banner banner-error">{error}</div> : null}
+        {error ? <div className="banner banner-error" role="alert">{error}</div> : null}
 
         <form className="stack-form" onSubmit={handleSubmit}>
           <div className="role-switch" role="radiogroup" aria-label="Perfil">
@@ -205,13 +259,35 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
 
           <label className="field">
             <span>Email</span>
-            <input name="email" type="email" autoComplete="off" value={credentials.email} onChange={handleChange} required />
+            <input name="email" type="email" autoComplete="username" autoFocus value={credentials.email} onChange={handleChange} required />
           </label>
 
           <label className="field">
             <span>Contraseña</span>
-            <input name="password" type="password" autoComplete="new-password" value={credentials.password} onChange={handleChange} required />
+            <div className="password-wrap">
+              <input
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={credentials.password}
+                onChange={handleChange}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((current) => !current)}
+              >
+                {showPassword ? 'Ocultar' : 'Mostrar'}
+              </button>
+            </div>
           </label>
+
+          <button type="button" className="forgot-link" onClick={() => setIsRecovering(true)}>
+            ¿Has olvidado tu contraseña?
+          </button>
 
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Accediendo...' : 'Iniciar sesión'}
@@ -228,6 +304,28 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
         </div>
       </section>
       )}
+
+      <footer className="login-footer">
+        <div>
+          <h3>Contacto</h3>
+          <a href={`tel:${contact.phone.replace(/\s/g, '')}`}>{contact.phone}</a>
+          <a href={`mailto:${contact.email}`}>{contact.email}</a>
+          <a href={contact.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
+        </div>
+        <div>
+          <h3>Centros</h3>
+          {gyms.map((gym) => (
+            <span key={gym.name}>{gym.address}</span>
+          ))}
+        </div>
+        <div>
+          <h3>Legal</h3>
+          <a href="#privacidad">Política de privacidad</a>
+          <a href="#terminos">Términos y condiciones</a>
+          <a href="#cookies">Política de cookies</a>
+        </div>
+        <p className="login-footer-copy">© {new Date().getFullYear()} Noxfit. Todos los derechos reservados.</p>
+      </footer>
     </main>
   );
 };

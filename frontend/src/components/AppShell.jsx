@@ -50,28 +50,20 @@ const statusToneClass = (value) => {
 
 const renderProfileLabel = (session) => {
   if (session.role === 'trainer' && session.user.is_admin) {
-    return 'Trainer admin';
+    return 'Entrenador admin';
   }
 
-  return session.role === 'trainer' ? 'Trainer' : 'Member';
+  return session.role === 'trainer' ? 'Entrenador' : 'Socio';
 };
 
 const getInitials = (name = '') => (
   name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || '?'
 );
 
-const operationalHighlights = [
-  'Vista editorial para operaciones diarias',
-  'Filtros rapidos por estado, plan o especialidad',
-  'Altas y reservas sin salir del panel',
-];
-
 const serviceFocus = [
   'Entrenamiento personal',
-  'Agenda premium',
-  'Seguimiento de members',
-  'Equipo interno',
-  'Control de reservas',
+  'Entrenamiento grupal',
+  'Nutrición',
 ];
 
 export const AppShell = ({ session, onLogout }) => {
@@ -79,12 +71,11 @@ export const AppShell = ({ session, onLogout }) => {
   const [selectedCenter, setSelectedCenter] = useState('');
   const [activeView, setActiveView] = useState('panel');
   const [isSwitchPending, startSwitchTransition] = useTransition();
-  const dashboard = useDashboardData(session);
+  const dashboard = useDashboardData(session, onLogout);
   const isAdmin = session.role === 'trainer' && session.user.is_admin;
   const isMember = session.role === 'member';
   const isStandardTrainer = session.role === 'trainer' && !session.user.is_admin;
 
-  // Sin lista completa (no admin) se usa el directorio; un entrenador sin directorio ve solo su perfil.
   const visibleTrainers = dashboard.trainers.length
     ? dashboard.trainers
     : dashboard.trainerDirectory.length
@@ -132,12 +123,12 @@ export const AppShell = ({ session, onLogout }) => {
     ? [
       {
         key: 'members',
-        label: 'Members',
+        label: 'Socios',
         count: dashboard.members.length,
       },
       {
         key: 'trainers',
-        label: 'Trainers',
+        label: 'Entrenadores',
         count: dashboard.trainers.length,
       },
       {
@@ -212,6 +203,7 @@ export const AppShell = ({ session, onLogout }) => {
         <p>{trainer.email}</p>
         <div className="entity-meta">
           <span>{trainer.activity_type || 'Sin especialidad'}</span>
+          <span>{trainer.center || 'Sin centro'}</span>
           <span>{formatCurrency(trainer.hourly_rate)}</span>
           <span>{trainer.years_experience || 0} años</span>
         </div>
@@ -226,43 +218,67 @@ export const AppShell = ({ session, onLogout }) => {
 
   const renderReservationCards = () => {
     if (!reservationsFilters.visibleItems.length) {
-      return <article className="empty-card">No hay reservas que coincidan con el filtro actual.</article>;
+      return <article className="empty-card reservation-empty">No hay reservas que coincidan con el filtro actual.</article>;
     }
 
-    return reservationsFilters.visibleItems.map((reservation) => (
-      <article key={reservation.reservation_id} className="entity-card entity-card-wide">
-        <div className="entity-card-head">
-          <div>
-            <p className="eyebrow">{reservation.reservation_id}</p>
+    const getDateParts = (value) => {
+      const date = value ? new Date(value) : null;
+      if (!date || Number.isNaN(date.getTime())) {
+        return { day: '--', month: 'Sin fecha', weekday: '' };
+      }
+      return {
+        day: new Intl.DateTimeFormat('es-ES', { day: '2-digit' }).format(date),
+        month: new Intl.DateTimeFormat('es-ES', { month: 'short', year: 'numeric' }).format(date),
+        weekday: new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).format(date),
+      };
+    };
+
+    return reservationsFilters.visibleItems.map((reservation) => {
+      const { day, month, weekday } = getDateParts(reservation.date);
+
+      return (
+        <article key={reservation.reservation_id} className="entity-card entity-card-wide reservation-card">
+          <div className="reservation-stub">
+            <span className="reservation-weekday">{weekday}</span>
+            <strong className="reservation-day">{day}</strong>
+            <span className="reservation-month">{month}</span>
+          </div>
+          <div className="reservation-body">
+            <div className="reservation-top">
+              <span className="reservation-time">{reservation.time_slot || 'Sin hora'}</span>
+              <span className={`status-pill ${statusToneClass(reservation.status)}`}>{reservation.status}</span>
+            </div>
             <h3>{reservation.activity_type || 'Reserva sin actividad'}</h3>
+            <p className="reservation-people">
+              con <strong>{reservation.trainer?.full_name || 'Sin entrenador'}</strong>
+              {' · '}
+              {reservation.member?.full_name || (isMember ? dashboard.profile?.full_name : 'Sin socio')}
+            </p>
+            <div className="reservation-chips">
+              <span>{reservation.center || 'Sin centro'}</span>
+              <span>Tarifa {formatCurrency(reservation.trainer?.hourly_rate)}/h</span>
+              <span>Reservada por {reservation.booked_by === 'trainer' ? 'entrenador' : 'socio'}</span>
+              <span>{reservation.reservation_id}</span>
+            </div>
+            <div className="reservation-bottom">
+              <span className="reservation-price">{formatCurrency(reservation.price)}</span>
+              {isStandardTrainer ? null : (
+                <button className="reservation-delete" type="button" onClick={() => dashboard.deleteReservation(reservation.reservation_id)} disabled={dashboard.isSubmitting}>
+                  Eliminar
+                </button>
+              )}
+            </div>
           </div>
-          <span className={`status-pill ${statusToneClass(reservation.status)}`}>{reservation.status}</span>
-        </div>
-        <div className="entity-meta entity-meta-stacked">
-          <span><strong>Fecha:</strong> {formatDate(reservation.date)}</span>
-          <span><strong>Franja:</strong> {reservation.time_slot || 'Sin hora'}</span>
-          <span><strong>Centro:</strong> {reservation.center || 'Sin centro'}</span>
-          <span><strong>Member:</strong> {reservation.member?.full_name || (isMember ? dashboard.profile?.full_name : 'Sin socio')}</span>
-          <span><strong>Trainer:</strong> {reservation.trainer?.full_name || 'Sin trainer'}</span>
-          <span><strong>Reservada por:</strong> {reservation.booked_by === 'trainer' ? 'Entrenador' : 'Socio'}</span>
-          <span><strong>Precio:</strong> {formatCurrency(reservation.price)}</span>
-        </div>
-        {isStandardTrainer ? null : (
-          <div className="entity-actions">
-            <button className="button button-secondary" type="button" onClick={() => dashboard.deleteReservation(reservation.reservation_id)} disabled={dashboard.isSubmitting}>
-              Eliminar
-            </button>
-          </div>
-        )}
-      </article>
-    ));
+        </article>
+      );
+    });
   };
 
   const renderActivePanel = () => {
     if (activePanel === 'members') {
       return (
         <CollectionPanel
-          title="Members"
+          title="Socios"
           description="Usuarios finales con su plan, alta y estado de cuenta."
           query={membersFilters.query}
           onQueryChange={membersFilters.setQuery}
@@ -273,7 +289,7 @@ export const AppShell = ({ session, onLogout }) => {
           countLabel={`${membersFilters.visibleCount} de ${membersFilters.totalCount}`}
           form={
             <AccountForm
-              title="Alta de member"
+              title="Alta de socio"
               fields={memberFields}
               onSubmit={dashboard.createMember}
               isSubmitting={dashboard.isSubmitting}
@@ -288,7 +304,7 @@ export const AppShell = ({ session, onLogout }) => {
     if (activePanel === 'trainers') {
       return (
         <CollectionPanel
-          title="Trainers"
+          title="Entrenadores"
           description="Equipo interno con especialidad, tarifa y permisos."
           query={trainersFilters.query}
           onQueryChange={trainersFilters.setQuery}
@@ -299,7 +315,7 @@ export const AppShell = ({ session, onLogout }) => {
           countLabel={`${trainersFilters.visibleCount} de ${trainersFilters.totalCount}`}
           form={
             <AccountForm
-              title="Alta de trainer"
+              title="Alta de entrenador"
               fields={trainerFields}
               onSubmit={dashboard.createTrainer}
               isSubmitting={dashboard.isSubmitting}
@@ -314,7 +330,6 @@ export const AppShell = ({ session, onLogout }) => {
     return (
       <CollectionPanel
         title={session.role === 'trainer' ? 'Reservations' : 'Mis reservas'}
-        description="Cruza members y trainers dentro de una franja horaria controlada."
         query={reservationsFilters.query}
         onQueryChange={reservationsFilters.setQuery}
         selectedFilter={reservationsFilters.selectedFilter}
@@ -325,6 +340,8 @@ export const AppShell = ({ session, onLogout }) => {
         form={
           <ReservationForm
             onSubmit={dashboard.createReservation}
+            loadAvailability={dashboard.getTrainerAvailability}
+            reservationsVersion={dashboard.reservations}
             isSubmitting={dashboard.isSubmitting}
             trainers={dashboard.trainerDirectory}
             members={dashboard.memberDirectory}
@@ -349,30 +366,14 @@ export const AppShell = ({ session, onLogout }) => {
         <div className="hero-copy hero-copy-dashboard">
           <div className="eyebrow eyebrow-accent">NOXFIT</div>
           
-        
-
-          <div className="hero-callouts hero-callouts-strong">
-            {operationalHighlights.map((item) => (
-              <span key={item} className="metric-pill metric-pill-dark">{item}</span>
-            ))}
-          </div>
-
-          <div className={isMember ? 'hero-stat-band hero-stat-band-compact hero-stat-band-member' : 'hero-stat-band hero-stat-band-compact'}>
-            {!isMember ? (
+          {!isMember ? (
+            <div className="hero-stat-band hero-stat-band-compact">
               <article>
                 <strong>{dashboard.members.length}</strong>
-                <span>socios registrados</span>
+                <span>Socios</span>
               </article>
-            ) : null}
-            <article>
-              <strong>{dashboard.trainers.length}</strong>
-              <span>trainers visibles</span>
-            </article>
-            <article>
-              <strong>{upcomingReservations}</strong>
-              <span>reservas confirmadas</span>
-            </article>
-          </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="dashboard-side-stack">
@@ -393,12 +394,24 @@ export const AppShell = ({ session, onLogout }) => {
                   <dd>{dashboard.profile.membership_type || 'Sin plan'}</dd>
                 </div>
                 <div>
-                  <dt>Alta</dt>
-                  <dd>{formatDate(dashboard.profile.join_date)}</dd>
+                  <dt>Estado</dt>
+                  <dd>{formatBoolean(dashboard.profile.active)}</dd>
+                </div>
+              </dl>
+            ) : null}
+            {session.role === 'trainer' && dashboard.profile ? (
+              <dl className="profile-details">
+                <div>
+                  <dt>Especialidad</dt>
+                  <dd>{dashboard.profile.activity_type || 'Sin especialidad'}</dd>
+                </div>
+                <div>
+                  <dt>Centro</dt>
+                  <dd>{dashboard.profile.center || 'Sin centro'}</dd>
                 </div>
                 <div>
                   <dt>Estado</dt>
-                  <dd>{formatBoolean(dashboard.profile.active)}</dd>
+                  <dd>{dashboard.profile.is_admin ? 'Admin' : formatBoolean(dashboard.profile.active)}</dd>
                 </div>
               </dl>
             ) : null}
@@ -438,7 +451,6 @@ export const AppShell = ({ session, onLogout }) => {
 
       <section className="dashboard-overview">
         <article className="service-marquee">
-          <span className="panel-kicker">Que ofrecemos en esta vista</span>
           <div className="service-marquee-row">
             {serviceFocus.map((item) => (
               <span key={item} className="service-marquee-chip">{item}</span>
@@ -467,7 +479,7 @@ export const AppShell = ({ session, onLogout }) => {
         </div>
       </section>
 
-      {panelConfigs.length ? (
+      {panelConfigs.length > 1 ? (
         <nav className="tab-row tab-row-jg" aria-label="Colecciones">
           {panelConfigs.map((panel) => (
             <button

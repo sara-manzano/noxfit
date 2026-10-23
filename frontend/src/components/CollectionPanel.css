@@ -48,6 +48,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
 }
 
 .field-inline {
@@ -78,7 +79,6 @@
   }
 }
 
-/* Estilo alineado con la pagina de login */
 .panel.panel-form {
   overflow: hidden;
   padding-top: calc(var(--space-lg) + 0.7rem);
@@ -109,6 +109,16 @@
 
 .panel.panel-list {
   border-radius: 8px 40px 8px 40px;
+}
+
+.panel-list,
+.panel-list .entity-card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.panel.panel-list:hover {
+  transform: none;
 }
 
 .panel-topline {
