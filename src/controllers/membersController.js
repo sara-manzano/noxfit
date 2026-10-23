@@ -25,7 +25,7 @@ const getMemberById = async (req, res) => {
 };
 
 const getCurrentMember = async (req, res) => {
-  const member = await getAccountRecord(Member, 'member_id', req.auth.identifier, 'Member');
+  const member = await getAccountRecord(Member, 'member_id', req.auth.identifier, 'Member', '+avatar');
 
   return sendItem(res, member);
 };

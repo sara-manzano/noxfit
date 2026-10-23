@@ -22,8 +22,8 @@
   pointer-events: none;
   opacity: 0.45;
   background-image:
-    linear-gradient(rgba(20, 20, 20, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(20, 20, 20, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(var(--rgb-ink), 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--rgb-ink), 0.025) 1px, transparent 1px);
   background-size: 36px 36px;
 }
 
@@ -36,8 +36,8 @@
   display: inline-flex;
   margin-bottom: var(--space-sm);
   padding: 0.38rem 0.78rem;
-  border-radius: 999px;
-  background: rgba(20, 20, 20, 0.08);
+  border-radius: var(--radius-pill);
+  background: rgba(var(--rgb-ink), 0.08);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -82,8 +82,8 @@
 .panel.panel-form {
   overflow: hidden;
   padding-top: calc(var(--space-lg) + 0.7rem);
-  border-radius: 40px 8px 40px 8px;
-  background: rgba(252, 248, 238, 0.94);
+  border-radius: var(--radius-blob-b);
+  background: rgba(var(--rgb-cream), 0.94);
 }
 
 .panel-form::before {
@@ -108,7 +108,7 @@
 }
 
 .panel.panel-list {
-  border-radius: 8px 40px 8px 40px;
+  border-radius: var(--radius-blob-a);
 }
 
 .panel-list,

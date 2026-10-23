@@ -33,8 +33,8 @@ const listAccountDirectory = (Model, fields) => Model.find({ active: { $ne: fals
   .sort({ full_name: 1 })
   .lean();
 
-const getAccountRecord = async (Model, identifierField, identifierValue, resourceName) => ensureFound(
-  await Model.findOne({ [identifierField]: identifierValue }),
+const getAccountRecord = async (Model, identifierField, identifierValue, resourceName, select = '') => ensureFound(
+  await Model.findOne({ [identifierField]: identifierValue }).select(select),
   resourceName
 );
 

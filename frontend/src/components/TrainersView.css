@@ -10,7 +10,7 @@
   gap: var(--space-sm);
   padding: var(--space-lg);
   border-radius: var(--radius-lg);
-  background: rgba(255, 251, 245, 0.8);
+  background: rgba(var(--rgb-paper), 0.8);
   border: 1px solid var(--color-border);
   box-shadow: var(--color-shadow);
 }
@@ -24,6 +24,11 @@
 
 .trainer-card .metric-pill {
   justify-self: start;
+}
+
+.trainer-card .trainer-center {
+  background: var(--color-pink);
+  color: var(--color-ink);
 }
 
 .trainer-avatar {
@@ -50,29 +55,29 @@
 }
 
 .trainer-card:nth-child(3n + 1) {
-  border-radius: 8px 40px 8px 40px;
+  border-radius: var(--radius-blob-a);
   background: var(--color-ink);
-  color: #fcf8ee;
+  color: var(--color-on-dark);
 }
 
 .trainer-card:nth-child(3n + 1) .trainer-avatar {
   background: var(--color-primary);
-  color: #1f2800;
-  box-shadow: -5px 5px 0 rgba(252, 248, 238, 0.2);
+  color: var(--color-on-primary);
+  box-shadow: -5px 5px 0 rgba(var(--rgb-cream), 0.2);
 }
 
 .trainer-card:nth-child(3n + 1) .trainer-facts dt {
-  color: rgba(252, 248, 238, 0.6);
+  color: rgba(var(--rgb-cream), 0.6);
 }
 
 .trainer-card:nth-child(3n + 2) {
-  border-radius: 40px 8px 40px 8px;
-  background: rgba(252, 248, 238, 0.94);
+  border-radius: var(--radius-blob-b);
+  background: rgba(var(--rgb-cream), 0.94);
 }
 
 .trainer-card:nth-child(3n) {
-  border-radius: 28px 28px 8px 28px;
-  border: 2px dashed rgba(20, 20, 20, 0.28);
+  border-radius: var(--radius-blob-c);
+  border: var(--border-dashed);
   background: transparent;
   box-shadow: none;
 }

@@ -5,14 +5,50 @@
   --color-muted: #6d6a62;
   --color-surface: rgba(247, 241, 230, 0.82);
   --color-surface-strong: #fcf8ee;
-  --color-border: rgba(20, 20, 20, 0.08);
-  --color-primary: #c7ff4a;
-  --color-primary-deep: #98cb2a;
+  --color-border: rgba(var(--rgb-ink), 0.08);
+  --color-pink: #ff2fd0;
+  --color-primary: #2de2ff;
+  --color-primary-deep: #ff2fd0;
+  --color-eyebrow: #7a1a66;
+  --color-status-positive: #00566b;
   --color-secondary: #f3ede1;
   --color-danger: #be4253;
   --color-success: #5c8f11;
   --color-warning: #8f6619;
-  --color-shadow: 0 30px 80px rgba(20, 20, 20, 0.13);
+  --color-on-dark: #fcf8ee;
+  --color-on-primary: #001f28;
+  --color-primary-light: #7df0ff;
+  --color-primary-mid: #ff6be3;
+  --color-danger-strong: #9e243f;
+  --color-success-strong: #17694d;
+
+  --rgb-ink: 20, 20, 20;
+  --rgb-ink-soft: 32, 32, 32;
+  --rgb-cream: 252, 248, 238;
+  --rgb-paper: 255, 251, 245;
+  --rgb-primary: 45, 226, 255;
+  --rgb-primary-deep: 255, 47, 208;
+  --rgb-on-primary: 0, 31, 40;
+  --rgb-danger: 190, 66, 83;
+  --rgb-danger-soft: 216, 79, 95;
+  --rgb-success-soft: 31, 143, 103;
+
+  --color-shadow: 0 30px 80px rgba(var(--rgb-ink), 0.13);
+  --shadow-hero: 0 32px 90px rgba(var(--rgb-ink), 0.24);
+  --shadow-card-dark: 0 24px 60px rgba(var(--rgb-ink), 0.16);
+  --gradient-primary: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary-mid) 100%);
+  --gradient-primary-deep: linear-gradient(145deg, var(--color-primary-light) 0%, var(--color-primary-deep) 100%);
+  --gradient-hero:
+    radial-gradient(circle at 85% 0%, rgba(var(--rgb-primary), 0.22), transparent 42%),
+    linear-gradient(135deg, rgba(var(--rgb-ink), 0.97) 0%, rgba(var(--rgb-ink-soft), 0.95) 60%, rgba(60, 60, 60, 0.93) 100%);
+  --gradient-dark-card: linear-gradient(135deg, rgba(var(--rgb-ink), 0.96) 0%, rgba(40, 40, 40, 0.92) 100%);
+  --radius-pill: 999px;
+  --radius-hero: 48px 48px 48px 8px;
+  --radius-blob-a: 8px 40px 8px 40px;
+  --radius-blob-b: 40px 8px 40px 8px;
+  --radius-blob-c: 28px 28px 8px 28px;
+  --radius-card: 28px;
+  --border-dashed: 2px dashed rgba(var(--rgb-ink), 0.28);
   --radius-xl: 32px;
   --radius-lg: 24px;
   --radius-md: 16px;
@@ -41,7 +77,7 @@ body {
   font-family: var(--font-body);
   color: var(--color-ink);
   background:
-    radial-gradient(circle at top left, rgba(199, 255, 74, 0.2), transparent 24%),
+    radial-gradient(circle at top left, rgba(var(--rgb-primary), 0.2), transparent 24%),
     radial-gradient(circle at 82% 12%, rgba(20, 20, 20, 0.08), transparent 20%),
     linear-gradient(180deg, #f8f1e4 0%, #f3eadc 38%, #efe9de 100%);
 }

@@ -48,7 +48,8 @@ export const MadridMap = () => {
     }).addTo(map);
 
     L.rectangle(madridRegionBounds, {
-      color: '#98cb2a',
+      className: 'madrid-bounds',
+      color: '#ff2fd0',
       weight: 2,
       dashArray: '6 6',
       fill: false,

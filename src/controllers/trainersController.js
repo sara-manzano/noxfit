@@ -82,7 +82,7 @@ const registerTrainer = async (req, res) => {
 };
 
 const getCurrentTrainer = async (req, res) => {
-  const trainer = await getAccountRecord(Trainer, 'trainer_id', req.auth.identifier, 'Trainer');
+  const trainer = await getAccountRecord(Trainer, 'trainer_id', req.auth.identifier, 'Trainer', '+avatar');
 
   return sendItem(res, trainer);
 };

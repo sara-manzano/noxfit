@@ -1,15 +1,15 @@
 .auth-card-jg {
   position: sticky;
   top: 1rem;
-  background: rgba(252, 248, 238, 0.94);
+  background: rgba(var(--rgb-cream), 0.94);
 }
 
 .auth-card-topline {
   display: inline-flex;
   margin-bottom: var(--space-sm);
   padding: 0.4rem 0.8rem;
-  border-radius: 999px;
-  background: rgba(20, 20, 20, 0.08);
+  border-radius: var(--radius-pill);
+  background: rgba(var(--rgb-ink), 0.08);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -19,7 +19,7 @@
 .auth-support-band {
   margin-top: var(--space-lg);
   padding-top: var(--space-md);
-  border-top: 1px solid rgba(20, 20, 20, 0.08);
+  border-top: 1px solid rgba(var(--rgb-ink), 0.08);
 }
 
 .page-auth > .auth-card-jg {
@@ -27,7 +27,7 @@
   top: 1rem;
   overflow: hidden;
   padding-top: calc(var(--space-2xl) + 0.4rem);
-  border-radius: 40px 8px 40px 8px;
+  border-radius: var(--radius-blob-b);
 }
 
 .page-auth > .auth-card-jg::before {
@@ -57,14 +57,14 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   padding: 0.3rem;
-  border-radius: 999px;
-  background: rgba(20, 20, 20, 0.08);
+  border-radius: var(--radius-pill);
+  background: rgba(var(--rgb-ink), 0.08);
 }
 
 .role-option {
   position: relative;
   padding: 0.65rem 0.8rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   text-align: center;
   font-weight: 800;
   font-size: 0.92rem;
@@ -98,17 +98,9 @@
   padding: 1rem 1.2rem;
 }
 
-.auth-card-jg .button-primary {
-  box-shadow: 0 10px 24px rgba(152, 203, 42, 0.35);
-}
-
-.auth-card-jg .button-primary:hover {
-  box-shadow: 0 14px 30px rgba(152, 203, 42, 0.5);
-}
-
 .auth-card-jg .button-secondary {
   background: transparent;
-  border: 2px solid rgba(20, 20, 20, 0.85);
+  border: 2px solid rgba(var(--rgb-ink), 0.85);
 }
 
 .auth-card-jg .button-secondary:hover {
@@ -119,7 +111,7 @@
 .page-auth > .auth-card-jg .support-copy {
   margin-top: var(--space-md);
   padding-top: var(--space-md);
-  border-top: 1px solid rgba(20, 20, 20, 0.08);
+  border-top: 1px solid rgba(var(--rgb-ink), 0.08);
   font-size: 0.92rem;
 }
 

@@ -117,6 +117,10 @@ export const useDashboardData = (session, onSessionExpired) => {
       () => accountsApi.createMember(session, payload),
       'Socio creado correctamente'
     ),
+    updateAvatar: (avatar) => runMutation(
+      () => accountsApi.updateAvatar(session, avatar),
+      avatar ? 'Foto de perfil actualizada' : 'Foto de perfil restablecida'
+    ),
     createTrainer: (payload) => runMutation(
       () => accountsApi.createTrainer(session, payload),
       'Entrenador creado correctamente'

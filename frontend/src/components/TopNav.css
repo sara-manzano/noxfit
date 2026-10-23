@@ -2,7 +2,7 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(20, 20, 20, 0.96);
+  background: rgba(var(--rgb-ink), 0.96);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   border-bottom: 3px solid var(--color-primary);
@@ -21,7 +21,7 @@
   border: 0;
   background: none;
   padding: 0;
-  color: #fcf8ee;
+  color: var(--color-on-dark);
   font-family: var(--font-heading);
   font-size: 2rem;
   letter-spacing: 0.06em;
@@ -42,8 +42,8 @@
   border: 0;
   background: none;
   padding: 0.6rem 0.95rem;
-  border-radius: 999px;
-  color: rgba(252, 248, 238, 0.78);
+  border-radius: var(--radius-pill);
+  color: rgba(var(--rgb-cream), 0.78);
   font-weight: 800;
   font-size: 0.9rem;
   text-transform: uppercase;
@@ -51,17 +51,17 @@
 }
 
 .top-nav-link:hover {
-  color: #fcf8ee;
-  background: rgba(252, 248, 238, 0.08);
+  color: var(--color-on-dark);
+  background: rgba(var(--rgb-cream), 0.08);
 }
 
 .top-nav-link-active {
   background: var(--color-primary);
-  color: #1f2800;
+  color: var(--color-on-primary);
 }
 
 .top-nav-link-active:hover {
-  color: #1f2800;
+  color: var(--color-on-primary);
   background: var(--color-primary);
 }
 
@@ -69,7 +69,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  color: #fcf8ee;
+  color: var(--color-on-dark);
 }
 
 .top-nav-user div {
@@ -79,7 +79,7 @@
 }
 
 .top-nav-user span {
-  color: rgba(252, 248, 238, 0.6);
+  color: rgba(var(--rgb-cream), 0.6);
   font-size: 0.78rem;
 }
 

@@ -41,7 +41,7 @@
   padding: 0.5rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: rgba(255, 251, 245, 0.85);
+  background: rgba(var(--rgb-paper), 0.85);
   text-align: left;
   font-weight: 800;
 }
@@ -69,8 +69,8 @@
   position: relative;
   overflow: hidden;
   padding-top: calc(var(--space-lg) + 0.7rem);
-  border-radius: 40px 8px 40px 8px;
-  background: rgba(252, 248, 238, 0.94);
+  border-radius: var(--radius-blob-b);
+  background: rgba(var(--rgb-cream), 0.94);
 }
 
 .calendar-panel::before {
@@ -95,9 +95,9 @@
 }
 
 .panel.calendar-detail {
-  border-radius: 8px 40px 8px 40px;
+  border-radius: var(--radius-blob-a);
   background: var(--color-ink);
-  color: #fcf8ee;
+  color: var(--color-on-dark);
 }
 
 .calendar-detail .eyebrow {
@@ -109,20 +109,20 @@
 }
 
 .calendar-detail .support-copy {
-  color: rgba(252, 248, 238, 0.7);
+  color: rgba(var(--rgb-cream), 0.7);
 }
 
 .calendar-event {
-  background: rgba(252, 248, 238, 0.08);
+  background: rgba(var(--rgb-cream), 0.08);
   border-radius: 14px;
 }
 
 .calendar-event small {
-  color: rgba(252, 248, 238, 0.6);
+  color: rgba(var(--rgb-cream), 0.6);
 }
 
 .calendar-event-done {
-  border-left-color: rgba(252, 248, 238, 0.6);
+  border-left-color: rgba(var(--rgb-cream), 0.6);
 }
 
 .calendar-badge {
@@ -131,9 +131,9 @@
   bottom: 0.45rem;
   min-width: 1.5rem;
   padding: 0.1rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-primary);
-  color: #1f2800;
+  color: var(--color-on-primary);
   font-style: normal;
   font-size: 0.78rem;
   text-align: center;
@@ -165,7 +165,7 @@
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   border-left: 5px solid var(--color-ink);
-  background: rgba(255, 251, 245, 0.9);
+  background: rgba(var(--rgb-paper), 0.9);
 }
 
 .calendar-event small {

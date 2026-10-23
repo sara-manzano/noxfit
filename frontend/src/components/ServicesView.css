@@ -12,8 +12,8 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   box-shadow: var(--color-shadow);
-  background: linear-gradient(135deg, rgba(20, 20, 20, 0.96) 0%, rgba(40, 40, 40, 0.92) 100%);
-  color: #fcf8ee;
+  background: var(--gradient-dark-card);
+  color: var(--color-on-dark);
 }
 
 .service-card h3 {
@@ -25,7 +25,7 @@
 
 .service-card p {
   margin: 0;
-  color: rgba(252, 248, 238, 0.72);
+  color: rgba(var(--rgb-cream), 0.72);
 }
 
 .service-index {
@@ -45,30 +45,30 @@
 }
 
 .service-card:nth-child(4n + 1) {
-  border-radius: 8px 40px 8px 40px;
+  border-radius: var(--radius-blob-a);
 }
 
 .service-card:nth-child(4n + 2) {
-  border-radius: 40px 8px 40px 8px;
-  background: linear-gradient(135deg, #d6ff77 0%, #a9de2f 100%);
-  color: #1f2800;
+  border-radius: var(--radius-blob-b);
+  background: var(--gradient-primary);
+  color: var(--color-on-primary);
 }
 
 .service-card:nth-child(4n + 2) p {
-  color: rgba(31, 40, 0, 0.78);
+  color: rgba(var(--rgb-on-primary), 0.78);
 }
 
 .service-card:nth-child(4n + 2) .service-index {
-  -webkit-text-stroke-color: #1f2800;
+  -webkit-text-stroke-color: var(--color-on-primary);
 }
 
 .service-card:nth-child(4n + 2) .service-stats span {
-  background: rgba(31, 40, 0, 0.12);
+  background: rgba(var(--rgb-on-primary), 0.12);
 }
 
 .service-card:nth-child(4n + 3) {
-  border-radius: 28px;
-  background: rgba(252, 248, 238, 0.94);
+  border-radius: var(--radius-card);
+  background: rgba(var(--rgb-cream), 0.94);
   color: var(--color-ink);
 }
 
@@ -81,12 +81,12 @@
 }
 
 .service-card:nth-child(4n + 3) .service-stats span {
-  background: rgba(20, 20, 20, 0.08);
+  background: rgba(var(--rgb-ink), 0.08);
 }
 
 .service-card:nth-child(4n) {
-  border-radius: 28px 28px 8px 28px;
-  border: 2px dashed rgba(20, 20, 20, 0.28);
+  border-radius: var(--radius-blob-c);
+  border: var(--border-dashed);
   background: transparent;
   box-shadow: none;
   color: var(--color-ink);
@@ -101,7 +101,7 @@
 }
 
 .service-card:nth-child(4n) .service-stats span {
-  background: rgba(20, 20, 20, 0.08);
+  background: rgba(var(--rgb-ink), 0.08);
 }
 
 .service-stats {
@@ -112,8 +112,8 @@
 
 .service-stats span {
   padding: 0.35rem 0.7rem;
-  border-radius: 999px;
-  background: rgba(252, 248, 238, 0.1);
+  border-radius: var(--radius-pill);
+  background: rgba(var(--rgb-cream), 0.1);
   font-size: 0.82rem;
   font-weight: 700;
 }

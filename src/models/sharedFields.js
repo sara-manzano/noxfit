@@ -7,6 +7,7 @@ const createAccountSchemaFields = (identifierField) => ({
   reset_token_expires: { type: Date, select: false },
   password_changed_at: { type: Date },
   phone: { type: String },
+  avatar: { type: String, select: false },
   active: { type: Boolean, default: true },
 });
 

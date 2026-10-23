@@ -1568,6 +1568,10 @@
           "phone": {
             "type": "string"
           },
+          "avatar": {
+            "type": ["string", "null"],
+            "description": "PNG, JPEG or WebP data URL (max 90000 characters). Only returned by the /me endpoints."
+          },
           "membership_type": {
             "$ref": "#/components/schemas/MembershipType"
           },
@@ -1614,6 +1618,10 @@
           "email": {
             "type": "string",
             "format": "email"
+          },
+          "avatar": {
+            "type": ["string", "null"],
+            "description": "PNG, JPEG or WebP data URL (max 90000 characters). Only returned by the /me endpoints."
           },
           "activity_type": {
             "type": "string"
@@ -1991,6 +1999,10 @@
           "phone": {
             "type": "string"
           },
+          "avatar": {
+            "type": ["string", "null"],
+            "description": "PNG, JPEG or WebP data URL (max 90000 characters)."
+          },
           "membership_type": {
             "$ref": "#/components/schemas/MembershipType"
           },
@@ -2128,6 +2140,10 @@
           },
           "phone": {
             "type": "string"
+          },
+          "avatar": {
+            "type": ["string", "null"],
+            "description": "PNG, JPEG or WebP data URL (max 90000 characters)."
           },
           "years_experience": {
             "type": "number",

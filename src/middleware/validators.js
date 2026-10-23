@@ -8,6 +8,8 @@ const {
   normalizeDateOnly,
 } = require('../config/validation');
 const MIN_PASSWORD_LENGTH = 8;
+const AVATAR_PATTERN = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+const MAX_AVATAR_LENGTH = 90000;
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim() !== '';
 
@@ -150,6 +152,20 @@ const readPasswordField = (payload, fieldName = 'password') => {
   return value;
 };
 
+const readAvatarField = (payload, fieldName = 'avatar') => {
+  const value = payload[fieldName];
+
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  if (typeof value !== 'string' || value.length > MAX_AVATAR_LENGTH || !AVATAR_PATTERN.test(value)) {
+    throw createValidationError(`${fieldName} must be a PNG, JPEG or WebP data URL of at most ${MAX_AVATAR_LENGTH} characters`);
+  }
+
+  return value;
+};
+
 const readAccountFields = (payload, idField, { partial, requirePassword, allowIdentifierUpdate }) => {
   const data = {};
 
@@ -169,6 +185,7 @@ const readAccountFields = (payload, idField, { partial, requirePassword, allowId
   const password = readPasswordField(payload, 'password');
   assignIfDefined(data, 'password', requirePassword ? requireField(password, 'password') : password);
   assignIfDefined(data, 'phone', readStringField(payload, 'phone'));
+  assignIfDefined(data, 'avatar', readAvatarField(payload));
   assignIfDefined(data, 'active', readBooleanField(payload, 'active'));
 
   return data;

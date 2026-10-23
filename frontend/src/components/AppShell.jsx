@@ -1,11 +1,18 @@
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { memberFields, membershipOptions, trainerFields } from '../lib/forms.js';
-import { formatBoolean, formatCurrency, formatDate } from '../lib/formatters.js';
+import { formatBoolean } from '../lib/formatters.js';
+import { imageFileToAvatar } from '../lib/avatar.js';
+import defaultAvatar from '../assets/default-avatar.svg';
+import gymImage from '../assets/fucional.png';
 import { useCollectionFilters } from '../hooks/useCollectionFilters.js';
 import { useDashboardData } from '../hooks/useDashboardData.js';
 import { AccountForm } from './AccountForm.jsx';
 import { CollectionPanel } from './CollectionPanel.jsx';
+import { MemberCard } from './MemberCard.jsx';
+import { ReservationCard } from './ReservationCard.jsx';
 import { ReservationForm } from './ReservationForm.jsx';
+import { StatCard } from './StatCard.jsx';
+import { TrainerCard } from './TrainerCard.jsx';
 import { TrainersView } from './TrainersView.jsx';
 import { ServicesView } from './ServicesView.jsx';
 import { CalendarView } from './CalendarView.jsx';
@@ -36,18 +43,6 @@ const buildFilterOptions = (items, accessor, knownOptions = []) => {
   }));
 };
 
-const statusToneClass = (value) => {
-  if (value === 'Confirmada' || value === 'Activo') {
-    return 'status-positive';
-  }
-
-  if (value === 'Completada' || value === 'Admin') {
-    return 'status-neutral';
-  }
-
-  return 'status-warning';
-};
-
 const renderProfileLabel = (session) => {
   if (session.role === 'trainer' && session.user.is_admin) {
     return 'Entrenador admin';
@@ -55,10 +50,6 @@ const renderProfileLabel = (session) => {
 
   return session.role === 'trainer' ? 'Entrenador' : 'Socio';
 };
-
-const getInitials = (name = '') => (
-  name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('') || '?'
-);
 
 const serviceFocus = [
   'Entrenamiento personal',
@@ -71,6 +62,8 @@ export const AppShell = ({ session, onLogout }) => {
   const [selectedCenter, setSelectedCenter] = useState('');
   const [activeView, setActiveView] = useState('panel');
   const [isSwitchPending, startSwitchTransition] = useTransition();
+  const [avatarError, setAvatarError] = useState('');
+  const avatarInputRef = useRef(null);
   const dashboard = useDashboardData(session, onLogout);
   const isAdmin = session.role === 'trainer' && session.user.is_admin;
   const isMember = session.role === 'member';
@@ -152,7 +145,6 @@ export const AppShell = ({ session, onLogout }) => {
   }, [activePanel, panelConfigs]);
 
   const activeMembers = dashboard.members.filter((member) => member.active).length;
-  const activeTrainers = dashboard.trainers.filter((trainer) => trainer.active).length;
   const upcomingReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Confirmada').length;
   const completedReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Completada').length;
 
@@ -162,25 +154,12 @@ export const AppShell = ({ session, onLogout }) => {
     }
 
     return membersFilters.visibleItems.map((member) => (
-      <article key={member.member_id} className="entity-card">
-        <div className="entity-card-head">
-          <div>
-            <p className="eyebrow">{member.member_id}</p>
-            <h3>{member.full_name}</h3>
-          </div>
-          <span className={`status-pill ${statusToneClass(formatBoolean(member.active))}`}>{formatBoolean(member.active)}</span>
-        </div>
-        <p>{member.email}</p>
-        <div className="entity-meta">
-          <span>{member.membership_type || 'Sin plan'}</span>
-          <span>{formatDate(member.join_date)}</span>
-        </div>
-        <div className="entity-actions">
-          <button className="button button-secondary" type="button" onClick={() => dashboard.deleteMember(member.member_id)} disabled={dashboard.isSubmitting}>
-            Eliminar
-          </button>
-        </div>
-      </article>
+      <MemberCard
+        key={member.member_id}
+        member={member}
+        onDelete={dashboard.deleteMember}
+        disabled={dashboard.isSubmitting}
+      />
     ));
   };
 
@@ -190,29 +169,12 @@ export const AppShell = ({ session, onLogout }) => {
     }
 
     return trainersFilters.visibleItems.map((trainer) => (
-      <article key={trainer.trainer_id} className="entity-card">
-        <div className="entity-card-head">
-          <div>
-            <p className="eyebrow">{trainer.trainer_id}</p>
-            <h3>{trainer.full_name}</h3>
-          </div>
-          <span className={`status-pill ${statusToneClass(trainer.is_admin ? 'Admin' : formatBoolean(trainer.active))}`}>
-            {trainer.is_admin ? 'Admin' : formatBoolean(trainer.active)}
-          </span>
-        </div>
-        <p>{trainer.email}</p>
-        <div className="entity-meta">
-          <span>{trainer.activity_type || 'Sin especialidad'}</span>
-          <span>{trainer.center || 'Sin centro'}</span>
-          <span>{formatCurrency(trainer.hourly_rate)}</span>
-          <span>{trainer.years_experience || 0} años</span>
-        </div>
-        <div className="entity-actions">
-          <button className="button button-secondary" type="button" onClick={() => dashboard.deleteTrainer(trainer.trainer_id)} disabled={dashboard.isSubmitting || trainer.is_admin}>
-            Eliminar
-          </button>
-        </div>
-      </article>
+      <TrainerCard
+        key={trainer.trainer_id}
+        trainer={trainer}
+        onDelete={dashboard.deleteTrainer}
+        disabled={dashboard.isSubmitting}
+      />
     ));
   };
 
@@ -221,57 +183,16 @@ export const AppShell = ({ session, onLogout }) => {
       return <article className="empty-card reservation-empty">No hay reservas que coincidan con el filtro actual.</article>;
     }
 
-    const getDateParts = (value) => {
-      const date = value ? new Date(value) : null;
-      if (!date || Number.isNaN(date.getTime())) {
-        return { day: '--', month: 'Sin fecha', weekday: '' };
-      }
-      return {
-        day: new Intl.DateTimeFormat('es-ES', { day: '2-digit' }).format(date),
-        month: new Intl.DateTimeFormat('es-ES', { month: 'short', year: 'numeric' }).format(date),
-        weekday: new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).format(date),
-      };
-    };
-
-    return reservationsFilters.visibleItems.map((reservation) => {
-      const { day, month, weekday } = getDateParts(reservation.date);
-
-      return (
-        <article key={reservation.reservation_id} className="entity-card entity-card-wide reservation-card">
-          <div className="reservation-stub">
-            <span className="reservation-weekday">{weekday}</span>
-            <strong className="reservation-day">{day}</strong>
-            <span className="reservation-month">{month}</span>
-          </div>
-          <div className="reservation-body">
-            <div className="reservation-top">
-              <span className="reservation-time">{reservation.time_slot || 'Sin hora'}</span>
-              <span className={`status-pill ${statusToneClass(reservation.status)}`}>{reservation.status}</span>
-            </div>
-            <h3>{reservation.activity_type || 'Reserva sin actividad'}</h3>
-            <p className="reservation-people">
-              con <strong>{reservation.trainer?.full_name || 'Sin entrenador'}</strong>
-              {' · '}
-              {reservation.member?.full_name || (isMember ? dashboard.profile?.full_name : 'Sin socio')}
-            </p>
-            <div className="reservation-chips">
-              <span>{reservation.center || 'Sin centro'}</span>
-              <span>Tarifa {formatCurrency(reservation.trainer?.hourly_rate)}/h</span>
-              <span>Reservada por {reservation.booked_by === 'trainer' ? 'entrenador' : 'socio'}</span>
-              <span>{reservation.reservation_id}</span>
-            </div>
-            <div className="reservation-bottom">
-              <span className="reservation-price">{formatCurrency(reservation.price)}</span>
-              {isStandardTrainer ? null : (
-                <button className="reservation-delete" type="button" onClick={() => dashboard.deleteReservation(reservation.reservation_id)} disabled={dashboard.isSubmitting}>
-                  Eliminar
-                </button>
-              )}
-            </div>
-          </div>
-        </article>
-      );
-    });
+    return reservationsFilters.visibleItems.map((reservation) => (
+      <ReservationCard
+        key={reservation.reservation_id}
+        reservation={reservation}
+        memberFallbackName={isMember ? dashboard.profile?.full_name : undefined}
+        onDelete={dashboard.deleteReservation}
+        canDelete={!isStandardTrainer}
+        disabled={dashboard.isSubmitting}
+      />
+    ));
   };
 
   const renderActivePanel = () => {
@@ -358,6 +279,23 @@ export const AppShell = ({ session, onLogout }) => {
     );
   };
 
+  const handleAvatarSelected = async (event) => {
+    const [file] = event.target.files;
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    setAvatarError('');
+
+    try {
+      await dashboard.updateAvatar(await imageFileToAvatar(file));
+    } catch (avatarProcessingError) {
+      setAvatarError(avatarProcessingError.message);
+    }
+  };
+
   const renderPanelView = () => (
     <>
       <section className="brand-hero brand-hero-dashboard">
@@ -379,9 +317,11 @@ export const AppShell = ({ session, onLogout }) => {
         <div className="dashboard-side-stack">
           <div className="profile-card profile-card-jg">
             <div className="profile-card-header">
-              <div className="profile-avatar" aria-hidden="true">
-                {getInitials(dashboard.profile?.full_name || session.user.full_name)}
-              </div>
+              <img
+                className="profile-avatar"
+                src={dashboard.profile?.avatar || defaultAvatar}
+                alt="Foto de perfil"
+              />
               <div className="profile-card-identity">
                 <h2>{dashboard.profile?.full_name || session.user.full_name}</h2>
                 <p>{dashboard.profile?.email || session.user.email}</p>
@@ -416,48 +356,59 @@ export const AppShell = ({ session, onLogout }) => {
               </dl>
             ) : null}
             <div className="profile-actions">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                hidden
+                onChange={handleAvatarSelected}
+              />
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={dashboard.isSubmitting || !dashboard.profile}
+              >
+                Cambiar foto
+              </button>
+              {dashboard.profile?.avatar ? (
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  onClick={() => dashboard.updateAvatar(null)}
+                  disabled={dashboard.isSubmitting}
+                >
+                  Quitar foto
+                </button>
+              ) : null}
               <button className="button button-secondary" type="button" onClick={dashboard.refreshData} disabled={dashboard.isLoading}>
                 Actualizar
               </button>
             </div>
+            {avatarError ? <div className="banner banner-error" role="alert">{avatarError}</div> : null}
           </div>
         </div>
       </section>
 
       <section className={isMember ? 'stats-grid stats-grid-jg stats-grid-member' : 'stats-grid stats-grid-jg'}>
         {!isMember ? (
-          <article className="stat-card">
-            <span>Total socios</span>
-            <strong>{dashboard.members.length}</strong>
-            <p>{activeMembers} activos</p>
-          </article>
+          <StatCard label="Total socios" value={dashboard.members.length} description={`${activeMembers} activos`} />
         ) : null}
-        <article className="stat-card">
-          <span>Total entrenadores</span>
-          <strong>{dashboard.trainers.length}</strong>
-          <p>{activeTrainers} activos</p>
-        </article>
-        <article className="stat-card">
-          <span>Reservas activas</span>
-          <strong>{upcomingReservations}</strong>
-          <p>Confirmadas en agenda</p>
-        </article>
-        <article className="stat-card">
-          <span>Completadas</span>
-          <strong>{completedReservations}</strong>
-          <p>Histórico operativo</p>
-        </article>
+        <div className="stat-card stat-card-image">
+          <img src={gymImage} alt="Gimnasio Noxfit" />
+        </div>
+        <div className="stat-stack">
+          <StatCard label="Reservas activas" value={upcomingReservations} description="Confirmadas en agenda" />
+          <StatCard label="Completadas" value={completedReservations} description="Histórico operativo" />
+        </div>
+        <div className="service-chips">
+          {serviceFocus.map((item) => (
+            <span key={item} className="service-chip">{item}</span>
+          ))}
+        </div>
       </section>
 
       <section className="dashboard-overview">
-        <article className="service-marquee">
-          <div className="service-marquee-row">
-            {serviceFocus.map((item) => (
-              <span key={item} className="service-marquee-chip">{item}</span>
-            ))}
-          </div>
-        </article>
-
         <div className="footprint-grid">
           {gyms.map((gym) => {
             const isSelected = selectedCenter === gym.name;
