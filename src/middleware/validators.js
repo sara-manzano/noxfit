@@ -1,9 +1,12 @@
 const { createStatusError } = require('../http/errors');
-const { isValidTimeSlot, normalizeDateOnly, TRAINING_CENTERS } = require('../config/validation');
-
-const MEMBER_TYPES = ['Básica', 'Premium', 'VIP'];
-const RESERVATION_STATUS = ['Confirmada', 'Completada', 'Cancelada'];
-const RESERVATION_BOOKERS = ['member', 'trainer'];
+const {
+  MEMBERSHIP_TYPES,
+  RESERVATION_BOOKERS,
+  RESERVATION_STATUSES,
+  TRAINING_CENTERS,
+  isValidTimeSlot,
+  normalizeDateOnly,
+} = require('../config/validation');
 const MIN_PASSWORD_LENGTH = 8;
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim() !== '';
@@ -173,12 +176,14 @@ const readAccountFields = (payload, idField, { partial, requirePassword, allowId
 
 const sanitizeMemberPayload = (
   payload,
-  { partial = false, requirePassword = false, allowIdentifierUpdate = true } = {}
+  { partial = false, requirePassword = false, allowIdentifierUpdate = true, allowPlanFields = true } = {}
 ) => {
   const data = readAccountFields(payload, 'member_id', { partial, requirePassword, allowIdentifierUpdate });
 
-  assignIfDefined(data, 'membership_type', readEnumField(payload, 'membership_type', MEMBER_TYPES));
-  assignIfDefined(data, 'join_date', readDateField(payload, 'join_date'));
+  if (allowPlanFields) {
+    assignIfDefined(data, 'membership_type', readEnumField(payload, 'membership_type', MEMBERSHIP_TYPES));
+    assignIfDefined(data, 'join_date', readDateField(payload, 'join_date'));
+  }
 
   return data;
 };
@@ -211,6 +216,21 @@ const sanitizeRoleLoginPayload = (payload) => {
   const password = requireField(readPasswordField(payload, 'password'), 'password');
 
   return { role: role.toLowerCase(), email, password };
+};
+
+const sanitizeForgotPasswordPayload = (payload) => {
+  const role = requireField(readStringField(payload, 'role'), 'role');
+  const email = requireField(readEmailField(payload, 'email'), 'email');
+
+  return { role: role.toLowerCase(), email };
+};
+
+const sanitizeResetPasswordPayload = (payload) => {
+  const role = requireField(readStringField(payload, 'role'), 'role');
+  const token = requireField(readStringField(payload, 'token'), 'token');
+  const password = requireField(readPasswordField(payload, 'password'), 'password');
+
+  return { role: role.toLowerCase(), token, password };
 };
 
 const sanitizeReservationPayload = (
@@ -248,7 +268,7 @@ const sanitizeReservationPayload = (
   assignIfDefined(data, 'activity_type', readStringField(payload, 'activity_type'));
   assignIfDefined(data, 'center', readEnumField(payload, 'center', TRAINING_CENTERS));
   assignIfDefined(data, 'time_slot', readTimeSlotField(payload, 'time_slot'));
-  assignIfDefined(data, 'status', readEnumField(payload, 'status', RESERVATION_STATUS));
+  assignIfDefined(data, 'status', readEnumField(payload, 'status', RESERVATION_STATUSES));
   assignIfDefined(data, 'booked_by', readEnumField(payload, 'booked_by', RESERVATION_BOOKERS));
   assignIfDefined(data, 'price', readNumberField(payload, 'price'));
 
@@ -260,4 +280,6 @@ module.exports = {
   sanitizeTrainerPayload,
   sanitizeReservationPayload,
   sanitizeRoleLoginPayload,
+  sanitizeForgotPasswordPayload,
+  sanitizeResetPasswordPayload,
 };

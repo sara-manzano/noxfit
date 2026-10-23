@@ -29,9 +29,24 @@ const isValidTimeSlot = (value) => {
 };
 
 const TRAINING_CENTERS = ['Noxfit Salamanca', 'Noxfit Alcobendas'];
+const MEMBERSHIP_TYPES = ['Básica', 'Premium', 'VIP'];
+const RESERVATION_STATUSES = ['Confirmada', 'Completada', 'Cancelada'];
+const ACTIVE_RESERVATION_STATUSES = ['Confirmada', 'Completada'];
+const RESERVATION_BOOKERS = ['member', 'trainer'];
+const MAX_RESERVATIONS_PER_TRAINER_SLOT = 12;
+
+const isPersonalTraining = (activityType) => (
+  typeof activityType === 'string' && activityType.trim().toLowerCase() === 'entrenamiento personal'
+);
 
 module.exports = {
+  ACTIVE_RESERVATION_STATUSES,
+  MAX_RESERVATIONS_PER_TRAINER_SLOT,
+  MEMBERSHIP_TYPES,
+  RESERVATION_BOOKERS,
+  RESERVATION_STATUSES,
   TRAINING_CENTERS,
+  isPersonalTraining,
   isValidTimeSlot,
   normalizeDateOnly,
 };

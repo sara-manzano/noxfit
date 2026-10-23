@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const asyncHandler = require('../middleware/asyncHandler');
-const { methodNotAllowed } = require('../middleware/methodNotAllowed');
+const { rejectPut } = require('../middleware/methodNotAllowed');
 const { requireMemberAuth, requireTrainerAdmin, requireTrainerAuth } = require('../middleware/auth');
 
 const {
@@ -14,12 +14,12 @@ const {
   deleteMember,
 } = require('../controllers/membersController');
 
-const rejectPut = methodNotAllowed('PUT is not supported for members; use PATCH for partial updates');
+const rejectMemberPut = rejectPut('members');
 
 router.route('/me')
   .get(requireMemberAuth, asyncHandler(getCurrentMember))
   .patch(requireMemberAuth, asyncHandler(updateCurrentMember))
-  .put(requireMemberAuth, rejectPut);
+  .put(requireMemberAuth, rejectMemberPut);
 
 router.get('/directory', requireTrainerAuth, asyncHandler(listMemberDirectory));
 
@@ -30,7 +30,7 @@ router.route('/')
 router.route('/:member_id')
   .get(requireTrainerAdmin, asyncHandler(getMemberById))
   .patch(requireTrainerAdmin, asyncHandler(updateMember))
-  .put(rejectPut)
+  .put(rejectMemberPut)
   .delete(requireTrainerAdmin, asyncHandler(deleteMember));
 
 module.exports = router;

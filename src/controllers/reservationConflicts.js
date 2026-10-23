@@ -1,29 +1,17 @@
 const { createStatusError } = require('../http/errors');
-const { normalizeDateOnly } = require('../config/validation');
+const {
+  ACTIVE_RESERVATION_STATUSES,
+  MAX_RESERVATIONS_PER_TRAINER_SLOT,
+  isPersonalTraining,
+  normalizeDateOnly,
+} = require('../config/validation');
 
-const ACTIVE_RESERVATION_STATUSES = ['Confirmada', 'Completada'];
-
-const getReferenceId = (reference) => reference?._id?.toString() || reference?.toString();
-
-const buildReservationConflictFilter = ({ reservation_id, trainer, member, date, time_slot }) => {
-  if (!date || !time_slot || (!trainer && !member)) {
-    return null;
-  }
-
+const buildSlotFilter = ({ reservation_id, date, time_slot }) => {
   const filter = {
     date: normalizeDateOnly(date),
     time_slot,
     status: { $in: ACTIVE_RESERVATION_STATUSES },
-    $or: [],
   };
-
-  if (trainer) {
-    filter.$or.push({ trainer });
-  }
-
-  if (member) {
-    filter.$or.push({ member });
-  }
 
   if (reservation_id) {
     filter.reservation_id = { $ne: reservation_id };
@@ -32,42 +20,67 @@ const buildReservationConflictFilter = ({ reservation_id, trainer, member, date,
   return filter;
 };
 
+// A personal training blocks the trainer; other activities admit up to the per-slot maximum.
+const getTrainerSlotStatus = (slotReservations) => {
+  const hasPersonalTraining = slotReservations.some((item) => isPersonalTraining(item.activity_type));
+  const spotsLeft = Math.max(MAX_RESERVATIONS_PER_TRAINER_SLOT - slotReservations.length, 0);
+
+  return {
+    reservations_count: slotReservations.length,
+    has_personal_training: hasPersonalTraining,
+    spots_left: hasPersonalTraining ? 0 : spotsLeft,
+    available: !hasPersonalTraining && spotsLeft > 0,
+  };
+};
+
 const ensureNoReservationConflicts = async (ReservationModel, {
   reservation_id,
   trainer,
   member,
   date,
   time_slot,
+  activity_type,
   status = 'Confirmada',
 }) => {
-  if (!ACTIVE_RESERVATION_STATUSES.includes(status)) {
+  if (!ACTIVE_RESERVATION_STATUSES.includes(status) || !date || !time_slot) {
     return;
   }
 
-  const filter = buildReservationConflictFilter({ reservation_id, trainer, member, date, time_slot });
+  const slotFilter = buildSlotFilter({ reservation_id, date, time_slot });
 
-  if (!filter) {
+  if (member) {
+    const memberConflict = await ReservationModel.findOne({ ...slotFilter, member }).select('_id').lean();
+
+    if (memberConflict) {
+      throw createStatusError('Member already has a reservation for that time slot', 409);
+    }
+  }
+
+  if (!trainer) {
     return;
   }
 
-  const conflict = await ReservationModel.findOne(filter).select('trainer member').lean();
+  const slotReservations = await ReservationModel.find({ ...slotFilter, trainer })
+    .select('activity_type')
+    .lean();
+  const slotStatus = getTrainerSlotStatus(slotReservations);
 
-  if (!conflict) {
-    return;
+  if (slotStatus.has_personal_training) {
+    throw createStatusError('Trainer is not available for that time slot', 409);
   }
 
-  if (trainer && getReferenceId(conflict.trainer) === trainer.toString()) {
-    throw createStatusError('Trainer is already booked for that time slot', 409);
+  if (isPersonalTraining(activity_type) && slotReservations.length > 0) {
+    throw createStatusError('Trainer is not available for personal training in that time slot', 409);
   }
 
-  if (member && getReferenceId(conflict.member) === member.toString()) {
-    throw createStatusError('Member already has a reservation for that time slot', 409);
+  if (!slotStatus.available) {
+    throw createStatusError('Trainer has no spots left for that time slot', 409);
   }
-
-  throw createStatusError('Time slot is already reserved', 409);
 };
 
 module.exports = {
-  buildReservationConflictFilter,
+  ACTIVE_RESERVATION_STATUSES,
+  buildSlotFilter,
   ensureNoReservationConflicts,
+  getTrainerSlotStatus,
 };

@@ -41,7 +41,7 @@ const updateCurrentMember = async (req, res) => {
   const member = await updateAccountRecord(
     Member,
     { member_id: req.auth.identifier },
-    sanitizeMemberPayload(req.body, { partial: true, allowIdentifierUpdate: false })
+    sanitizeMemberPayload(req.body, { partial: true, allowIdentifierUpdate: false, allowPlanFields: false })
   );
 
   ensureFound(member, 'Member');

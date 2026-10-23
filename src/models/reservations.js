@@ -1,5 +1,12 @@
 const mongoose = require('mongoose');
-const { isValidTimeSlot, normalizeDateOnly, TRAINING_CENTERS } = require('../config/validation');
+const {
+  ACTIVE_RESERVATION_STATUSES,
+  RESERVATION_BOOKERS,
+  RESERVATION_STATUSES,
+  TRAINING_CENTERS,
+  isValidTimeSlot,
+  normalizeDateOnly,
+} = require('../config/validation');
 
 const reservationSchema = new mongoose.Schema({
   reservation_id: { type: String, required: true, unique: true, trim: true },
@@ -9,7 +16,7 @@ const reservationSchema = new mongoose.Schema({
     required() { return this.booked_by !== 'trainer'; },
   },
   trainer: { type: mongoose.Schema.Types.ObjectId, ref: 'Trainer', required: true },
-  booked_by: { type: String, enum: ['member', 'trainer'], default: 'member' },
+  booked_by: { type: String, enum: RESERVATION_BOOKERS, default: 'member' },
   activity_type: { type: String },
   center: { type: String, enum: TRAINING_CENTERS },
   date: { type: Date, required: true, set: normalizeDateOnly },
@@ -23,30 +30,21 @@ const reservationSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Confirmada', 'Completada', 'Cancelada'],
+    enum: RESERVATION_STATUSES,
     required: true,
     default: 'Confirmada',
   },
   price: { type: Number, min: 0 },
 });
 
-reservationSchema.index(
-  { trainer: 1, date: 1, time_slot: 1 },
-  {
-    unique: true,
-    partialFilterExpression: {
-      status: { $in: ['Confirmada', 'Completada'] },
-    },
-    name: 'unique_active_trainer_slot',
-  }
-);
+reservationSchema.index({ trainer: 1, date: 1, time_slot: 1 });
 
 reservationSchema.index(
   { member: 1, date: 1, time_slot: 1 },
   {
     unique: true,
     partialFilterExpression: {
-      status: { $in: ['Confirmada', 'Completada'] },
+      status: { $in: ACTIVE_RESERVATION_STATUSES },
       member: { $type: 'objectId' },
     },
     name: 'unique_active_member_slot',

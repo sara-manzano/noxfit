@@ -42,9 +42,9 @@ const resolveAccount = async (payload) => {
   let account;
 
   if (payload.role === 'member') {
-    account = await Member.findOne({ member_id: payload.sub }).select('_id active').lean();
+    account = await Member.findOne({ member_id: payload.sub }).select('_id active password_changed_at').lean();
   } else if (payload.role === 'trainer') {
-    account = await Trainer.findOne({ trainer_id: payload.sub }).select('_id active is_admin').lean();
+    account = await Trainer.findOne({ trainer_id: payload.sub }).select('_id active is_admin password_changed_at').lean();
   } else {
     throw createStatusError('Token is invalid or expired', 401);
   }
@@ -55,6 +55,11 @@ const resolveAccount = async (payload) => {
 
   if (account.active === false) {
     throw createStatusError('Account is inactive', 403);
+  }
+
+  // Tokens issued before the last password change are revoked.
+  if (account.password_changed_at && Math.floor(account.password_changed_at.getTime() / 1000) > payload.iat) {
+    throw createStatusError('Token is invalid or expired', 401);
   }
 
   return {
@@ -113,16 +118,10 @@ const authenticateRequest = withAuth();
 const requireMemberAuth = withAuth((auth) => ensureRole(auth, 'member'));
 const requireTrainerAuth = withAuth((auth) => ensureRole(auth, 'trainer'));
 const requireTrainerAdmin = withAuth(ensureTrainerAdmin);
-const requireReservationAccess = withAuth((auth) => {
-  if (auth.role !== 'member' && auth.role !== 'trainer') {
-    throw createForbiddenError('Reservations require member or trainer access');
-  }
-});
 
 module.exports = {
   authenticateRequest,
   requireMemberAuth,
-  requireReservationAccess,
   requireTrainerAuth,
   requireTrainerAdmin,
 };

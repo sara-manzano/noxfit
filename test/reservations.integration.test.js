@@ -534,9 +534,18 @@ test('PUT reservation update is rejected with 405', async () => {
   assert.equal(response.body.error, 'PUT is not supported for reservations; use PATCH for partial updates');
 });
 
-test('creating a reservation rejects trainer slot conflicts with 409', async () => {
-  const { memberB } = await createFixtures();
+test('creating a reservation rejects slots where the trainer has a personal training with 409', async () => {
+  const { memberA, memberB, trainerAdmin } = await createFixtures();
   const adminLogin = await loginTrainer('trainer-admin@noxfit.test');
+
+  await createReservation({
+    reservation_id: 'reservation-personal',
+    member: memberA._id,
+    trainer: trainerAdmin._id,
+    activity_type: 'Entrenamiento personal',
+    date: new Date('2026-11-20T00:00:00.000Z'),
+    time_slot: '10:00 - 11:00',
+  });
 
   const response = await request(app)
     .post('/api/reservations')
@@ -546,14 +555,103 @@ test('creating a reservation rejects trainer slot conflicts with 409', async () 
       member_id: memberB.member_id,
       trainer_id: 'trainer-admin',
       activity_type: 'CrossFit',
-      date: '2026-11-10',
+      date: '2026-11-20',
       time_slot: '10:00 - 11:00',
       status: 'Confirmada',
       price: 50,
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'Trainer is already booked for that time slot');
+  assert.equal(response.body.error, 'Trainer is not available for that time slot');
+});
+
+test('a personal training cannot be booked on a slot that already has reservations', async () => {
+  const { memberB } = await createFixtures();
+  const adminLogin = await loginTrainer('trainer-admin@noxfit.test');
+
+  const response = await request(app)
+    .post('/api/reservations')
+    .set('Authorization', `Bearer ${adminLogin.body.token}`)
+    .send({
+      member_id: memberB.member_id,
+      trainer_id: 'trainer-admin',
+      activity_type: 'Entrenamiento personal',
+      date: '2026-11-10',
+      time_slot: '10:00 - 11:00',
+    });
+
+  assert.equal(response.status, 409);
+  assert.equal(response.body.error, 'Trainer is not available for personal training in that time slot');
+});
+
+test('a trainer accepts up to 12 reservations per slot and rejects the 13th', async () => {
+  const { trainerStandard } = await createFixtures();
+  const adminLogin = await loginTrainer('trainer-admin@noxfit.test');
+
+  const members = await Promise.all(Array.from({ length: 13 }, (_, index) => createMember({
+    member_id: `member-cap-${index}`,
+    email: `member-cap-${index}@noxfit.test`,
+  })));
+
+  const book = (member) => request(app)
+    .post('/api/reservations')
+    .set('Authorization', `Bearer ${adminLogin.body.token}`)
+    .send({
+      member_id: member.member_id,
+      trainer_id: trainerStandard.trainer_id,
+      activity_type: 'Pilates',
+      date: '2026-11-25',
+      time_slot: '17:00 - 18:00',
+    });
+
+  for (const member of members.slice(0, 12)) {
+    assert.equal((await book(member)).status, 201);
+  }
+
+  const overflow = await book(members[12]);
+
+  assert.equal(overflow.status, 409);
+  assert.equal(overflow.body.error, 'Trainer has no spots left for that time slot');
+});
+
+test('availability marks trainers with a personal training as unavailable', async () => {
+  const { memberA, trainerAdmin } = await createFixtures();
+  const memberLogin = await loginMember('member-a@noxfit.test');
+
+  await createReservation({
+    reservation_id: 'reservation-availability',
+    member: memberA._id,
+    trainer: trainerAdmin._id,
+    activity_type: 'Entrenamiento personal',
+    date: new Date('2026-11-22T00:00:00.000Z'),
+    time_slot: '08:00 - 09:00',
+  });
+
+  const response = await request(app)
+    .get('/api/reservations/availability')
+    .query({ date: '2026-11-22', time_slot: '08:00 - 09:00' })
+    .set('Authorization', `Bearer ${memberLogin.body.token}`);
+
+  assert.equal(response.status, 200);
+
+  const byTrainer = Object.fromEntries(response.body.items.map((item) => [item.trainer_id, item]));
+
+  assert.equal(byTrainer['trainer-admin'].available, false);
+  assert.equal(byTrainer['trainer-admin'].has_personal_training, true);
+  assert.equal(byTrainer['trainer-standard'].available, true);
+  assert.equal(byTrainer['trainer-standard'].spots_left, 12);
+});
+
+test('availability rejects invalid query parameters', async () => {
+  await createFixtures();
+  const memberLogin = await loginMember('member-a@noxfit.test');
+
+  const response = await request(app)
+    .get('/api/reservations/availability')
+    .query({ date: 'nope', time_slot: '08:00 - 09:00' })
+    .set('Authorization', `Bearer ${memberLogin.body.token}`);
+
+  assert.equal(response.status, 400);
 });
 
 test('creating a reservation rejects member slot conflicts with 409', async () => {
@@ -585,7 +683,7 @@ test('updating a reservation rejects moving it into an occupied trainer slot', a
     reservation_id: 'reservation-move-target',
     member: memberB._id,
     trainer: trainerAdmin._id,
-    activity_type: 'CrossFit',
+    activity_type: 'Entrenamiento personal',
     date: new Date('2026-11-12T00:00:00.000Z'),
     time_slot: '09:00 - 10:00',
     status: 'Confirmada',
@@ -611,7 +709,7 @@ test('updating a reservation rejects moving it into an occupied trainer slot', a
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'Trainer is already booked for that time slot');
+  assert.equal(response.body.error, 'Trainer is not available for that time slot');
 });
 
 test('updating a reservation rejects moving it into an occupied member slot', async () => {

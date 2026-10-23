@@ -3,6 +3,9 @@ const createAccountSchemaFields = (identifierField) => ({
   full_name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password_hash: { type: String, required: true, select: false },
+  reset_token_hash: { type: String, select: false },
+  reset_token_expires: { type: Date, select: false },
+  password_changed_at: { type: Date },
   phone: { type: String },
   active: { type: Boolean, default: true },
 });
@@ -12,6 +15,9 @@ const sanitizeAccountResponse = (_, ret) => {
   delete ret._id;
   delete ret.__v;
   delete ret.password_hash;
+  delete ret.reset_token_hash;
+  delete ret.reset_token_expires;
+  delete ret.password_changed_at;
   delete ret.bootstrap_admin;
 
   return ret;

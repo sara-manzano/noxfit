@@ -5,12 +5,17 @@ const Reservation = require('../models/reservations');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeReservationPayload } = require('../middleware/validators');
 const { createStatusError } = require('../http/errors');
+const { isValidTimeSlot, normalizeDateOnly } = require('../config/validation');
 const { ensureFound } = require('./accountControllerHelpers');
-const { ensureNoReservationConflicts } = require('./reservationConflicts');
+const {
+  buildSlotFilter,
+  ensureNoReservationConflicts,
+  getTrainerSlotStatus,
+} = require('./reservationConflicts');
 
 const reservationPopulation = [
   { path: 'member', select: 'member_id full_name email' },
-  { path: 'trainer', select: 'trainer_id full_name activity_type' },
+  { path: 'trainer', select: 'trainer_id full_name activity_type hourly_rate' },
 ];
 
 const isTrainerAdmin = (req) => req.auth?.role === 'trainer' && req.auth?.isAdmin;
@@ -45,6 +50,12 @@ const ensureReservationOwner = (req, reservation, action) => {
 
 const buildReservationFilters = async (query) => {
   const filters = {};
+
+  for (const field of ['status', 'activity_type', 'date', 'member_id', 'trainer_id']) {
+    if (query[field] !== undefined && typeof query[field] !== 'string') {
+      throw createStatusError(`${field} must be a string`, 400);
+    }
+  }
 
   for (const field of ['status', 'activity_type', 'date']) {
     if (query[field]) {
@@ -141,6 +152,37 @@ const listReservations = async (req, res) => {
   return sendCollection(res, reservations);
 };
 
+const getTrainerAvailability = async (req, res) => {
+  const { date, time_slot } = req.query;
+
+  if (!date || Number.isNaN(normalizeDateOnly(date).getTime())) {
+    throw createStatusError('date must be a valid date', 400);
+  }
+
+  if (!isValidTimeSlot(time_slot)) {
+    throw createStatusError('time_slot must use HH:MM - HH:MM and end after it starts', 400);
+  }
+
+  const [trainers, slotReservations] = await Promise.all([
+    Trainer.find().select('trainer_id').lean(),
+    Reservation.find(buildSlotFilter({ date, time_slot: time_slot.trim() })).select('trainer activity_type').lean(),
+  ]);
+
+  const reservationsByTrainer = new Map();
+
+  for (const item of slotReservations) {
+    const key = item.trainer.toString();
+    reservationsByTrainer.set(key, [...(reservationsByTrainer.get(key) || []), item]);
+  }
+
+  const items = trainers.map((trainer) => ({
+    trainer_id: trainer.trainer_id,
+    ...getTrainerSlotStatus(reservationsByTrainer.get(trainer._id.toString()) || []),
+  }));
+
+  return sendCollection(res, items);
+};
+
 const getReservationById = async (req, res) => {
   const reservation = ensureFound(
     await Reservation.findOne({ reservation_id: req.params.reservation_id })
@@ -155,6 +197,16 @@ const getReservationById = async (req, res) => {
 
   return sendItem(res, reservation);
 };
+
+const ensureSlotIsFree = (payload, reservation_id) => ensureNoReservationConflicts(Reservation, {
+  reservation_id,
+  trainer: payload.trainer,
+  member: payload.member,
+  date: payload.date,
+  time_slot: payload.time_slot,
+  activity_type: payload.activity_type,
+  status: payload.status || 'Confirmada',
+});
 
 const createReservation = async (req, res) => {
   const requestedBooker = req.body?.booked_by === 'trainer' ? 'trainer' : 'member';
@@ -171,6 +223,11 @@ const createReservation = async (req, res) => {
   reservationData.booked_by = bookedBy;
   reservationData.reservation_id ||= `R-${crypto.randomBytes(5).toString('hex')}`;
 
+  if (isMemberAuth(req)) {
+    delete reservationData.price;
+    delete reservationData.status;
+  }
+
   ensureMemberReservationAccess(req, reservationData.member_id, 'You can only create reservations for your own account');
   ensureTrainerReservationAccess(req, reservationData.trainer_id, 'You can only create reservations for your own account');
   assignCurrentMember(req, reservationData);
@@ -178,15 +235,18 @@ const createReservation = async (req, res) => {
 
   const payload = await resolveReservationReferences(reservationData);
 
-  await ensureNoReservationConflicts(Reservation, {
-    trainer: payload.trainer,
-    member: payload.member,
-    date: payload.date,
-    time_slot: payload.time_slot,
-    status: payload.status || 'Confirmada',
-  });
+  await ensureSlotIsFree(payload);
 
   const reservation = await Reservation.create(payload);
+
+  // Re-check after insert: concurrent requests can pass the first check together.
+  try {
+    await ensureSlotIsFree(payload, reservation.reservation_id);
+  } catch (error) {
+    await Reservation.deleteOne({ _id: reservation._id });
+    throw error;
+  }
+
   const createdReservation = await Reservation.findById(reservation._id)
     .populate(reservationPopulation)
     .lean();
@@ -214,6 +274,13 @@ const updateReservation = async (req, res) => {
     ensureTrainerReservationAccess(req, reservationData.trainer_id, 'You cannot move a reservation to another trainer');
     assignCurrentMember(req, reservationData);
     delete reservationData.booked_by;
+    delete reservationData.price;
+    delete reservationData.reservation_id;
+
+    // Members can only cancel, not complete or reopen reservations.
+    if (reservationData.status !== 'Cancelada') {
+      delete reservationData.status;
+    }
   }
 
   const payload = await resolveReservationReferences(reservationData);
@@ -224,6 +291,7 @@ const updateReservation = async (req, res) => {
     member: payload.member || getReferenceId(existingReservation.member),
     date: payload.date || existingReservation.date,
     time_slot: payload.time_slot || existingReservation.time_slot,
+    activity_type: payload.activity_type ?? existingReservation.activity_type,
     status: payload.status || existingReservation.status,
   });
 
@@ -258,6 +326,7 @@ const deleteReservation = async (req, res) => {
 
 module.exports = {
   listReservations,
+  getTrainerAvailability,
   getReservationById,
   createReservation,
   updateReservation,

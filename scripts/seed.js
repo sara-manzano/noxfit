@@ -1,7 +1,6 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const csv = require('csv-parser');
 const mongoose = require('mongoose');
 const xlsx = require('xlsx');
 
@@ -11,8 +10,8 @@ const Reservation = require('../src/models/reservations');
 const connectToDatabase = require('../src/config/database');
 const { hashPassword } = require('../src/config/auth');
 const { normalizeDateOnly } = require('../src/config/validation');
+const { dataDirectory, loadCsv } = require('./loadCsv');
 
-const dataDirectory = path.join(__dirname, '..', 'data');
 const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || 'Noxfit123';
 const ADMIN_TRAINER_ID = process.env.SEED_ADMIN_TRAINER_ID || '843d66cb-b0bf-4655-919f-01081bf4da2d';
 const DEFAULT_WORKBOOK_NAME = 'noxfit-data.xlsx';
@@ -172,24 +171,6 @@ const normalizeTimeSlot = (value) => {
   return startMinutes < endMinutes
     ? `${rawStart} - ${rawEnd}`
     : `${rawEnd} - ${rawStart}`;
-};
-
-const loadCsv = (fileName) => {
-  const filePath = path.join(dataDirectory, fileName);
-
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`The file ${fileName} was not found in data/`);
-  }
-
-  return new Promise((resolve, reject) => {
-    const rows = [];
-
-    fs.createReadStream(filePath)
-      .pipe(csv())
-      .on('data', (row) => rows.push(row))
-      .on('end', () => resolve(rows))
-      .on('error', reject);
-  });
 };
 
 const loadWorkbookRows = (workbookPath, sheetName) => {
