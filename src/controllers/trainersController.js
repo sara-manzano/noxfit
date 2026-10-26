@@ -2,7 +2,7 @@ const crypto = require('node:crypto');
 const { generateId } = require('../config/ids');
 const Trainer = require('../models/trainers');
 const { signAccountToken } = require('../config/auth');
-const { createStatusError } = require('../http/errors');
+const { createStatusError, createForbiddenError } = require('../http/errors');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeTrainerPayload } = require('../middleware/validators');
 const {
@@ -60,7 +60,7 @@ const listTrainers = async (req, res) => {
 
 const listTrainerDirectory = async (_req, res) => sendCollection(
   res,
-  await listAccountDirectory(Trainer, 'trainer_id full_name activity_type center')
+  await listAccountDirectory(Trainer, 'trainer_id full_name activity_type center avatar')
 );
 
 const getTrainerById = async (req, res) => {
@@ -113,12 +113,13 @@ const applyTrainerUpdate = async (res, trainer_id, body, options) => {
   return sendItem(res, trainer);
 };
 
-const updateCurrentTrainer = (req, res) => applyTrainerUpdate(
-  res,
-  req.auth.identifier,
-  req.body,
-  { allowIdentifierUpdate: false }
-);
+const updateCurrentTrainer = (req, res) => {
+  if (!req.auth.isAdmin && Object.keys(req.body).some((field) => field !== 'avatar')) {
+    throw createForbiddenError('Trainer admin access is required to change fields other than avatar');
+  }
+
+  return applyTrainerUpdate(res, req.auth.identifier, req.body, { allowIdentifierUpdate: false });
+};
 
 const updateTrainer = (req, res) => applyTrainerUpdate(
   res,

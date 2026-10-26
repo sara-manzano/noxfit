@@ -5,11 +5,12 @@ const {
   RESERVATION_STATUSES,
   TRAINING_CENTERS,
   isValidTimeSlot,
+  isWithinOpeningHours,
   normalizeDateOnly,
 } = require('../config/validation');
 const MIN_PASSWORD_LENGTH = 8;
-const AVATAR_PATTERN = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
-const MAX_AVATAR_LENGTH = 90000;
+const AVATAR_PATTERN = /^https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]+\/image\/upload\/[A-Za-z0-9_.,:/-]+$/;
+const MAX_AVATAR_LENGTH = 500;
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim() !== '';
 
@@ -121,6 +122,10 @@ const readTimeSlotField = (payload, fieldName) => {
     throw createValidationError(`${fieldName} must use HH:MM - HH:MM and end after it starts`);
   }
 
+  if (!isWithinOpeningHours(value)) {
+    throw createValidationError(`${fieldName} must be within opening hours (07:00 - 20:00)`);
+  }
+
   return value;
 };
 
@@ -160,7 +165,7 @@ const readAvatarField = (payload, fieldName = 'avatar') => {
   }
 
   if (typeof value !== 'string' || value.length > MAX_AVATAR_LENGTH || !AVATAR_PATTERN.test(value)) {
-    throw createValidationError(`${fieldName} must be a PNG, JPEG or WebP data URL of at most ${MAX_AVATAR_LENGTH} characters`);
+    throw createValidationError(`${fieldName} must be a Cloudinary image URL of at most ${MAX_AVATAR_LENGTH} characters`);
   }
 
   return value;

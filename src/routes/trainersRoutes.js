@@ -20,7 +20,7 @@ router.post('/register', registerTrainer);
 
 router.route('/me')
   .get(requireTrainerAuth, getCurrentTrainer)
-  .patch(requireTrainerAdmin, updateCurrentTrainer)
+  .patch(requireTrainerAuth, updateCurrentTrainer)
   .put(requireTrainerAuth, rejectTrainerPut);
 
 router.get('/directory', authenticateRequest, listTrainerDirectory);

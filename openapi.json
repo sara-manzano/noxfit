@@ -1276,7 +1276,7 @@
           "Reservations"
         ],
         "summary": "Update a reservation",
-        "description": "A member can only modify their own reservations and cannot reassign them to another member.",
+        "description": "A member can only modify their own reservations and cannot reassign them to another member. A non-admin trainer can only change date and time_slot of their own reservations.",
         "operationId": "updateReservation",
         "security": [
           {
@@ -1570,7 +1570,7 @@
           },
           "avatar": {
             "type": ["string", "null"],
-            "description": "PNG, JPEG or WebP data URL (max 90000 characters). Only returned by the /me endpoints."
+            "description": "Cloudinary image URL (https://res.cloudinary.com/..., max 500 characters). Only returned by the /me endpoints."
           },
           "membership_type": {
             "$ref": "#/components/schemas/MembershipType"
@@ -1621,7 +1621,7 @@
           },
           "avatar": {
             "type": ["string", "null"],
-            "description": "PNG, JPEG or WebP data URL (max 90000 characters). Only returned by the /me endpoints."
+            "description": "Cloudinary image URL (https://res.cloudinary.com/..., max 500 characters). Only returned by the /me endpoints."
           },
           "activity_type": {
             "type": "string"
@@ -2001,7 +2001,7 @@
           },
           "avatar": {
             "type": ["string", "null"],
-            "description": "PNG, JPEG or WebP data URL (max 90000 characters)."
+            "description": "Cloudinary image URL (https://res.cloudinary.com/..., max 500 characters)."
           },
           "membership_type": {
             "$ref": "#/components/schemas/MembershipType"
@@ -2143,7 +2143,7 @@
           },
           "avatar": {
             "type": ["string", "null"],
-            "description": "PNG, JPEG or WebP data URL (max 90000 characters)."
+            "description": "Cloudinary image URL (https://res.cloudinary.com/..., max 500 characters)."
           },
           "years_experience": {
             "type": "number",

@@ -11,21 +11,27 @@ const normalizeDateOnly = (value) => {
   return date;
 };
 
+const OPENING_MINUTES = 7 * 60;
+const CLOSING_MINUTES = 20 * 60;
+
+const parseTimeSlot = (value) => {
+  const match = typeof value === 'string' ? value.trim().match(TIME_SLOT_PATTERN) : null;
+
+  return match
+    ? { start: Number(match[1]) * 60 + Number(match[2]), end: Number(match[3]) * 60 + Number(match[4]) }
+    : null;
+};
+
 const isValidTimeSlot = (value) => {
-  if (typeof value !== 'string' || value.trim() === '') {
-    return false;
-  }
+  const slot = parseTimeSlot(value);
 
-  const match = value.trim().match(TIME_SLOT_PATTERN);
+  return Boolean(slot) && slot.end > slot.start;
+};
 
-  if (!match) {
-    return false;
-  }
+const isWithinOpeningHours = (value) => {
+  const slot = parseTimeSlot(value);
 
-  const startMinutes = Number(match[1]) * 60 + Number(match[2]);
-  const endMinutes = Number(match[3]) * 60 + Number(match[4]);
-
-  return endMinutes > startMinutes;
+  return Boolean(slot) && slot.start >= OPENING_MINUTES && slot.end <= CLOSING_MINUTES;
 };
 
 const TRAINING_CENTERS = ['Noxfit Salamanca', 'Noxfit Alcobendas'];
@@ -48,5 +54,6 @@ module.exports = {
   TRAINING_CENTERS,
   isPersonalTraining,
   isValidTimeSlot,
+  isWithinOpeningHours,
   normalizeDateOnly,
 };

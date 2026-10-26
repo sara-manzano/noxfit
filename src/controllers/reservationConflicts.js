@@ -64,10 +64,6 @@ const ensureNoReservationConflicts = async (ReservationModel, {
     .lean();
   const slotStatus = getTrainerSlotStatus(slotReservations);
 
-  if (slotStatus.has_personal_training) {
-    throw createStatusError('Trainer is not available for that time slot', 409);
-  }
-
   if (isPersonalTraining(activity_type) && slotReservations.length > 0) {
     throw createStatusError('Trainer is not available for personal training in that time slot', 409);
   }

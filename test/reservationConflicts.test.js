@@ -105,7 +105,7 @@ test('ensureNoReservationConflicts rejects a trainer with a personal training in
 
   await rejectsWith(
     ensureNoReservationConflicts(ReservationModel, baseReservation),
-    'Trainer is not available for that time slot'
+    'Trainer has no spots left for that time slot'
   );
 });
 

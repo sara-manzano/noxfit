@@ -325,6 +325,26 @@ test('trainer bookings require a member and show up in that member\'s reservatio
   assert.equal(conflict.status, 409);
 });
 
+test('standard trainers can only reschedule their own reservations', async () => {
+  await createFixtures();
+
+  const standardToken = (await loginTrainer('trainer-standard@noxfit.test')).body.token;
+  const date = '2026-11-20';
+
+  const moved = await request(app)
+    .patch('/api/reservations/reservation-b')
+    .set('Authorization', `Bearer ${standardToken}`)
+    .send({ date });
+  const foreign = await request(app)
+    .patch('/api/reservations/reservation-a')
+    .set('Authorization', `Bearer ${standardToken}`)
+    .send({ date });
+
+  assert.equal(moved.status, 200);
+  assert.equal(moved.body.date.slice(0, 10), date);
+  assert.equal(foreign.status, 403);
+});
+
 test('standard trainers cannot modify reservations or their own profile', async () => {
   await createFixtures();
 
@@ -349,6 +369,44 @@ test('standard trainers cannot modify reservations or their own profile', async 
   assert.equal(deleteReservation.status, 403);
   assert.equal(patchProfile.status, 403);
   assert.equal(deleteMember.status, 403);
+});
+
+test('members can update their own avatar', async () => {
+  await createFixtures();
+
+  const memberToken = (await loginMember('member-a@noxfit.test')).body.token;
+
+  const avatar = 'https://res.cloudinary.com/demo/image/upload/avatar.jpg';
+
+  const patchAvatar = await request(app)
+    .patch('/api/members/me')
+    .set('Authorization', `Bearer ${memberToken}`)
+    .send({ avatar });
+  const profile = await request(app)
+    .get('/api/members/me')
+    .set('Authorization', `Bearer ${memberToken}`);
+
+  assert.equal(patchAvatar.status, 200);
+  assert.equal(profile.body.avatar, avatar);
+});
+
+test('standard trainers can update only their own avatar', async () => {
+  await createFixtures();
+
+  const standardToken = (await loginTrainer('trainer-standard@noxfit.test')).body.token;
+  const avatar = 'https://res.cloudinary.com/demo/image/upload/avatar.jpg';
+
+  const patchAvatar = await request(app)
+    .patch('/api/trainers/me')
+    .set('Authorization', `Bearer ${standardToken}`)
+    .send({ avatar });
+  const mixed = await request(app)
+    .patch('/api/trainers/me')
+    .set('Authorization', `Bearer ${standardToken}`)
+    .send({ avatar, is_admin: true });
+
+  assert.equal(patchAvatar.status, 200);
+  assert.equal(mixed.status, 403);
 });
 
 test('directories expose minimal fields to the counterpart role', async () => {
@@ -562,7 +620,7 @@ test('creating a reservation rejects slots where the trainer has a personal trai
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'Trainer is not available for that time slot');
+  assert.equal(response.body.error, 'Trainer has no spots left for that time slot');
 });
 
 test('a personal training cannot be booked on a slot that already has reservations', async () => {
@@ -709,7 +767,7 @@ test('updating a reservation rejects moving it into an occupied trainer slot', a
     });
 
   assert.equal(response.status, 409);
-  assert.equal(response.body.error, 'Trainer is not available for that time slot');
+  assert.equal(response.body.error, 'Trainer has no spots left for that time slot');
 });
 
 test('updating a reservation rejects moving it into an occupied member slot', async () => {

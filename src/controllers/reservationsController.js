@@ -5,7 +5,7 @@ const { sendCollection, sendItem, sendNoContent } = require('../http/responses')
 const { sanitizeReservationPayload } = require('../middleware/validators');
 const { createStatusError, createForbiddenError } = require('../http/errors');
 const { generateId } = require('../config/ids');
-const { isValidTimeSlot, normalizeDateOnly } = require('../config/validation');
+const { isValidTimeSlot, isWithinOpeningHours, normalizeDateOnly } = require('../config/validation');
 const { ensureFound } = require('./accountControllerHelpers');
 const {
   buildSlotFilter,
@@ -14,7 +14,7 @@ const {
 } = require('./reservationConflicts');
 
 const reservationPopulation = [
-  { path: 'member', select: 'member_id full_name email' },
+  { path: 'member', select: 'member_id full_name email membership_type' },
   { path: 'trainer', select: 'trainer_id full_name activity_type center hourly_rate' },
 ];
 
@@ -184,6 +184,10 @@ const getTrainerAvailability = async (req, res) => {
     throw createStatusError('time_slot must use HH:MM - HH:MM and end after it starts', 400);
   }
 
+  if (!isWithinOpeningHours(time_slot)) {
+    throw createStatusError('time_slot must be within opening hours (07:00 - 20:00)', 400);
+  }
+
   const [trainers, slotReservations] = await Promise.all([
     Trainer.find().select('trainer_id').lean(),
     Reservation.find(buildSlotFilter({ date, time_slot: time_slot.trim() })).select('trainer activity_type').lean(),
@@ -281,6 +285,16 @@ const ensureNotStandardTrainer = (req) => {
   }
 };
 
+const trainerReschedulableFields = ['date', 'time_slot'];
+
+const ensureTrainerOnlyReschedules = (req) => {
+  const fields = Object.keys(req.body || {});
+
+  if (!fields.length || fields.some((field) => !trainerReschedulableFields.includes(field))) {
+    throw createForbiddenError('Trainers can only change the date and time_slot of their own reservations');
+  }
+};
+
 const previousValues = (reservation) => Object.fromEntries(
   ['member', 'trainer', 'date', 'time_slot', 'activity_type', 'center', 'status', 'reservation_id']
     .filter((field) => reservation[field] !== undefined)
@@ -288,7 +302,9 @@ const previousValues = (reservation) => Object.fromEntries(
 );
 
 const updateReservation = async (req, res) => {
-  ensureNotStandardTrainer(req);
+  if (isStandardTrainer(req)) {
+    ensureTrainerOnlyReschedules(req);
+  }
 
   const reservationData = sanitizeReservationPayload(req.body, { partial: true });
   const existingReservation = await findReservationForOwnershipCheck(req.params.reservation_id);
