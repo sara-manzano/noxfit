@@ -31,7 +31,7 @@ export const CollectionPanel = ({
           <input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Filtra por nombre, código o email"
+            placeholder="Filtra por nombre o email"
           />
         </label>
 

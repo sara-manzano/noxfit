@@ -49,7 +49,7 @@ export const MadridMap = () => {
 
     L.rectangle(madridRegionBounds, {
       className: 'madrid-bounds',
-      color: '#ff2fd0',
+      color: getComputedStyle(document.documentElement).getPropertyValue('--color-pink').trim(),
       weight: 2,
       dashArray: '6 6',
       fill: false,

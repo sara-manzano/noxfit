@@ -22,6 +22,22 @@ export const formatCurrency = (value) => {
   }).format(Number(value));
 };
 
+const MEMBERSHIP_FEES = { 'Básica': 9.9, Premium: 19.9, VIP: 29.9 };
+
+export const formatMembershipFee = (membershipType) => {
+  const fee = MEMBERSHIP_FEES[membershipType];
+
+  if (fee === undefined) {
+    return 'Sin cuota';
+  }
+
+  return `${new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+  }).format(fee)}/mes`;
+};
+
 export const formatBoolean = (value, truthyLabel = 'Activo', falsyLabel = 'Inactivo') => (
   value ? truthyLabel : falsyLabel
 );

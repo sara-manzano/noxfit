@@ -251,7 +251,7 @@
 }
 
 .bento-services .service-chip:nth-child(3n) {
-  background: #000;
+  background: var(--color-black);
   color: var(--color-on-dark);
 }
 

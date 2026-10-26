@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { timeSlotOptions } from '../lib/forms.js';
 import './CalendarView.css';
 
 const weekdays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -24,10 +25,62 @@ const statusClass = (status) => {
   return status === 'Completada' ? 'calendar-event-done' : 'calendar-event-cancelled';
 };
 
-export const CalendarView = ({ reservations }) => {
+export const CalendarView = ({ reservations, onMove, disabled = false }) => {
   const today = new Date();
   const [cursor, setCursor] = useState({ year: today.getUTCFullYear(), month: today.getUTCMonth() });
   const [selectedKey, setSelectedKey] = useState(dayKey(today));
+  const [dragged, setDragged] = useState(null);
+  const [dropKey, setDropKey] = useState('');
+  const [dropSlot, setDropSlot] = useState('');
+
+  const canDrag = (reservation) => Boolean(onMove) && !disabled && reservation.status === 'Confirmada';
+
+  const endDrag = () => {
+    setDragged(null);
+    setDropKey('');
+    setDropSlot('');
+  };
+
+  const dragProps = (reservation) => ({
+    draggable: canDrag(reservation),
+    onDragStart: (event) => {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', reservation.reservation_id);
+      setDragged(reservation);
+    },
+    onDragEnd: endDrag,
+  });
+
+  const eventClass = (reservation) => (
+    `${statusClass(reservation.status)}${canDrag(reservation) ? ' calendar-event-draggable' : ''}`
+  );
+
+  const allowDrop = (event, onOver) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    onOver();
+  };
+
+  const handleDrop = (event, key) => {
+    event.preventDefault();
+
+    if (dragged && key !== toKey(dragged.date)) {
+      onMove(dragged.reservation_id, { date: key });
+      setSelectedKey(key);
+    }
+
+    endDrag();
+  };
+
+  const handleSlotDrop = (event, slot) => {
+    event.preventDefault();
+
+    if (dragged && slot !== dragged.time_slot) {
+      onMove(dragged.reservation_id, { time_slot: slot });
+    }
+
+    endDrag();
+  };
 
   const byDay = useMemo(() => {
     const groups = {};
@@ -73,9 +126,7 @@ export const CalendarView = ({ reservations }) => {
       <div className="view-heading">
         <span className="eyebrow">Agenda</span>
         <h2>Calendario</h2>
-        <p>Consulta qué días tienen sesiones y pulsa un día para ver el detalle.</p>
       </div>
-
       <div className="calendar-layout">
         <div className="panel calendar-panel">
           <div className="calendar-toolbar">
@@ -105,11 +156,38 @@ export const CalendarView = ({ reservations }) => {
                 classes.push('calendar-cell-today');
               }
 
+              if (dragged && key === dropKey) {
+                classes.push('calendar-cell-drop');
+              }
+
               return (
-                <button key={key} type="button" className={classes.join(' ')} onClick={() => setSelectedKey(key)}>
+                <div
+                  key={key}
+                  role="button"
+                  tabIndex={0}
+                  className={classes.join(' ')}
+                  onClick={() => setSelectedKey(key)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setSelectedKey(key);
+                    }
+                  }}
+                  onDragOver={dragged ? (event) => allowDrop(event, () => setDropKey(key)) : undefined}
+                  onDrop={dragged ? (event) => handleDrop(event, key) : undefined}
+                >
                   <span>{Number(key.slice(8))}</span>
-                  {items.length ? <em className="calendar-badge">{items.length}</em> : null}
-                </button>
+                  {items.slice(0, 2).map((reservation) => (
+                    <span
+                      key={reservation.reservation_id}
+                      className={`calendar-chip ${eventClass(reservation)}`}
+                      {...dragProps(reservation)}
+                    >
+                      {(reservation.time_slot || '').slice(0, 5)} {reservation.activity_type}
+                    </span>
+                  ))}
+                  {items.length > 2 ? <em className="calendar-badge">+{items.length - 2}</em> : null}
+                </div>
               );
             })}
           </div>
@@ -119,10 +197,31 @@ export const CalendarView = ({ reservations }) => {
           <span className="eyebrow">{selectedKey}</span>
           <h3>{selectedItems.length ? `${selectedItems.length} reserva(s)` : 'Sin reservas'}</h3>
 
+          {dragged ? (
+            <div className="calendar-slots">
+              <small>Suelta aquí para cambiar el horario ({toKey(dragged.date)})</small>
+              {timeSlotOptions.map((slot) => (
+                <div
+                  key={slot}
+                  className={`calendar-slot${slot === dropSlot ? ' calendar-slot-drop' : ''}${slot === dragged.time_slot ? ' calendar-slot-current' : ''}`}
+                  onDragOver={(event) => allowDrop(event, () => setDropSlot(slot))}
+                  onDragLeave={() => setDropSlot('')}
+                  onDrop={(event) => handleSlotDrop(event, slot)}
+                >
+                  {slot}
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           {selectedItems.length ? (
             <ul className="calendar-events">
               {selectedItems.map((reservation) => (
-                <li key={reservation.reservation_id} className={`calendar-event ${statusClass(reservation.status)}`}>
+                <li
+                  key={reservation.reservation_id}
+                  className={`calendar-event ${eventClass(reservation)}`}
+                  {...dragProps(reservation)}
+                >
                   <strong>{reservation.time_slot || 'Sin hora'}</strong>
                   <span>{reservation.activity_type || 'Reserva'}</span>
                   <small>

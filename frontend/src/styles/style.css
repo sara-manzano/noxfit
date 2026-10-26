@@ -3,7 +3,7 @@
   --font-body: 'Manrope', sans-serif;
   --color-ink: #141414;
   --color-muted: #6d6a62;
-  --color-surface: rgba(247, 241, 230, 0.82);
+  --color-surface: rgba(var(--rgb-surface), 0.82);
   --color-surface-strong: #fcf8ee;
   --color-border: rgba(var(--rgb-ink), 0.08);
   --color-pink: #ff2fd0;
@@ -21,6 +21,17 @@
   --color-primary-mid: #ff6be3;
   --color-danger-strong: #9e243f;
   --color-success-strong: #17694d;
+  --color-black: #000;
+  --color-text-strong: #1d1d1d;
+  --color-text-warm: #27241f;
+  --color-text-soft: #303030;
+  --color-text-dim: #3d3d3d;
+  --color-steel-light: #c9c9c9;
+  --color-steel: #8f8f8f;
+  --color-steel-dark: #6b6b6b;
+  --color-bg-start: #f8f1e4;
+  --color-bg-mid: #f3eadc;
+  --color-bg-end: #efe9de;
 
   --rgb-ink: 20, 20, 20;
   --rgb-ink-soft: 32, 32, 32;
@@ -32,6 +43,13 @@
   --rgb-danger: 190, 66, 83;
   --rgb-danger-soft: 216, 79, 95;
   --rgb-success-soft: 31, 143, 103;
+  --rgb-black: 0, 0, 0;
+  --rgb-coal: 40, 40, 40;
+  --rgb-charcoal: 60, 60, 60;
+  --rgb-graphite: 85, 85, 85;
+  --rgb-surface: 247, 241, 230;
+  --rgb-linen: 243, 237, 225;
+  --rgb-sand: 237, 230, 216;
 
   --color-shadow: 0 30px 80px rgba(var(--rgb-ink), 0.13);
   --shadow-hero: 0 32px 90px rgba(var(--rgb-ink), 0.24);
@@ -40,8 +58,8 @@
   --gradient-primary-deep: linear-gradient(145deg, var(--color-primary-light) 0%, var(--color-primary-deep) 100%);
   --gradient-hero:
     radial-gradient(circle at 85% 0%, rgba(var(--rgb-primary), 0.22), transparent 42%),
-    linear-gradient(135deg, rgba(var(--rgb-ink), 0.97) 0%, rgba(var(--rgb-ink-soft), 0.95) 60%, rgba(60, 60, 60, 0.93) 100%);
-  --gradient-dark-card: linear-gradient(135deg, rgba(var(--rgb-ink), 0.96) 0%, rgba(40, 40, 40, 0.92) 100%);
+    linear-gradient(135deg, rgba(var(--rgb-ink), 0.97) 0%, rgba(var(--rgb-ink-soft), 0.95) 60%, rgba(var(--rgb-charcoal), 0.93) 100%);
+  --gradient-dark-card: linear-gradient(135deg, rgba(var(--rgb-ink), 0.96) 0%, rgba(var(--rgb-coal), 0.92) 100%);
   --radius-pill: 999px;
   --radius-hero: 48px 48px 48px 8px;
   --radius-blob-a: 8px 40px 8px 40px;
@@ -53,6 +71,7 @@
   --radius-lg: 24px;
   --radius-md: 16px;
   --radius-sm: 12px;
+  --space-3xs: 0.2rem;
   --space-2xs: 0.35rem;
   --space-xs: 0.6rem;
   --space-sm: 0.9rem;
@@ -78,8 +97,8 @@ body {
   color: var(--color-ink);
   background:
     radial-gradient(circle at top left, rgba(var(--rgb-primary), 0.2), transparent 24%),
-    radial-gradient(circle at 82% 12%, rgba(20, 20, 20, 0.08), transparent 20%),
-    linear-gradient(180deg, #f8f1e4 0%, #f3eadc 38%, #efe9de 100%);
+    radial-gradient(circle at 82% 12%, rgba(var(--rgb-ink), 0.08), transparent 20%),
+    linear-gradient(180deg, var(--color-bg-start) 0%, var(--color-bg-mid) 38%, var(--color-bg-end) 100%);
 }
 
 body::before {
@@ -87,10 +106,10 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background-image: linear-gradient(rgba(20, 20, 20, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(20, 20, 20, 0.035) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(var(--rgb-ink), 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--rgb-ink), 0.035) 1px, transparent 1px);
   background-size: 44px 44px;
-  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.68), transparent 92%);
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.68), transparent 92%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(var(--rgb-black), 0.68), transparent 92%);
+  mask-image: linear-gradient(180deg, rgba(var(--rgb-black), 0.68), transparent 92%);
 }
 
 button,

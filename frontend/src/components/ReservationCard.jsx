@@ -38,12 +38,10 @@ export const ReservationCard = ({ reservation, memberFallbackName, onDelete, can
         </p>
         <div className="reservation-chips">
           <span>{reservation.center || 'Sin centro'}</span>
-          <span>Tarifa {formatCurrency(reservation.trainer?.hourly_rate)}/h</span>
           <span>Reservada por {reservation.booked_by === 'trainer' ? 'entrenador' : 'socio'}</span>
-          <span>{reservation.reservation_id}</span>
         </div>
         <div className="reservation-bottom">
-          <span className="reservation-price">{formatCurrency(reservation.price)}</span>
+          <span className="reservation-price">{reservation.trainer?.hourly_rate != null ? `${formatCurrency(reservation.trainer.hourly_rate)}/h` : 'Sin tarifa'}</span>
           {canDelete ? (
             <button className="reservation-delete" type="button" onClick={() => onDelete(reservation.reservation_id)} disabled={disabled}>
               Eliminar

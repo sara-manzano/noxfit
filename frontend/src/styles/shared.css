@@ -66,12 +66,12 @@
 
 .metric-pill {
   background: rgba(var(--rgb-ink), 0.05);
-  color: #27241f;
+  color: var(--color-text-warm);
 }
 
 .status-pill {
   background: rgba(var(--rgb-ink), 0.08);
-  color: #1d1d1d;
+  color: var(--color-text-strong);
 }
 
 .status-positive {
@@ -81,7 +81,7 @@
 
 .status-neutral {
   background: rgba(var(--rgb-ink), 0.08);
-  color: #303030;
+  color: var(--color-text-soft);
 }
 
 .status-warning {
@@ -101,7 +101,7 @@
 
 .metric-pill-light {
   background: rgba(var(--rgb-cream), 0.88);
-  color: #1d1d1d;
+  color: var(--color-text-strong);
 }
 
 .section-heading {
@@ -226,7 +226,7 @@
 
 .panel {
   padding: var(--space-lg);
-  background: linear-gradient(180deg, rgba(var(--rgb-cream), 0.88) 0%, rgba(247, 241, 230, 0.72) 100%);
+  background: linear-gradient(180deg, rgba(var(--rgb-cream), 0.88) 0%, rgba(var(--rgb-surface), 0.72) 100%);
 }
 
 .entity-card,
@@ -239,15 +239,9 @@
 }
 
 .empty-card,
-.loading-card,
-.loading-inline {
+.loading-card {
   color: var(--color-muted);
   text-align: center;
-}
-
-.loading-inline {
-  margin-bottom: var(--space-md);
-  font-weight: 700;
 }
 
 .hero-lead {
@@ -266,8 +260,8 @@
     linear-gradient(rgba(var(--rgb-cream), 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(var(--rgb-cream), 0.08) 1px, transparent 1px);
   background-size: 42px 42px;
-  -webkit-mask-image: radial-gradient(circle at top left, rgba(0, 0, 0, 0.95), transparent 78%);
-  mask-image: radial-gradient(circle at top left, rgba(0, 0, 0, 0.95), transparent 78%);
+  -webkit-mask-image: radial-gradient(circle at top left, rgba(var(--rgb-black), 0.95), transparent 78%);
+  mask-image: radial-gradient(circle at top left, rgba(var(--rgb-black), 0.95), transparent 78%);
 }
 
 .view-section {
@@ -356,7 +350,6 @@
 .entity-card,
 .feature-panel,
 .brand-hero,
-.tab-button,
 .button,
 .field input,
 .field select {
@@ -366,7 +359,6 @@
 .stat-card:hover,
 .entity-card:hover,
 .feature-panel:hover,
-.tab-button:hover,
 .panel:hover,
 .auth-card:hover {
   transform: translateY(-2px);

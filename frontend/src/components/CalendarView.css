@@ -65,6 +65,61 @@
   border-color: var(--color-ink);
 }
 
+.calendar-cell-drop {
+  outline: 2px dashed var(--color-primary-deep);
+  outline-offset: -2px;
+}
+
+.calendar-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 5.5rem;
+  cursor: pointer;
+}
+
+.calendar-chip {
+  display: block;
+  overflow: hidden;
+  padding: 0.1rem 0.3rem;
+  border-left: 3px solid var(--color-ink);
+  border-radius: 6px;
+  background: rgba(var(--rgb-cream), 0.9);
+  color: var(--color-ink);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-event-draggable {
+  cursor: grab;
+}
+
+.calendar-slots {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+}
+
+.calendar-slot {
+  padding: 0.45rem 0.7rem;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.calendar-slot-current {
+  opacity: 0.5;
+}
+
+.calendar-slot-drop {
+  border-color: var(--color-primary-deep);
+  background: var(--color-ink);
+  color: var(--color-primary);
+}
+
 .panel.calendar-panel {
   position: relative;
   overflow: hidden;

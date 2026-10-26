@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, useTransition } from 'react';
-import { memberFields, membershipOptions, trainerFields } from '../lib/forms.js';
-import { formatBoolean } from '../lib/formatters.js';
+import { useRef, useState } from 'react';
+import { memberFields, membershipOptions } from '../lib/forms.js';
+import { formatBoolean, formatMembershipFee } from '../lib/formatters.js';
 import { imageFileToAvatar } from '../lib/avatar.js';
 import defaultAvatar from '../assets/default-avatar.svg';
 import gymImage from '../assets/fucional.png';
@@ -12,7 +12,6 @@ import { MemberCard } from './MemberCard.jsx';
 import { ReservationCard } from './ReservationCard.jsx';
 import { ReservationForm } from './ReservationForm.jsx';
 import { StatCard } from './StatCard.jsx';
-import { TrainerCard } from './TrainerCard.jsx';
 import { TrainersView } from './TrainersView.jsx';
 import { ServicesView } from './ServicesView.jsx';
 import { CalendarView } from './CalendarView.jsx';
@@ -51,17 +50,10 @@ const renderProfileLabel = (session) => {
   return session.role === 'trainer' ? 'Entrenador' : 'Socio';
 };
 
-const serviceFocus = [
-  'Entrenamiento personal',
-  'Entrenamiento grupal',
-  'Nutrición',
-];
-
 export const AppShell = ({ session, onLogout }) => {
-  const [activePanel, setActivePanel] = useState('members');
   const [selectedCenter, setSelectedCenter] = useState('');
   const [activeView, setActiveView] = useState('panel');
-  const [isSwitchPending, startSwitchTransition] = useTransition();
+  const [activityFilter, setActivityFilter] = useState('');
   const [avatarError, setAvatarError] = useState('');
   const avatarInputRef = useRef(null);
   const dashboard = useDashboardData(session, onLogout);
@@ -83,7 +75,6 @@ export const AppShell = ({ session, onLogout }) => {
 
   const membersFilters = useCollectionFilters(dashboard.members, {
     searchGetters: [
-      (item) => item.member_id,
       (item) => item.full_name,
       (item) => item.email,
       (item) => item.membership_type,
@@ -91,19 +82,8 @@ export const AppShell = ({ session, onLogout }) => {
     filterAccessor: (item) => item.membership_type,
   });
 
-  const trainersFilters = useCollectionFilters(dashboard.trainers, {
-    searchGetters: [
-      (item) => item.trainer_id,
-      (item) => item.full_name,
-      (item) => item.email,
-      (item) => item.activity_type,
-    ],
-    filterAccessor: (item) => item.activity_type,
-  });
-
   const reservationsFilters = useCollectionFilters(dashboard.reservations, {
     searchGetters: [
-      (item) => item.reservation_id,
       (item) => item.activity_type,
       (item) => item.status,
       (item) => item.member?.full_name,
@@ -112,39 +92,6 @@ export const AppShell = ({ session, onLogout }) => {
     filterAccessor: (item) => item.status,
   });
 
-  const panelConfigs = isAdmin
-    ? [
-      {
-        key: 'members',
-        label: 'Socios',
-        count: dashboard.members.length,
-      },
-      {
-        key: 'trainers',
-        label: 'Entrenadores',
-        count: dashboard.trainers.length,
-      },
-      {
-        key: 'reservations',
-        label: 'Reservations',
-        count: dashboard.reservations.length,
-      },
-    ]
-    : [
-      {
-        key: 'reservations',
-        label: isMember ? 'Mis reservas' : 'Reservations',
-        count: dashboard.reservations.length,
-      },
-    ];
-
-  useEffect(() => {
-    if (!panelConfigs.some((panel) => panel.key === activePanel)) {
-      setActivePanel(panelConfigs[0]?.key || 'reservations');
-    }
-  }, [activePanel, panelConfigs]);
-
-  const activeMembers = dashboard.members.filter((member) => member.active).length;
   const upcomingReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Confirmada').length;
   const completedReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Completada').length;
 
@@ -163,27 +110,16 @@ export const AppShell = ({ session, onLogout }) => {
     ));
   };
 
-  const renderTrainerCards = () => {
-    if (!trainersFilters.visibleItems.length) {
-      return <article className="empty-card">No hay entrenadores que coincidan con el filtro actual.</article>;
-    }
-
-    return trainersFilters.visibleItems.map((trainer) => (
-      <TrainerCard
-        key={trainer.trainer_id}
-        trainer={trainer}
-        onDelete={dashboard.deleteTrainer}
-        disabled={dashboard.isSubmitting}
-      />
-    ));
-  };
-
   const renderReservationCards = () => {
     if (!reservationsFilters.visibleItems.length) {
       return <article className="empty-card reservation-empty">No hay reservas que coincidan con el filtro actual.</article>;
     }
 
-    return reservationsFilters.visibleItems.map((reservation) => (
+    const sortedReservations = [...reservationsFilters.visibleItems].sort((a, b) => (
+      new Date(a.date) - new Date(b.date) || (a.time_slot || '').localeCompare(b.time_slot || '')
+    ));
+
+    return sortedReservations.map((reservation) => (
       <ReservationCard
         key={reservation.reservation_id}
         reservation={reservation}
@@ -195,89 +131,59 @@ export const AppShell = ({ session, onLogout }) => {
     ));
   };
 
-  const renderActivePanel = () => {
-    if (activePanel === 'members') {
-      return (
-        <CollectionPanel
-          title="Socios"
-          description="Usuarios finales con su plan, alta y estado de cuenta."
-          query={membersFilters.query}
-          onQueryChange={membersFilters.setQuery}
-          selectedFilter={membersFilters.selectedFilter}
-          onFilterChange={membersFilters.setSelectedFilter}
-          filterLabel="Plan"
-          filterOptions={membershipOptions.map((option) => ({ value: option.toLowerCase(), label: option }))}
-          countLabel={`${membersFilters.visibleCount} de ${membersFilters.totalCount}`}
-          form={
-            <AccountForm
-              title="Alta de socio"
-              fields={memberFields}
-              onSubmit={dashboard.createMember}
-              isSubmitting={dashboard.isSubmitting}
-            />
-          }
-        >
-          {renderMemberCards()}
-        </CollectionPanel>
-      );
-    }
+  const renderMembersPanel = () => (
+    <CollectionPanel
+      title="Socios"
+      description="Usuarios finales con su plan, alta y estado de cuenta."
+      query={membersFilters.query}
+      onQueryChange={membersFilters.setQuery}
+      selectedFilter={membersFilters.selectedFilter}
+      onFilterChange={membersFilters.setSelectedFilter}
+      filterLabel="Plan"
+      filterOptions={membershipOptions.map((option) => ({ value: option.toLowerCase(), label: option }))}
+      countLabel={`${membersFilters.visibleCount} de ${membersFilters.totalCount}`}
+      form={
+        <AccountForm
+          title="Alta de socio"
+          fields={memberFields}
+          onSubmit={dashboard.createMember}
+          isSubmitting={dashboard.isSubmitting}
+        />
+      }
+    >
+      {renderMemberCards()}
+    </CollectionPanel>
+  );
 
-    if (activePanel === 'trainers') {
-      return (
-        <CollectionPanel
-          title="Entrenadores"
-          description="Equipo interno con especialidad, tarifa y permisos."
-          query={trainersFilters.query}
-          onQueryChange={trainersFilters.setQuery}
-          selectedFilter={trainersFilters.selectedFilter}
-          onFilterChange={trainersFilters.setSelectedFilter}
-          filterLabel="Especialidad"
-          filterOptions={buildFilterOptions(dashboard.trainers, (item) => item.activity_type)}
-          countLabel={`${trainersFilters.visibleCount} de ${trainersFilters.totalCount}`}
-          form={
-            <AccountForm
-              title="Alta de entrenador"
-              fields={trainerFields}
-              onSubmit={dashboard.createTrainer}
-              isSubmitting={dashboard.isSubmitting}
-            />
-          }
-        >
-          {renderTrainerCards()}
-        </CollectionPanel>
-      );
-    }
-
-    return (
-      <CollectionPanel
-        title={session.role === 'trainer' ? 'Reservations' : 'Mis reservas'}
-        query={reservationsFilters.query}
-        onQueryChange={reservationsFilters.setQuery}
-        selectedFilter={reservationsFilters.selectedFilter}
-        onFilterChange={reservationsFilters.setSelectedFilter}
-        filterLabel="Estado"
-        filterOptions={buildFilterOptions(dashboard.reservations, (item) => item.status, ['Confirmada', 'Completada', 'Cancelada'])}
-        countLabel={`${reservationsFilters.visibleCount} de ${reservationsFilters.totalCount}`}
-        form={
-          <ReservationForm
-            onSubmit={dashboard.createReservation}
-            loadAvailability={dashboard.getTrainerAvailability}
-            reservationsVersion={dashboard.reservations}
-            isSubmitting={dashboard.isSubmitting}
-            trainers={dashboard.trainerDirectory}
-            members={dashboard.memberDirectory}
-            isAdmin={isAdmin}
-            isStandardTrainer={isStandardTrainer}
-            currentTrainer={dashboard.profile}
-            center={selectedCenter}
-            onCenterChange={setSelectedCenter}
-          />
-        }
-      >
-        {renderReservationCards()}
-      </CollectionPanel>
-    );
-  };
+  const renderReservationsPanel = () => (
+    <CollectionPanel
+      title={isMember ? 'Mis reservas' : 'Reservations'}
+      query={reservationsFilters.query}
+      onQueryChange={reservationsFilters.setQuery}
+      selectedFilter={reservationsFilters.selectedFilter}
+      onFilterChange={reservationsFilters.setSelectedFilter}
+      filterLabel="Estado"
+      filterOptions={buildFilterOptions(dashboard.reservations, (item) => item.status, ['Confirmada', 'Completada', 'Cancelada'])}
+      countLabel={`${reservationsFilters.visibleCount} de ${reservationsFilters.totalCount}`}
+      form={
+        <ReservationForm
+          onSubmit={dashboard.createReservation}
+          loadAvailability={dashboard.getTrainerAvailability}
+          reservationsVersion={dashboard.reservations}
+          isSubmitting={dashboard.isSubmitting}
+          trainers={dashboard.trainerDirectory}
+          members={dashboard.memberDirectory}
+          isAdmin={isAdmin}
+          isStandardTrainer={isStandardTrainer}
+          currentTrainer={dashboard.profile}
+          center={selectedCenter}
+          onCenterChange={setSelectedCenter}
+        />
+      }
+    >
+      {renderReservationCards()}
+    </CollectionPanel>
+  );
 
   const handleAvatarSelected = async (event) => {
     const [file] = event.target.files;
@@ -303,15 +209,6 @@ export const AppShell = ({ session, onLogout }) => {
 
         <div className="hero-copy hero-copy-dashboard">
           <div className="eyebrow eyebrow-accent">NOXFIT</div>
-          
-          {!isMember ? (
-            <div className="hero-stat-band hero-stat-band-compact">
-              <article>
-                <strong>{dashboard.members.length}</strong>
-                <span>Socios</span>
-              </article>
-            </div>
-          ) : null}
         </div>
 
         <div className="dashboard-side-stack">
@@ -332,6 +229,10 @@ export const AppShell = ({ session, onLogout }) => {
                 <div>
                   <dt>Plan</dt>
                   <dd>{dashboard.profile.membership_type || 'Sin plan'}</dd>
+                </div>
+                <div>
+                  <dt>Cuota</dt>
+                  <dd>{formatMembershipFee(dashboard.profile.membership_type)}</dd>
                 </div>
                 <div>
                   <dt>Estado</dt>
@@ -390,21 +291,13 @@ export const AppShell = ({ session, onLogout }) => {
         </div>
       </section>
 
-      <section className={isMember ? 'stats-grid stats-grid-jg stats-grid-member' : 'stats-grid stats-grid-jg'}>
-        {!isMember ? (
-          <StatCard label="Total socios" value={dashboard.members.length} description={`${activeMembers} activos`} />
-        ) : null}
+      <section className="stats-grid stats-grid-jg stats-grid-member">
         <div className="stat-card stat-card-image">
           <img src={gymImage} alt="Gimnasio Noxfit" />
         </div>
         <div className="stat-stack">
           <StatCard label="Reservas activas" value={upcomingReservations} description="Confirmadas en agenda" />
           <StatCard label="Completadas" value={completedReservations} description="Histórico operativo" />
-        </div>
-        <div className="service-chips">
-          {serviceFocus.map((item) => (
-            <span key={item} className="service-chip">{item}</span>
-          ))}
         </div>
       </section>
 
@@ -430,38 +323,41 @@ export const AppShell = ({ session, onLogout }) => {
         </div>
       </section>
 
-      {panelConfigs.length > 1 ? (
-        <nav className="tab-row tab-row-jg" aria-label="Colecciones">
-          {panelConfigs.map((panel) => (
-            <button
-              key={panel.key}
-              className={panel.key === activePanel ? 'tab-button tab-button-active' : 'tab-button'}
-              type="button"
-              onClick={() => startSwitchTransition(() => setActivePanel(panel.key))}
-            >
-              {panel.label}
-              <span>{panel.count}</span>
-            </button>
-          ))}
-        </nav>
-      ) : null}
-
-      {isSwitchPending ? <div className="loading-inline">Cambiando vista...</div> : null}
-      {!dashboard.isLoading ? renderActivePanel() : null}
+      {!dashboard.isLoading ? renderReservationsPanel() : null}
     </>
   );
 
+  const handleNavChange = (view) => {
+    setActivityFilter('');
+    setActiveView(view);
+  };
+
+  const handleSelectService = (serviceName) => {
+    setActivityFilter(serviceName);
+    setActiveView('trainers');
+  };
+
   const renderView = () => {
-    if (activeView === 'trainers') {
-      return <TrainersView trainers={visibleTrainers} isPartial={!isAdmin} />;
+    if (activeView === 'members' && isAdmin) {
+      return renderMembersPanel();
     }
 
-    if (activeView === 'services') {
-      return <ServicesView trainers={visibleTrainers} reservations={dashboard.reservations} />;
+    if (activeView === 'trainers' && !isStandardTrainer) {
+      return <TrainersView trainers={visibleTrainers} activityFilter={activityFilter} onClearFilter={() => setActivityFilter('')} />;
+    }
+
+    if (activeView === 'services' && isMember) {
+      return <ServicesView trainers={visibleTrainers} onSelect={handleSelectService} />;
     }
 
     if (activeView === 'calendar') {
-      return <CalendarView reservations={dashboard.reservations} />;
+      return (
+        <CalendarView
+          reservations={dashboard.reservations}
+          onMove={isMember ? undefined : dashboard.moveReservation}
+          disabled={dashboard.isSubmitting}
+        />
+      );
     }
 
     return renderPanelView();
@@ -471,7 +367,10 @@ export const AppShell = ({ session, onLogout }) => {
     <>
       <TopNav
         activeView={activeView}
-        onChange={setActiveView}
+        onChange={handleNavChange}
+        showMembers={isAdmin}
+        showTrainers={!isStandardTrainer}
+        showServices={isMember}
         userName={dashboard.profile?.full_name || session.user.full_name}
         roleLabel={renderProfileLabel(session)}
         onLogout={onLogout}

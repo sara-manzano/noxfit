@@ -1,11 +1,10 @@
-import { formatBoolean, formatDate } from '../lib/formatters.js';
+import { formatBoolean, formatDate, formatMembershipFee } from '../lib/formatters.js';
 import { StatusPill } from './StatusPill.jsx';
 
 export const MemberCard = ({ member, onDelete, disabled }) => (
   <article className="entity-card">
     <div className="entity-card-head">
       <div>
-        <p className="eyebrow">{member.member_id}</p>
         <h3>{member.full_name}</h3>
       </div>
       <StatusPill status={formatBoolean(member.active)} />
@@ -13,6 +12,7 @@ export const MemberCard = ({ member, onDelete, disabled }) => (
     <p>{member.email}</p>
     <div className="entity-meta">
       <span>{member.membership_type || 'Sin plan'}</span>
+      <span>{formatMembershipFee(member.membership_type)}</span>
       <span>{formatDate(member.join_date)}</span>
     </div>
     <div className="entity-actions">

@@ -46,32 +46,49 @@ export const ReservationForm = ({
   }, [trainerCenter, center]);
 
   useEffect(() => {
-    if (!values.date || !values.time_slot || !loadAvailability) {
+    if (!values.date || !loadAvailability) {
       setAvailability({});
       return undefined;
     }
 
     let cancelled = false;
 
-    loadAvailability(values.date, values.time_slot)
-      .then((response) => {
+    Promise.all(timeSlotOptions.map((slot) => loadAvailability(values.date, slot)
+      .then((response) => [slot, Object.fromEntries(response.items.map((item) => [item.trainer_id, item]))])
+      .catch(() => [slot, {}])))
+      .then((entries) => {
         if (!cancelled) {
-          setAvailability(Object.fromEntries(response.items.map((item) => [item.trainer_id, item])));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAvailability({});
+          setAvailability(Object.fromEntries(entries));
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [values.date, values.time_slot, reservationsVersion]);
+  }, [values.date, reservationsVersion]);
+
+  const hasPersonalTrainingAt = (slot) => {
+    const slotAvailability = availability[slot] || {};
+
+    if (activeTrainer) {
+      return Boolean(slotAvailability[activeTrainer.trainer_id]?.has_personal_training);
+    }
+
+    const items = Object.values(slotAvailability);
+
+    return items.length > 0 && items.every((item) => item.has_personal_training);
+  };
+
+  const visibleTimeSlots = timeSlotOptions.filter((slot) => !hasPersonalTrainingAt(slot));
+
+  useEffect(() => {
+    if (values.time_slot && !visibleTimeSlots.includes(values.time_slot)) {
+      setValues((current) => ({ ...current, time_slot: '' }));
+    }
+  }, [visibleTimeSlots.join('|'), values.time_slot]);
 
   const isTrainerUnavailable = (trainerId) => {
-    const slot = availability[trainerId];
+    const slot = availability[values.time_slot]?.[trainerId];
 
     if (!slot) {
       return false;
@@ -158,7 +175,7 @@ export const ReservationForm = ({
               <option value="">Selecciona un socio</option>
               {members.map((member) => (
                 <option key={member.member_id} value={member.member_id}>
-                  {member.full_name} · {member.member_id}
+                  {member.full_name}
                 </option>
               ))}
             </select>
@@ -229,7 +246,7 @@ export const ReservationForm = ({
           <span>Franja</span>
           <select name="time_slot" value={values.time_slot} onChange={handleChange} required>
             <option value="">Selecciona una franja</option>
-            {timeSlotOptions.map((slot) => (
+            {visibleTimeSlots.map((slot) => (
               <option key={slot} value={slot}>{slot}</option>
             ))}
           </select>

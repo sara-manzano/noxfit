@@ -38,9 +38,9 @@ const services = [
 const cityHighlights = ['Madrid'];
 
 const plans = [
-  { name: 'Básica', description: 'Acceso al centro y reservas de sesiones.' },
-  { name: 'Premium', description: 'Incluye seguimiento y plan personalizado.' },
-  { name: 'VIP', description: 'Atención prioritaria y nutrición deportiva.' },
+  { name: 'Básica · 9,90 €/mes', description: 'Acceso al centro y reservas de sesiones.' },
+  { name: 'Premium · 19,90 €/mes', description: 'Incluye seguimiento y plan personalizado.' },
+  { name: 'VIP · 29,90 €/mes', description: 'Atención prioritaria y nutrición deportiva.' },
 ];
 
 const contact = {
@@ -172,7 +172,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
 
           <article className="bento-tile bento-footer">
             <span className="bento-kicker">Horario</span>
-            <p>Todos los días de 7:00 a 24:00</p>
+            <p>Todos los días de 7:00 a 20:00</p>
           </article>
 
           <article className="bento-tile bento-plans">

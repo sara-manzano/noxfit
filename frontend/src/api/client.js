@@ -70,14 +70,8 @@ export const accountsApi = {
   createMember(session, payload) {
     return request('/members', { method: 'POST', token: session.token, body: payload });
   },
-  createTrainer(session, payload) {
-    return request('/trainers', { method: 'POST', token: session.token, body: payload });
-  },
   deleteMember(session, memberId) {
     return request(`/members/${memberId}`, { method: 'DELETE', token: session.token });
-  },
-  deleteTrainer(session, trainerId) {
-    return request(`/trainers/${trainerId}`, { method: 'DELETE', token: session.token });
   },
 };
 
@@ -94,6 +88,9 @@ export const reservationsApi = {
   },
   delete(session, reservationId) {
     return request(`/reservations/${reservationId}`, { method: 'DELETE', token: session.token });
+  },
+  update(session, reservationId, payload) {
+    return request(`/reservations/${reservationId}`, { method: 'PATCH', token: session.token, body: payload });
   },
 };
 
