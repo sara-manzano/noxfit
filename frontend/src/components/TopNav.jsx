@@ -2,13 +2,14 @@ import './TopNav.css';
 
 const navItems = [
   { key: 'panel', label: 'Perfil' },
+  { key: 'reservations', label: 'Reservas' },
   { key: 'members', label: 'Socios', adminOnly: true },
   { key: 'trainers', label: 'Entrenadores', hideForTrainers: true },
   { key: 'services', label: 'Servicios', memberOnly: true },
-  { key: 'calendar', label: 'Calendario de reservas' },
+  { key: 'calendar', label: 'Calendario de reservas', trainerOnly: true },
 ];
 
-export const TopNav = ({ activeView, onChange, showMembers, showTrainers, showServices, userName, roleLabel, onLogout }) => (
+export const TopNav = ({ activeView, onChange, showMembers, showTrainers, showServices, showCalendar, userName, roleLabel, onLogout }) => (
   <header className="top-nav">
     <div className="top-nav-inner">
       <button className="top-nav-brand" type="button" onClick={() => onChange('panel')}>
@@ -19,7 +20,8 @@ export const TopNav = ({ activeView, onChange, showMembers, showTrainers, showSe
         {navItems
           .filter((item) => (showMembers || !item.adminOnly)
             && (showTrainers || !item.hideForTrainers)
-            && (showServices || !item.memberOnly))
+            && (showServices || !item.memberOnly)
+            && (showCalendar || !item.trainerOnly))
           .map((item) => (
             <button
               key={item.key}

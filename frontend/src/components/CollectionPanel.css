@@ -5,9 +5,8 @@
 }
 
 .panel-form {
-  position: sticky;
-  top: 1rem;
-  align-self: start;
+  position: relative;
+  align-self: stretch;
 }
 
 .panel-list {
@@ -62,14 +61,32 @@
   gap: var(--space-md);
 }
 
+.card-grid-more {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
+/* El formulario fija la altura de la fila; la lista se adapta y hace scroll. */
+@media (min-width: 1081px) {
+  .panel-list {
+    display: flex;
+    flex-direction: column;
+    contain: size;
+    min-height: 32rem;
+  }
+
+  .panel-list .card-grid {
+    flex: 1;
+    min-height: 0;
+    align-content: start;
+    overflow-y: auto;
+  }
+}
+
 @media (max-width: 1080px) {
   .collection-shell,
   .card-grid {
     grid-template-columns: 1fr;
-  }
-
-  .panel-form {
-    position: static;
   }
 }
 
@@ -118,6 +135,11 @@
 }
 
 .panel.panel-list:hover {
+  transform: none;
+}
+
+.collection-shell .panel.panel-form:hover,
+.collection-shell .entity-card:hover {
   transform: none;
 }
 

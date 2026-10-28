@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { memberFields, membershipOptions } from '../lib/forms.js';
 import { formatBoolean, formatMembershipFee } from '../lib/formatters.js';
 import { imageFileToAvatar } from '../lib/avatar.js';
@@ -19,6 +19,9 @@ import { gyms } from './MadridMap.jsx';
 import { TopNav } from './TopNav.jsx';
 import { MemberHighlights } from './MemberHighlights.jsx';
 import './AppShell.css';
+
+const MEMBERS_PAGE_SIZE = 4;
+const RESERVATIONS_PAGE_SIZE = 4;
 
 const buildFilterOptions = (items, accessor, knownOptions = []) => {
   const optionValues = [];
@@ -72,8 +75,9 @@ export const AppShell = ({ session, onLogout }) => {
   const [activeView, setActiveView] = useState('panel');
   const [activityFilter, setActivityFilter] = useState('');
   const [avatarError, setAvatarError] = useState('');
+  const [memberLimit, setMemberLimit] = useState(MEMBERS_PAGE_SIZE);
+  const [reservationLimit, setReservationLimit] = useState(RESERVATIONS_PAGE_SIZE);
   const avatarInputRef = useRef(null);
-  const reservationsSectionRef = useRef(null);
   const dashboard = useDashboardData(session, onLogout);
   const isAdmin = session.role === 'trainer' && session.user.is_admin;
   const isMember = session.role === 'member';
@@ -100,6 +104,10 @@ export const AppShell = ({ session, onLogout }) => {
     filterAccessor: (item) => item.membership_type,
   });
 
+  useEffect(() => {
+    setMemberLimit(MEMBERS_PAGE_SIZE);
+  }, [membersFilters.query, membersFilters.selectedFilter]);
+
   const reservationsFilters = useCollectionFilters(dashboard.reservations, {
     searchGetters: [
       (item) => item.member?.full_name,
@@ -108,13 +116,17 @@ export const AppShell = ({ session, onLogout }) => {
     filterAccessor: (item) => item.status,
   });
 
+  useEffect(() => {
+    setReservationLimit(RESERVATIONS_PAGE_SIZE);
+  }, [reservationsFilters.query, reservationsFilters.selectedFilter]);
+
   const upcomingReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Confirmada').length;
   const completedReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Completada').length;
 
   const showReservationsByStatus = (status) => {
     reservationsFilters.setQuery('');
     reservationsFilters.setSelectedFilter(status.toLowerCase());
-    reservationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setActiveView('reservations');
   };
 
   const renderMemberCards = () => {
@@ -122,14 +134,27 @@ export const AppShell = ({ session, onLogout }) => {
       return <article className="empty-card">No hay socios que coincidan con el filtro actual.</article>;
     }
 
-    return membersFilters.visibleItems.map((member) => (
-      <MemberCard
-        key={member.member_id}
-        member={member}
-        onDelete={dashboard.deleteMember}
-        disabled={dashboard.isSubmitting}
-      />
-    ));
+    return (
+      <>
+        {membersFilters.visibleItems.slice(0, memberLimit).map((member) => (
+          <MemberCard
+            key={member.member_id}
+            member={member}
+            onDelete={dashboard.deleteMember}
+            disabled={dashboard.isSubmitting}
+          />
+        ))}
+        {membersFilters.visibleItems.length > memberLimit ? (
+          <button
+            className="button button-secondary card-grid-more"
+            type="button"
+            onClick={() => setMemberLimit((limit) => limit + MEMBERS_PAGE_SIZE)}
+          >
+            Ver más
+          </button>
+        ) : null}
+      </>
+    );
   };
 
   const renderReservationCards = () => {
@@ -141,16 +166,29 @@ export const AppShell = ({ session, onLogout }) => {
       new Date(a.date) - new Date(b.date) || (a.time_slot || '').localeCompare(b.time_slot || '')
     ));
 
-    return sortedReservations.map((reservation) => (
-      <ReservationCard
-        key={reservation.reservation_id}
-        reservation={reservation}
-        memberFallbackName={isMember ? dashboard.profile?.full_name : undefined}
-        onDelete={dashboard.deleteReservation}
-        canDelete={!isStandardTrainer}
-        disabled={dashboard.isSubmitting}
-      />
-    ));
+    return (
+      <>
+        {sortedReservations.slice(0, reservationLimit).map((reservation) => (
+          <ReservationCard
+            key={reservation.reservation_id}
+            reservation={reservation}
+            memberFallbackName={isMember ? dashboard.profile?.full_name : undefined}
+            onDelete={dashboard.deleteReservation}
+            canDelete={!isStandardTrainer}
+            disabled={dashboard.isSubmitting}
+          />
+        ))}
+        {sortedReservations.length > reservationLimit ? (
+          <button
+            className="button button-secondary card-grid-more"
+            type="button"
+            onClick={() => setReservationLimit((limit) => limit + RESERVATIONS_PAGE_SIZE)}
+          >
+            Ver más
+          </button>
+        ) : null}
+      </>
+    );
   };
 
   const renderMembersPanel = () => (
@@ -363,8 +401,6 @@ export const AppShell = ({ session, onLogout }) => {
           </div>
         </section>
       ) : null}
-
-      {!dashboard.isLoading ? <div ref={reservationsSectionRef}>{renderReservationsPanel()}</div> : null}
     </>
   );
 
@@ -391,7 +427,11 @@ export const AppShell = ({ session, onLogout }) => {
       return <ServicesView trainers={visibleTrainers} onSelect={handleSelectService} />;
     }
 
-    if (activeView === 'calendar') {
+    if (activeView === 'reservations') {
+      return renderReservationsPanel();
+    }
+
+    if (activeView === 'calendar' && !isMember) {
       return (
         <CalendarView
           reservations={dashboard.reservations}
@@ -412,6 +452,7 @@ export const AppShell = ({ session, onLogout }) => {
         showMembers={isAdmin}
         showTrainers={!isStandardTrainer}
         showServices={isMember}
+        showCalendar={!isMember}
         userName={dashboard.profile?.full_name || session.user.full_name}
         roleLabel={renderProfileLabel(session)}
         onLogout={onLogout}
