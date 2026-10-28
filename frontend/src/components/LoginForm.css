@@ -218,7 +218,14 @@
 .bento-services {
   grid-column: span 2;
   border-radius: var(--radius-card);
-  background: rgba(var(--rgb-cream), 0.94);
+  border: 2px solid var(--color-ink);
+  background: var(--color-primary);
+  box-shadow: 6px 6px 0 var(--color-ink);
+}
+
+.bento-services .bento-kicker,
+.bento-cities .bento-kicker {
+  font-size: 1.8rem;
 }
 
 .service-chip-grid {
@@ -255,11 +262,16 @@
   color: var(--color-on-dark);
 }
 
+.bento-services .service-chip:nth-child(even):not(:nth-child(3n)) {
+  background: var(--color-surface-strong);
+}
+
 .bento-cities {
   grid-column: span 2;
   border-radius: var(--radius-blob-c);
-  border: var(--border-dashed);
-  background: transparent;
+  border: 2px solid var(--color-ink);
+  background: var(--color-surface-strong);
+  box-shadow: 6px 6px 0 var(--color-primary-deep);
 }
 
 .bento-cities ul {
@@ -348,6 +360,50 @@
   background: rgba(var(--rgb-ink), 0.06);
 }
 
+.plan-item a {
+  display: grid;
+  gap: 0.2rem;
+  height: 100%;
+  color: inherit;
+}
+
+.plan-more {
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--color-eyebrow);
+}
+
+.plan-list .plan-item-featured {
+  position: relative;
+  background: var(--color-ink);
+  color: var(--color-on-dark);
+  border: 2px solid var(--color-primary);
+  box-shadow: 6px 6px 0 var(--color-primary-deep);
+  transform: translateY(-4px);
+}
+
+.plan-item-featured strong {
+  color: var(--color-primary);
+}
+
+.plan-item-featured .plan-more {
+  color: var(--color-primary);
+}
+
+.plan-badge {
+  justify-self: start;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-primary);
+  color: var(--color-on-primary);
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .plan-list strong {
   font-family: var(--font-heading);
   font-size: 1.5rem;
@@ -404,7 +460,6 @@
 }
 
 .login-footer {
-  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--space-lg);

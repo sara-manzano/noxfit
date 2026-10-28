@@ -1,0 +1,116 @@
+.hero-copy-dashboard .eyebrow {
+  justify-self: start;
+}
+
+.member-highlights {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--space-md);
+}
+
+@media (max-width: 900px) {
+  .member-highlights {
+    grid-template-columns: 1fr;
+  }
+}
+
+.member-highlights-group {
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(var(--rgb-cream), 0.14);
+  background: rgba(var(--rgb-cream), 0.06);
+}
+
+.member-highlights-group h3 {
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+}
+
+.member-highlights-group ul {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member-highlights-group li {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.member-highlights-group li span {
+  font-size: 0.9rem;
+  color: rgba(var(--rgb-cream), 0.76);
+}
+
+.member-highlights-promo {
+  padding: var(--space-lg);
+  border: 2px solid #ffd60a;
+  background: rgba(255, 214, 10, 0.1);
+  box-shadow: 0 0 40px rgba(255, 214, 10, 0.18);
+}
+
+.member-highlights-promo h3 {
+  font-size: 2rem;
+  color: #ffd60a;
+}
+
+.member-highlights-promo li strong {
+  font-size: 1.15rem;
+  color: #ffd60a;
+}
+
+.member-highlights-promo li span {
+  font-size: 1rem;
+  color: var(--color-on-dark);
+}
+
+.member-highlights-wrap,
+.member-highlights-editor {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.member-highlights-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.member-highlights-edit-item {
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid rgba(var(--rgb-cream), 0.14);
+}
+
+.member-highlights-edit-item input,
+.member-highlights-edit-item textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(var(--rgb-cream), 0.24);
+  border-radius: var(--radius-sm);
+  background: rgba(var(--rgb-ink), 0.4);
+  color: var(--color-on-dark);
+  font: inherit;
+  resize: vertical;
+}
+
+.member-highlights-link {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.member-highlights-cancel {
+  background: var(--color-danger);
+  color: #fff;
+}

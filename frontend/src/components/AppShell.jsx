@@ -17,6 +17,7 @@ import { ServicesView } from './ServicesView.jsx';
 import { CalendarView } from './CalendarView.jsx';
 import { gyms } from './MadridMap.jsx';
 import { TopNav } from './TopNav.jsx';
+import { MemberHighlights } from './MemberHighlights.jsx';
 import './AppShell.css';
 
 const buildFilterOptions = (items, accessor, knownOptions = []) => {
@@ -42,6 +43,22 @@ const buildFilterOptions = (items, accessor, knownOptions = []) => {
   }));
 };
 
+const getReservationDateTerms = (value) => {
+  const date = value ? new Date(value) : null;
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const format = (options) => new Intl.DateTimeFormat('es-ES', options).format(date);
+
+  return [
+    date.toISOString().slice(0, 10),
+    format({ day: '2-digit', month: '2-digit', year: 'numeric' }),
+    format({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+  ].join(' ');
+};
+
 const renderProfileLabel = (session) => {
   if (session.role === 'trainer' && session.user.is_admin) {
     return 'Entrenador admin';
@@ -56,6 +73,7 @@ export const AppShell = ({ session, onLogout }) => {
   const [activityFilter, setActivityFilter] = useState('');
   const [avatarError, setAvatarError] = useState('');
   const avatarInputRef = useRef(null);
+  const reservationsSectionRef = useRef(null);
   const dashboard = useDashboardData(session, onLogout);
   const isAdmin = session.role === 'trainer' && session.user.is_admin;
   const isMember = session.role === 'member';
@@ -84,16 +102,20 @@ export const AppShell = ({ session, onLogout }) => {
 
   const reservationsFilters = useCollectionFilters(dashboard.reservations, {
     searchGetters: [
-      (item) => item.activity_type,
-      (item) => item.status,
       (item) => item.member?.full_name,
-      (item) => item.trainer?.full_name,
+      (item) => getReservationDateTerms(item.date),
     ],
     filterAccessor: (item) => item.status,
   });
 
   const upcomingReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Confirmada').length;
   const completedReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Completada').length;
+
+  const showReservationsByStatus = (status) => {
+    reservationsFilters.setQuery('');
+    reservationsFilters.setSelectedFilter(status.toLowerCase());
+    reservationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const renderMemberCards = () => {
     if (!membersFilters.visibleItems.length) {
@@ -157,9 +179,10 @@ export const AppShell = ({ session, onLogout }) => {
 
   const renderReservationsPanel = () => (
     <CollectionPanel
-      title={isMember ? 'Mis reservas' : 'Reservations'}
+      title={isMember ? 'Mis reservas' : 'Reservas'}
       query={reservationsFilters.query}
       onQueryChange={reservationsFilters.setQuery}
+      searchPlaceholder="Filtra por socio o día (ej. 15/03, lunes)"
       selectedFilter={reservationsFilters.selectedFilter}
       onFilterChange={reservationsFilters.setSelectedFilter}
       filterLabel="Estado"
@@ -209,6 +232,12 @@ export const AppShell = ({ session, onLogout }) => {
 
         <div className="hero-copy hero-copy-dashboard">
           <div className="eyebrow eyebrow-accent">NOXFIT</div>
+          <MemberHighlights
+            highlights={dashboard.highlights}
+            canEdit={session.role === 'trainer'}
+            onSave={dashboard.updateHighlights}
+            disabled={dashboard.isSubmitting}
+          />
         </div>
 
         <div className="dashboard-side-stack">
@@ -296,34 +325,46 @@ export const AppShell = ({ session, onLogout }) => {
           <img src={gymImage} alt="Gimnasio Noxfit" />
         </div>
         <div className="stat-stack">
-          <StatCard label="Reservas activas" value={upcomingReservations} description="Confirmadas en agenda" />
-          <StatCard label="Completadas" value={completedReservations} description="Histórico operativo" />
+          <StatCard
+            label="Reservas activas"
+            value={upcomingReservations}
+            description="Confirmadas en agenda"
+            onClick={() => showReservationsByStatus('Confirmada')}
+          />
+          <StatCard
+            label="Completadas"
+            value={completedReservations}
+            description="Histórico operativo"
+            onClick={() => showReservationsByStatus('Completada')}
+          />
         </div>
       </section>
 
-      <section className="dashboard-overview">
-        <div className="footprint-grid">
-          {gyms.map((gym) => {
-            const isSelected = selectedCenter === gym.name;
+      {isMember ? (
+        <section className="dashboard-overview">
+          <div className="footprint-grid">
+            {gyms.map((gym) => {
+              const isSelected = selectedCenter === gym.name;
 
-            return (
-              <button
-                key={gym.name}
-                type="button"
-                className={isSelected ? 'footprint-card footprint-card-selected' : 'footprint-card'}
-                aria-pressed={isSelected}
-                onClick={() => setSelectedCenter(isSelected ? '' : gym.name)}
-              >
-                <span className="eyebrow">{isSelected ? 'Centro elegido' : 'Centro de entrenamiento'}</span>
-                <h3>{gym.name}</h3>
-                <p>{gym.address}</p>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+              return (
+                <button
+                  key={gym.name}
+                  type="button"
+                  className={isSelected ? 'footprint-card footprint-card-selected' : 'footprint-card'}
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedCenter(isSelected ? '' : gym.name)}
+                >
+                  <span className="eyebrow">{isSelected ? 'Centro elegido' : 'Centro de entrenamiento'}</span>
+                  <h3>{gym.name}</h3>
+                  <p>{gym.address}</p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
-      {!dashboard.isLoading ? renderReservationsPanel() : null}
+      {!dashboard.isLoading ? <div ref={reservationsSectionRef}>{renderReservationsPanel()}</div> : null}
     </>
   );
 
@@ -380,6 +421,11 @@ export const AppShell = ({ session, onLogout }) => {
         {dashboard.error ? <div className="banner banner-error">{dashboard.error}</div> : null}
         {dashboard.notice ? <div className="banner banner-success">{dashboard.notice}</div> : null}
         {dashboard.isLoading ? <div className="loading-card">Cargando datos...</div> : renderView()}
+        <footer className="app-legal-footer">
+          <a href="#privacidad">Política de privacidad</a>
+          <a href="#terminos">Términos y condiciones</a>
+          <a href="#cookies">Política de cookies</a>
+        </footer>
       </main>
     </>
   );

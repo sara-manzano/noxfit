@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
-import { accountsApi, reservationsApi } from '../api/client.js';
+import { accountsApi, highlightsApi, reservationsApi } from '../api/client.js';
 import { useDismissibleMessage } from './useDismissibleMessage.js';
 
 const emptyWorkspace = {
@@ -9,6 +9,7 @@ const emptyWorkspace = {
   reservations: [],
   memberDirectory: [],
   trainerDirectory: [],
+  highlights: null,
 };
 
 const reducer = (state, action) => {
@@ -66,11 +67,12 @@ export const useDashboardData = (session, onSessionExpired) => {
 
     try {
       if (session.role === 'trainer' && session.user.is_admin) {
-        const [profile, members, trainers, reservations] = await Promise.all([
+        const [profile, members, trainers, reservations, highlights] = await Promise.all([
           accountsApi.getProfile(session),
           accountsApi.listMembers(session),
           accountsApi.listTrainers(session),
           reservationsApi.list(session),
+          highlightsApi.get(session).catch(() => null),
         ]);
 
         dispatch({
@@ -78,6 +80,7 @@ export const useDashboardData = (session, onSessionExpired) => {
           workspace: {
             ...emptyWorkspace,
             profile,
+            highlights,
             members: members.items,
             trainers: trainers.items,
             reservations: reservations.items,
@@ -92,10 +95,11 @@ export const useDashboardData = (session, onSessionExpired) => {
         ? accountsApi.listMemberDirectory(session)
         : accountsApi.listTrainerDirectory(session)
       ).catch(() => ({ items: [] }));
-      const [profile, reservations, directory] = await Promise.all([
+      const [profile, reservations, directory, highlights] = await Promise.all([
         accountsApi.getProfile(session),
         reservationsApi.list(session),
         directoryRequest,
+        highlightsApi.get(session).catch(() => null),
       ]);
 
       dispatch({
@@ -103,6 +107,7 @@ export const useDashboardData = (session, onSessionExpired) => {
         workspace: {
           ...emptyWorkspace,
           profile,
+          highlights,
           reservations: reservations.items,
           memberDirectory: session.role === 'trainer' ? directory.items : [],
           trainerDirectory: session.role === 'member' ? directory.items : [],
@@ -129,8 +134,10 @@ export const useDashboardData = (session, onSessionExpired) => {
       if (successMessage) {
         dispatch({ type: 'notice', message: successMessage });
       }
+      return true;
     } catch (requestError) {
       handleRequestError(requestError);
+      return false;
     } finally {
       dispatch({ type: 'mutation/end' });
     }
@@ -157,6 +164,10 @@ export const useDashboardData = (session, onSessionExpired) => {
     deleteReservation: (reservationId) => runMutation(
       () => reservationsApi.delete(session, reservationId),
       'Reserva eliminada correctamente'
+    ),
+    updateHighlights: (payload) => runMutation(
+      () => highlightsApi.update(session, payload),
+      'Contenido actualizado correctamente'
     ),
     moveReservation: (reservationId, payload) => runMutation(
       () => reservationsApi.update(session, reservationId, payload),

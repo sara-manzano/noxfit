@@ -1,0 +1,58 @@
+export const plans = [
+  {
+    slug: 'plan-basica',
+    tone: 'basica',
+    level: 1,
+    badge: 'Para empezar',
+    name: 'Básica',
+    price: '9,90',
+    priceLabel: '9,90 €/mes',
+    summary: 'Acceso al centro y reservas de sesiones.',
+    tagline: 'Lo esencial para entrenar con libertad.',
+    idealFor: 'Socios autónomos que ya saben cómo entrenar y solo necesitan el espacio y la agenda.',
+    features: [
+      'Acceso a los centros Noxfit en horario completo, todos los días de 7:00 a 20:00.',
+      'Reserva de sesiones y clases desde la plataforma.',
+      'Calendario con tus reservas y cancelación online.',
+      'Atención del equipo de entrenadores durante tu visita.',
+    ],
+  },
+  {
+    slug: 'plan-premium',
+    tone: 'premium',
+    level: 2,
+    badge: 'El favorito',
+    name: 'Premium',
+    price: '19,90',
+    priceLabel: '19,90 €/mes',
+    summary: 'Incluye seguimiento y plan personalizado.',
+    tagline: 'El plan más completo para avanzar con rumbo.',
+    idealFor: 'Socios que quieren objetivos claros, resultados medibles y un entrenador que ajuste su progreso.',
+    featured: true,
+    features: [
+      'Todo lo incluido en el plan Básica.',
+      'Plan de entrenamiento personalizado según tus objetivos.',
+      'Seguimiento cercano de tu evolución por parte de tu entrenador.',
+      'Medición de resultados para ver tu progreso y ajustar metas.',
+    ],
+  },
+  {
+    slug: 'plan-vip',
+    tone: 'vip',
+    level: 3,
+    badge: 'Experiencia total',
+    name: 'VIP',
+    price: '29,90',
+    priceLabel: '29,90 €/mes',
+    summary: 'Atención prioritaria y nutrición deportiva.',
+    tagline: 'Atención prioritaria y acompañamiento integral.',
+    idealFor: 'Socios que buscan la experiencia completa, incluida la alimentación, con el máximo nivel de atención.',
+    features: [
+      'Todo lo incluido en el plan Premium.',
+      'Atención prioritaria del equipo.',
+      'Nutrición deportiva integrada con tu plan de entrenamiento.',
+    ],
+  },
+];
+
+export const planRoutes = plans.map((plan) => plan.slug);

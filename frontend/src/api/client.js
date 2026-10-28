@@ -94,4 +94,13 @@ export const reservationsApi = {
   },
 };
 
+export const highlightsApi = {
+  get(session) {
+    return request('/highlights', { token: session.token });
+  },
+  update(session, payload) {
+    return request('/highlights', { method: 'PATCH', token: session.token, body: payload });
+  },
+};
+
 export { ApiError, DEFAULT_API_BASE_URL };

@@ -3,6 +3,7 @@ import gymImage from '../assets/Gym.png';
 import { MadridMap, gyms } from './MadridMap.jsx';
 import { RegisterForm } from './RegisterForm.jsx';
 import { PasswordResetForm } from './PasswordResetForm.jsx';
+import { plans } from '../lib/plans.js';
 import './AuthCard.css';
 import './LoginForm.css';
 
@@ -36,12 +37,6 @@ const services = [
 ];
 
 const cityHighlights = ['Madrid'];
-
-const plans = [
-  { name: 'Básica · 9,90 €/mes', description: 'Acceso al centro y reservas de sesiones.' },
-  { name: 'Premium · 19,90 €/mes', description: 'Incluye seguimiento y plan personalizado.' },
-  { name: 'VIP · 29,90 €/mes', description: 'Atención prioritaria y nutrición deportiva.' },
-];
 
 const contact = {
   phone: '+34 910 000 000',
@@ -179,9 +174,13 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
             <span className="bento-kicker">Planes</span>
             <ul className="plan-list">
               {plans.map((plan) => (
-                <li key={plan.name}>
-                  <strong>{plan.name}</strong>
-                  <span>{plan.description}</span>
+                <li key={plan.slug} className={plan.featured ? 'plan-item plan-item-featured' : 'plan-item'}>
+                  <a href={`#${plan.slug}`}>
+                    {plan.featured ? <em className="plan-badge">Recomendado</em> : null}
+                    <strong>{plan.name} · {plan.priceLabel}</strong>
+                    <span>{plan.summary}</span>
+                    <span className="plan-more">Qué incluye →</span>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -190,6 +189,28 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
             </button>
           </article>
         </div>
+
+        <footer className="login-footer">
+          <div>
+            <h3>Contacto</h3>
+            <a href={`tel:${contact.phone.replace(/\s/g, '')}`}>{contact.phone}</a>
+            <a href={`mailto:${contact.email}`}>{contact.email}</a>
+            <a href={contact.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
+          </div>
+          <div>
+            <h3>Centros</h3>
+            {gyms.map((gym) => (
+              <span key={gym.name}>{gym.address}</span>
+            ))}
+          </div>
+          <div>
+            <h3>Legal</h3>
+            <a href="#privacidad">Política de privacidad</a>
+            <a href="#terminos">Términos y condiciones</a>
+            <a href="#cookies">Política de cookies</a>
+          </div>
+          <p className="login-footer-copy">© {new Date().getFullYear()} Noxfit. Todos los derechos reservados.</p>
+        </footer>
       </div>
 
       {isMapOpen ? (
@@ -304,28 +325,6 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
         </div>
       </section>
       )}
-
-      <footer className="login-footer">
-        <div>
-          <h3>Contacto</h3>
-          <a href={`tel:${contact.phone.replace(/\s/g, '')}`}>{contact.phone}</a>
-          <a href={`mailto:${contact.email}`}>{contact.email}</a>
-          <a href={contact.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
-        </div>
-        <div>
-          <h3>Centros</h3>
-          {gyms.map((gym) => (
-            <span key={gym.name}>{gym.address}</span>
-          ))}
-        </div>
-        <div>
-          <h3>Legal</h3>
-          <a href="#privacidad">Política de privacidad</a>
-          <a href="#terminos">Términos y condiciones</a>
-          <a href="#cookies">Política de cookies</a>
-        </div>
-        <p className="login-footer-copy">© {new Date().getFullYear()} Noxfit. Todos los derechos reservados.</p>
-      </footer>
     </main>
   );
 };

@@ -9,6 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const membersRoutes = require('./routes/membersRoutes');
 const trainersRoutes = require('./routes/trainersRoutes');
 const reservationsRoutes = require('./routes/reservationsRoutes');
+const highlightsRoutes = require('./routes/highlightsRoutes');
 
 const app = express();
 
@@ -68,6 +69,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/members', membersRoutes);
 app.use('/api/trainers', trainersRoutes);
 app.use('/api/reservations', reservationsRoutes);
+app.use('/api/highlights', highlightsRoutes);
 
 app.use('/api', (_req, res) => sendError(res, 404, 'Resource was not found'));
 

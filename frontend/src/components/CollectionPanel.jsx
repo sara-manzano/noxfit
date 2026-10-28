@@ -5,6 +5,7 @@ export const CollectionPanel = ({
   description,
   query,
   onQueryChange,
+  searchPlaceholder = 'Filtra por nombre o email',
   selectedFilter,
   onFilterChange,
   filterLabel,
@@ -31,7 +32,7 @@ export const CollectionPanel = ({
           <input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Filtra por nombre o email"
+            placeholder={searchPlaceholder}
           />
         </label>
 

@@ -23,6 +23,9 @@
     },
     {
       "name": "Reservations"
+    },
+    {
+      "name": "Highlights"
     }
   ],
   "paths": {
@@ -1364,6 +1367,78 @@
           }
         }
       }
+    },
+    "/highlights": {
+      "get": {
+        "tags": [
+          "Highlights"
+        ],
+        "summary": "Get news, extra activities and promotions",
+        "operationId": "getHighlights",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current highlights",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Highlights"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Highlights"
+        ],
+        "summary": "Replace one or more highlight sections (trainers only)",
+        "operationId": "updateHighlights",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HighlightsUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Highlights updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Highlights"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1485,6 +1560,81 @@
       }
     },
     "schemas": {
+      "HighlightEntry": {
+        "type": "object",
+        "required": [
+          "title",
+          "text"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "Highlights": {
+        "type": "object",
+        "required": [
+          "news",
+          "activities",
+          "promotions"
+        ],
+        "properties": {
+          "news": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "$ref": "#/components/schemas/HighlightEntry"
+            }
+          },
+          "activities": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "$ref": "#/components/schemas/HighlightEntry"
+            }
+          },
+          "promotions": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "$ref": "#/components/schemas/HighlightEntry"
+            }
+          }
+        }
+      },
+      "HighlightsUpdateRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "properties": {
+          "news": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "$ref": "#/components/schemas/HighlightEntry"
+            }
+          },
+          "activities": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "$ref": "#/components/schemas/HighlightEntry"
+            }
+          },
+          "promotions": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "$ref": "#/components/schemas/HighlightEntry"
+            }
+          }
+        }
+      },
       "MembershipType": {
         "type": "string",
         "enum": [

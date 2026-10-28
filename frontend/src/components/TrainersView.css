@@ -94,6 +94,12 @@
   box-shadow: none;
 }
 
+.trainer-center {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: inherit;
+}
+
 .trainer-bio {
   margin: 0;
   font-size: 0.92rem;
