@@ -25,7 +25,6 @@ const entrySchema = new mongoose.Schema({
   text: { type: String, required: true, trim: true, maxlength: HIGHLIGHT_TEXT_MAX },
 }, { _id: false });
 
-// Singleton document: there is a single set of highlights shared by every member.
 const highlightsSchema = new mongoose.Schema({
   key: { type: String, default: 'main', unique: true },
   news: { type: [entrySchema], default: undefined },

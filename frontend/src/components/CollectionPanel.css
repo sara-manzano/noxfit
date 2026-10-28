@@ -66,7 +66,6 @@
   justify-self: center;
 }
 
-/* El formulario fija la altura de la fila; la lista se adapta y hace scroll. */
 @media (min-width: 1081px) {
   .panel-list {
     display: flex;

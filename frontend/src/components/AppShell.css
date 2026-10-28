@@ -659,7 +659,6 @@
   }
 }
 
-/* Perfil: composición asimétrica y con movimiento */
 @keyframes float-soft {
   0%, 100% { translate: 0 0; }
   50% { translate: 0 -8px; }
@@ -771,7 +770,6 @@
   transform: rotate(0deg) translateY(-2px);
 }
 
-/* Estadísticas escalonadas */
 .stats-grid-jg {
   grid-template-columns: 1.15fr 0.85fr 1.25fr 0.9fr;
   gap: var(--space-lg) var(--space-md);
@@ -804,7 +802,6 @@
   transform: translateY(calc(var(--dy) - 8px)) rotate(0deg);
 }
 
-/* Centros desalineados */
 .footprint-grid {
   grid-template-columns: 1.3fr 0.9fr;
   align-items: start;
