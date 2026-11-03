@@ -73,6 +73,29 @@ export const accountsApi = {
   deleteMember(session, memberId) {
     return request(`/members/${memberId}`, { method: 'DELETE', token: session.token });
   },
+  memberInvoice(session, memberId, month) {
+    return request(`/members/${memberId}/invoice?month=${encodeURIComponent(month)}`, { token: session.token });
+  },
+  async downloadInvoicePdf(session, month, memberId) {
+    const path = memberId ? `/members/${memberId}/invoice` : '/members/me/invoice';
+    const query = new URLSearchParams({ month, format: 'pdf' });
+    const response = await fetch(`${DEFAULT_API_BASE_URL}${path}?${query}`, {
+      headers: buildHeaders({ token: session.token }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new ApiError(payload?.error || 'No se pudo descargar la factura', response.status, payload);
+    }
+
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `factura-${month}.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const reservationsApi = {
@@ -91,6 +114,51 @@ export const reservationsApi = {
   },
   update(session, reservationId, payload) {
     return request(`/reservations/${reservationId}`, { method: 'PATCH', token: session.token, body: payload });
+  },
+  cancel(session, reservationId) {
+    return request(`/reservations/${reservationId}/cancel`, { method: 'POST', token: session.token });
+  },
+  reschedule(session, reservationId, payload) {
+    return request(`/reservations/${reservationId}/reschedule`, { method: 'POST', token: session.token, body: payload });
+  },
+  checkinCode(session, reservationId) {
+    return request(`/reservations/${reservationId}/checkin-code`, { token: session.token });
+  },
+  checkin(session, code) {
+    return request('/reservations/checkin', { method: 'POST', token: session.token, body: { code } });
+  },
+};
+
+export const waitlistApi = {
+  list(session) {
+    return request('/waitlist', { token: session.token });
+  },
+  join(session, payload) {
+    return request('/waitlist', { method: 'POST', token: session.token, body: payload });
+  },
+  leave(session, waitlistId) {
+    return request(`/waitlist/${waitlistId}`, { method: 'DELETE', token: session.token });
+  },
+};
+
+export const billingApi = {
+  subscription(session) {
+    return request('/billing/subscription', { token: session.token });
+  },
+  invoices(session) {
+    return request('/billing/invoices', { token: session.token });
+  },
+  checkout(session, plan) {
+    return request('/billing/checkout', { method: 'POST', token: session.token, body: { plan } });
+  },
+  portal(session) {
+    return request('/billing/portal', { method: 'POST', token: session.token });
+  },
+  packs(session) {
+    return request('/billing/packs', { token: session.token });
+  },
+  packCheckout(session, pack) {
+    return request('/billing/packs/checkout', { method: 'POST', token: session.token, body: { pack } });
   },
 };
 

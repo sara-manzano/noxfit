@@ -1,0 +1,38 @@
+.checkin-panel {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 36rem;
+  margin-inline: auto;
+  padding-top: calc(var(--space-lg) + 0.7rem);
+  border-radius: var(--radius-blob-b);
+  background: rgba(var(--rgb-cream), 0.94);
+}
+
+.checkin-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 0.7rem;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-deep) 55%, var(--color-ink) 55%);
+}
+
+.checkin-panel:hover {
+  transform: none;
+}
+
+.checkin-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkin-label-icon {
+  flex-shrink: 0;
+}
+
+.checkin-qr-image {
+  display: block;
+  width: min(100%, 14rem);
+  margin-inline: auto;
+}

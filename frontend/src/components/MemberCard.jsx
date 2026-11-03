@@ -1,7 +1,7 @@
 import { formatBoolean, formatDate, formatMembershipFee } from '../lib/formatters.js';
 import { StatusPill } from './StatusPill.jsx';
 
-export const MemberCard = ({ member, onDelete, disabled }) => (
+export const MemberCard = ({ member, onDelete, onInvoice, disabled }) => (
   <article className="entity-card">
     <div className="entity-card-head">
       <div>
@@ -16,6 +16,9 @@ export const MemberCard = ({ member, onDelete, disabled }) => (
       <span>{formatDate(member.join_date)}</span>
     </div>
     <div className="entity-actions">
+      <button className="button button-primary" type="button" onClick={() => onInvoice(member)} disabled={disabled}>
+        Factura
+      </button>
       <button className="button button-secondary" type="button" onClick={() => onDelete(member.member_id)} disabled={disabled}>
         Eliminar
       </button>

@@ -1,0 +1,58 @@
+.waitlist-panel {
+  margin-top: var(--space-lg);
+  border-radius: var(--radius-blob-a);
+}
+
+.waitlist-panel:hover {
+  transform: none;
+}
+
+.waitlist-panel .section-heading h3 {
+  font-size: clamp(2rem, 3vw, 2.6rem);
+  letter-spacing: 0.03em;
+}
+
+.waitlist-list {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.waitlist-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-left: 6px solid var(--color-pink);
+  border-radius: 8px 24px 8px 24px;
+  background: var(--color-surface-strong);
+}
+
+.waitlist-item strong {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.waitlist-item .metric-pill {
+  background: var(--color-ink);
+  color: var(--color-primary);
+}
+
+.waitlist-item > div {
+  display: grid;
+  gap: 0.15rem;
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.waitlist-item span:not(.metric-pill) {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}

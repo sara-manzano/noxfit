@@ -1,0 +1,38 @@
+.invoices-panel {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.invoices-member {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.invoices-panel .invoices-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.invoices-grid .empty-card {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1080px) {
+  .invoices-panel .invoices-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .invoices-panel .invoices-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.invoices-member .entity-actions {
+  margin-top: 0;
+}
+
+.invoices-member .button-small {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}

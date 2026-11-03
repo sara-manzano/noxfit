@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { memberFields, membershipOptions } from '../lib/forms.js';
-import { formatBoolean, formatMembershipFee } from '../lib/formatters.js';
+import { formatMembershipFee } from '../lib/formatters.js';
 import { imageFileToAvatar } from '../lib/avatar.js';
 import defaultAvatar from '../assets/default-avatar.svg';
 import gymImage from '../assets/fucional.png';
@@ -18,10 +18,42 @@ import { CalendarView } from './CalendarView.jsx';
 import { gyms } from './MadridMap.jsx';
 import { TopNav } from './TopNav.jsx';
 import { MemberHighlights } from './MemberHighlights.jsx';
+import { WaitlistPanel } from './WaitlistPanel.jsx';
+import { CheckinPanel } from './CheckinPanel.jsx';
+import { BillingView } from './BillingView.jsx';
+import { MemberInvoiceDialog } from './MemberInvoiceDialog.jsx';
+import { InvoicesView } from './InvoicesView.jsx';
 import './AppShell.css';
 
 const MEMBERS_PAGE_SIZE = 4;
 const RESERVATIONS_PAGE_SIZE = 4;
+const LAUNCH_PARAMS = ['checkin', 'billing'];
+
+const readLaunchParams = () => {
+  const params = new URLSearchParams(window.location.search);
+
+  return { checkin: params.get('checkin') || '', billing: params.get('billing') || '' };
+};
+
+const clearLaunchParams = () => {
+  const params = new URLSearchParams(window.location.search);
+
+  if (!LAUNCH_PARAMS.some((name) => params.has(name))) {
+    return;
+  }
+
+  LAUNCH_PARAMS.forEach((name) => params.delete(name));
+  const search = params.toString();
+  window.history.replaceState(null, '', `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`);
+};
+
+const getInitialView = (session, launch) => {
+  if (session.role === 'trainer' && launch.checkin) {
+    return 'checkin';
+  }
+
+  return session.role === 'member' && launch.billing ? 'billing' : 'panel';
+};
 
 const buildFilterOptions = (items, accessor, knownOptions = []) => {
   const optionValues = [];
@@ -72,9 +104,11 @@ const renderProfileLabel = (session) => {
 
 export const AppShell = ({ session, onLogout }) => {
   const [selectedCenter, setSelectedCenter] = useState('');
-  const [activeView, setActiveView] = useState('panel');
+  const [launch] = useState(readLaunchParams);
+  const [activeView, setActiveView] = useState(() => getInitialView(session, launch));
   const [activityFilter, setActivityFilter] = useState('');
   const [avatarError, setAvatarError] = useState('');
+  const [invoiceMember, setInvoiceMember] = useState(null);
   const [memberLimit, setMemberLimit] = useState(MEMBERS_PAGE_SIZE);
   const [reservationLimit, setReservationLimit] = useState(RESERVATIONS_PAGE_SIZE);
   const avatarInputRef = useRef(null);
@@ -83,6 +117,9 @@ export const AppShell = ({ session, onLogout }) => {
   const isMember = session.role === 'member';
   const isStandardTrainer = session.role === 'trainer' && !session.user.is_admin;
 
+  useEffect(() => {
+    clearLaunchParams();
+  }, []);
   const visibleTrainers = dashboard.trainers.length
     ? dashboard.trainers
     : dashboard.trainerDirectory.length
@@ -141,6 +178,7 @@ export const AppShell = ({ session, onLogout }) => {
             key={member.member_id}
             member={member}
             onDelete={dashboard.deleteMember}
+            onInvoice={setInvoiceMember}
             disabled={dashboard.isSubmitting}
           />
         ))}
@@ -176,6 +214,12 @@ export const AppShell = ({ session, onLogout }) => {
             onDelete={dashboard.deleteReservation}
             canDelete={!isStandardTrainer}
             disabled={dashboard.isSubmitting}
+            canCancel
+            canReschedule
+            showQr={isMember}
+            onCancel={dashboard.cancelReservation}
+            onReschedule={dashboard.rescheduleReservation}
+            loadCheckinCode={dashboard.getCheckinCode}
           />
         ))}
         {sortedReservations.length > reservationLimit ? (
@@ -216,34 +260,43 @@ export const AppShell = ({ session, onLogout }) => {
   );
 
   const renderReservationsPanel = () => (
-    <CollectionPanel
-      title={isMember ? 'Mis reservas' : 'Reservas'}
-      query={reservationsFilters.query}
-      onQueryChange={reservationsFilters.setQuery}
-      searchPlaceholder="Filtra por socio o día (ej. 15/03, lunes)"
-      selectedFilter={reservationsFilters.selectedFilter}
-      onFilterChange={reservationsFilters.setSelectedFilter}
-      filterLabel="Estado"
-      filterOptions={buildFilterOptions(dashboard.reservations, (item) => item.status, ['Confirmada', 'Completada', 'Cancelada'])}
-      countLabel={`${reservationsFilters.visibleCount} de ${reservationsFilters.totalCount}`}
-      form={
-        <ReservationForm
-          onSubmit={dashboard.createReservation}
-          loadAvailability={dashboard.getTrainerAvailability}
-          reservationsVersion={dashboard.reservations}
-          isSubmitting={dashboard.isSubmitting}
-          trainers={dashboard.trainerDirectory}
-          members={dashboard.memberDirectory}
-          isAdmin={isAdmin}
-          isStandardTrainer={isStandardTrainer}
-          currentTrainer={dashboard.profile}
-          center={selectedCenter}
-          onCenterChange={setSelectedCenter}
-        />
-      }
-    >
-      {renderReservationCards()}
-    </CollectionPanel>
+    <>
+      <CollectionPanel
+        title={isMember ? 'Mis reservas' : 'Reservas'}
+        query={reservationsFilters.query}
+        onQueryChange={reservationsFilters.setQuery}
+        searchPlaceholder="Filtra por socio o día (ej. 15/03, lunes)"
+        selectedFilter={reservationsFilters.selectedFilter}
+        onFilterChange={reservationsFilters.setSelectedFilter}
+        filterLabel="Estado"
+        filterOptions={buildFilterOptions(dashboard.reservations, (item) => item.status, ['Confirmada', 'Completada', 'Cancelada'])}
+        countLabel={`${reservationsFilters.visibleCount} de ${reservationsFilters.totalCount}`}
+        form={
+          <ReservationForm
+            onSubmit={dashboard.createReservation}
+            loadAvailability={dashboard.getTrainerAvailability}
+            reservationsVersion={dashboard.reservations}
+            isSubmitting={dashboard.isSubmitting}
+            trainers={dashboard.trainerDirectory}
+            members={dashboard.memberDirectory}
+            isAdmin={isAdmin}
+            isStandardTrainer={isStandardTrainer}
+            currentTrainer={dashboard.profile}
+            center={selectedCenter}
+            onCenterChange={setSelectedCenter}
+            onJoinWaitlist={isMember ? dashboard.joinWaitlist : undefined}
+          />
+        }
+      >
+        {renderReservationCards()}
+      </CollectionPanel>
+      <WaitlistPanel
+        entries={dashboard.waitlist}
+        canLeave={!isStandardTrainer}
+        onLeave={dashboard.leaveWaitlist}
+        disabled={dashboard.isSubmitting}
+      />
+    </>
   );
 
   const handleAvatarSelected = async (event) => {
@@ -288,7 +341,9 @@ export const AppShell = ({ session, onLogout }) => {
               />
               <div className="profile-card-identity">
                 <h2>{dashboard.profile?.full_name || session.user.full_name}</h2>
-                <p>{dashboard.profile?.email || session.user.email}</p>
+                <p title={dashboard.profile?.email || session.user.email}>
+                  {dashboard.profile?.email || session.user.email}
+                </p>
               </div>
             </div>
             {session.role === 'member' && dashboard.profile ? (
@@ -301,10 +356,6 @@ export const AppShell = ({ session, onLogout }) => {
                   <dt>Cuota</dt>
                   <dd>{formatMembershipFee(dashboard.profile.membership_type)}</dd>
                 </div>
-                <div>
-                  <dt>Estado</dt>
-                  <dd>{formatBoolean(dashboard.profile.active)}</dd>
-                </div>
               </dl>
             ) : null}
             {session.role === 'trainer' && dashboard.profile ? (
@@ -316,10 +367,6 @@ export const AppShell = ({ session, onLogout }) => {
                 <div>
                   <dt>Centro</dt>
                   <dd>{dashboard.profile.center || 'Sin centro'}</dd>
-                </div>
-                <div>
-                  <dt>Estado</dt>
-                  <dd>{dashboard.profile.is_admin ? 'Admin' : formatBoolean(dashboard.profile.active)}</dd>
                 </div>
               </dl>
             ) : null}
@@ -431,6 +478,18 @@ export const AppShell = ({ session, onLogout }) => {
       return renderReservationsPanel();
     }
 
+    if (activeView === 'billing' && isMember) {
+      return <BillingView session={session} onSessionExpired={onLogout} returnStatus={launch.billing} />;
+    }
+
+    if (activeView === 'checkin' && !isMember) {
+      return <CheckinPanel onCheckIn={dashboard.checkIn} initialCode={launch.checkin} disabled={dashboard.isSubmitting} />;
+    }
+
+    if (activeView === 'invoices' && !isMember) {
+      return <InvoicesView members={dashboard.memberDirectory} onSelect={setInvoiceMember} />;
+    }
+
     if (activeView === 'calendar' && !isMember) {
       return (
         <CalendarView
@@ -468,6 +527,15 @@ export const AppShell = ({ session, onLogout }) => {
           <a href="#cookies">Política de cookies</a>
         </footer>
       </main>
+
+      {invoiceMember ? (
+        <MemberInvoiceDialog
+          session={session}
+          member={invoiceMember}
+          onClose={() => setInvoiceMember(null)}
+          onSessionExpired={onLogout}
+        />
+      ) : null}
     </>
   );
 };

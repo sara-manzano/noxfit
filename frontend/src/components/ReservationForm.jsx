@@ -26,6 +26,7 @@ export const ReservationForm = ({
   currentTrainer,
   center,
   onCenterChange,
+  onJoinWaitlist,
 }) => {
   const [values, setValues] = useState(initialValues);
   const [bookedBy, setBookedBy] = useState(isStandardTrainer ? 'trainer' : 'member');
@@ -79,7 +80,7 @@ export const ReservationForm = ({
     return items.length > 0 && items.every((item) => item.has_personal_training);
   };
 
-  const visibleTimeSlots = timeSlotOptions.filter((slot) => !hasPersonalTrainingAt(slot));
+  const visibleTimeSlots = onJoinWaitlist ? timeSlotOptions : timeSlotOptions.filter((slot) => !hasPersonalTrainingAt(slot));
 
   useEffect(() => {
     if (values.time_slot && !visibleTimeSlots.includes(values.time_slot)) {
@@ -96,6 +97,10 @@ export const ReservationForm = ({
 
     return isPersonalTraining(values.activity_type) ? slot.reservations_count > 0 : !slot.available;
   };
+
+  const isWaitlistFlow = Boolean(onJoinWaitlist)
+    && Boolean(values.date && values.time_slot && values.trainer_id)
+    && isTrainerUnavailable(values.trainer_id);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -124,6 +129,22 @@ export const ReservationForm = ({
 
     if (isTrainer) {
       payload.member_id = values.member_id;
+    }
+
+    if (isWaitlistFlow) {
+      const joined = await onJoinWaitlist({
+        trainer_id: payload.trainer_id,
+        activity_type: payload.activity_type,
+        center: payload.center,
+        date: payload.date,
+        time_slot: payload.time_slot,
+      });
+
+      if (joined) {
+        setValues(initialValues);
+      }
+
+      return;
     }
 
     await onSubmit(payload);
@@ -197,11 +218,11 @@ export const ReservationForm = ({
                   <option
                     key={trainer.trainer_id}
                     value={trainer.trainer_id}
-                    disabled={isTrainerUnavailable(trainer.trainer_id)}
+                    disabled={!onJoinWaitlist && isTrainerUnavailable(trainer.trainer_id)}
                   >
                     {trainer.full_name} · {trainer.activity_type || 'Sin especialidad'}
                     {trainer.center ? ` · ${trainer.center}` : ''}
-                    {isTrainerUnavailable(trainer.trainer_id) ? ' · No disponible' : ''}
+                    {isTrainerUnavailable(trainer.trainer_id) ? (onJoinWaitlist ? ' · Completo (lista de espera)' : ' · No disponible') : ''}
                   </option>
                 ))}
               </select>
@@ -247,11 +268,18 @@ export const ReservationForm = ({
           <select name="time_slot" value={values.time_slot} onChange={handleChange} required>
             <option value="">Selecciona una franja</option>
             {visibleTimeSlots.map((slot) => (
-              <option key={slot} value={slot}>{slot}</option>
+              <option key={slot} value={slot}>
+                {slot}{onJoinWaitlist && activeTrainer && hasPersonalTrainingAt(slot) ? ' · Completa' : ''}
+              </option>
             ))}
           </select>
         </label>
-        <button className="button button-primary" type="submit" disabled={isSubmitting}>Reservar</button>
+        {isWaitlistFlow ? (
+          <p className="support-copy">Esta franja está completa. Apúntate y te reservaremos la plaza si se libera.</p>
+        ) : null}
+        <button className="button button-primary" type="submit" disabled={isSubmitting}>
+          {isWaitlistFlow ? 'Apuntarme a la lista de espera' : 'Reservar'}
+        </button>
       </form>
     </section>
   );

@@ -6,7 +6,10 @@ const navItems = [
   { key: 'members', label: 'Socios', adminOnly: true },
   { key: 'trainers', label: 'Entrenadores', hideForTrainers: true },
   { key: 'services', label: 'Servicios', memberOnly: true },
+  { key: 'billing', label: 'Suscripción', memberOnly: true },
   { key: 'calendar', label: 'Calendario de reservas', trainerOnly: true },
+  { key: 'invoices', label: 'Facturas', trainerOnly: true },
+  { key: 'checkin', label: 'Check-in', trainerOnly: true },
 ];
 
 export const TopNav = ({ activeView, onChange, showMembers, showTrainers, showServices, showCalendar, userName, roleLabel, onLogout }) => (

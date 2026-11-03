@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
-import { accountsApi, highlightsApi, reservationsApi } from '../api/client.js';
+import { accountsApi, highlightsApi, reservationsApi, waitlistApi } from '../api/client.js';
 import { useDismissibleMessage } from './useDismissibleMessage.js';
 
 const emptyWorkspace = {
@@ -7,6 +7,7 @@ const emptyWorkspace = {
   members: [],
   trainers: [],
   reservations: [],
+  waitlist: [],
   memberDirectory: [],
   trainerDirectory: [],
   highlights: null,
@@ -67,12 +68,13 @@ export const useDashboardData = (session, onSessionExpired) => {
 
     try {
       if (session.role === 'trainer' && session.user.is_admin) {
-        const [profile, members, trainers, reservations, highlights] = await Promise.all([
+        const [profile, members, trainers, reservations, highlights, waitlist] = await Promise.all([
           accountsApi.getProfile(session),
           accountsApi.listMembers(session),
           accountsApi.listTrainers(session),
           reservationsApi.list(session),
           highlightsApi.get(session).catch(() => null),
+          waitlistApi.list(session).catch(() => ({ items: [] })),
         ]);
 
         dispatch({
@@ -84,6 +86,7 @@ export const useDashboardData = (session, onSessionExpired) => {
             members: members.items,
             trainers: trainers.items,
             reservations: reservations.items,
+            waitlist: waitlist.items,
             memberDirectory: members.items,
             trainerDirectory: trainers.items,
           },
@@ -95,11 +98,12 @@ export const useDashboardData = (session, onSessionExpired) => {
         ? accountsApi.listMemberDirectory(session)
         : accountsApi.listTrainerDirectory(session)
       ).catch(() => ({ items: [] }));
-      const [profile, reservations, directory, highlights] = await Promise.all([
+      const [profile, reservations, directory, highlights, waitlist] = await Promise.all([
         accountsApi.getProfile(session),
         reservationsApi.list(session),
         directoryRequest,
         highlightsApi.get(session).catch(() => null),
+        waitlistApi.list(session).catch(() => ({ items: [] })),
       ]);
 
       dispatch({
@@ -109,6 +113,7 @@ export const useDashboardData = (session, onSessionExpired) => {
           profile,
           highlights,
           reservations: reservations.items,
+          waitlist: waitlist.items,
           memberDirectory: session.role === 'trainer' ? directory.items : [],
           trainerDirectory: session.role === 'member' ? directory.items : [],
         },
@@ -174,6 +179,27 @@ export const useDashboardData = (session, onSessionExpired) => {
       '',
       { silent: true }
     ),
+    cancelReservation: (reservationId) => runMutation(
+      () => reservationsApi.cancel(session, reservationId),
+      'Reserva cancelada correctamente'
+    ),
+    rescheduleReservation: (reservationId, payload) => runMutation(
+      () => reservationsApi.reschedule(session, reservationId, payload),
+      'Reserva reprogramada correctamente'
+    ),
+    joinWaitlist: (payload) => runMutation(
+      () => waitlistApi.join(session, payload),
+      'Te has apuntado a la lista de espera. Te avisaremos por email si se libera una plaza'
+    ),
+    leaveWaitlist: (waitlistId) => runMutation(
+      () => waitlistApi.leave(session, waitlistId),
+      'Has salido de la lista de espera'
+    ),
+    checkIn: (code) => runMutation(
+      () => reservationsApi.checkin(session, code),
+      'Check-in registrado correctamente'
+    ),
+    getCheckinCode: (reservationId) => reservationsApi.checkinCode(session, reservationId),
   }), [session, runMutation]);
 
   return {

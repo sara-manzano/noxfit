@@ -1,4 +1,5 @@
 import { formatCurrency } from '../lib/formatters.js';
+import { ReservationActions } from './ReservationActions.jsx';
 import { StatusPill } from './StatusPill.jsx';
 
 const getDateParts = (value) => {
@@ -15,7 +16,19 @@ const getDateParts = (value) => {
   };
 };
 
-export const ReservationCard = ({ reservation, memberFallbackName, onDelete, canDelete, disabled }) => {
+export const ReservationCard = ({
+  reservation,
+  memberFallbackName,
+  onDelete,
+  canDelete,
+  disabled,
+  canCancel,
+  canReschedule,
+  showQr,
+  onCancel,
+  onReschedule,
+  loadCheckinCode,
+}) => {
   const { day, month, weekday } = getDateParts(reservation.date);
 
   return (
@@ -48,6 +61,16 @@ export const ReservationCard = ({ reservation, memberFallbackName, onDelete, can
             </button>
           ) : null}
         </div>
+        <ReservationActions
+          reservation={reservation}
+          canCancel={canCancel}
+          canReschedule={canReschedule}
+          showQr={showQr}
+          onCancel={onCancel}
+          onReschedule={onReschedule}
+          loadCheckinCode={loadCheckinCode}
+          disabled={disabled}
+        />
       </div>
     </article>
   );

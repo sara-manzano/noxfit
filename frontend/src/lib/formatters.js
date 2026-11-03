@@ -10,6 +10,13 @@ export const formatDate = (value) => {
   }).format(new Date(value));
 };
 
+export const formatDateTime = (value) => new Intl.DateTimeFormat('es-ES', {
+  day: '2-digit',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+}).format(new Date(value));
+
 export const formatCurrency = (value) => {
   if (value === undefined || value === null || value === '') {
     return 'Sin tarifa';
