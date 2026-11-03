@@ -1,5 +1,9 @@
 const { generateId } = require('../config/ids');
 const Member = require('../models/members');
+const Reservation = require('../models/reservations');
+const { ACTIVE_RESERVATION_STATUSES } = require('../config/validation');
+const { createStatusError } = require('../http/errors');
+const { buildMemberInvoice, parseMonth, renderInvoiceHtml, renderInvoicePdf } = require('../services/memberInvoice');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeMemberPayload } = require('../middleware/validators');
 const {
@@ -74,7 +78,48 @@ const listMemberDirectory = async (_req, res) => sendCollection(
   await listAccountDirectory(Member, 'member_id full_name')
 );
 
+const sendMemberInvoice = async (req, res, member) => {
+  const { format } = req.query;
+
+  if (format !== undefined && !['json', 'html', 'pdf'].includes(format)) {
+    throw createStatusError('format must be json, html or pdf', 400);
+  }
+
+  const period = parseMonth(req.query.month);
+  const reservations = await Reservation.find({
+    member: member._id,
+    status: { $in: ACTIVE_RESERVATION_STATUSES },
+    date: { $gte: period.start, $lt: period.end },
+  }).sort({ date: 1, time_slot: 1 }).lean();
+  const invoice = buildMemberInvoice(member, reservations, period);
+
+  if (format === 'html') {
+    return res.type('html').send(renderInvoiceHtml(invoice));
+  }
+
+  if (format === 'pdf') {
+    res.set('Content-Disposition', `attachment; filename="${invoice.invoice_number}.pdf"`);
+    return res.type('pdf').send(await renderInvoicePdf(invoice));
+  }
+
+  return sendItem(res, invoice);
+};
+
+const getMemberInvoice = async (req, res) => sendMemberInvoice(
+  req,
+  res,
+  ensureFound(await Member.findOne({ member_id: req.params.member_id }).lean(), 'Member')
+);
+
+const getCurrentMemberInvoice = async (req, res) => sendMemberInvoice(
+  req,
+  res,
+  ensureFound(await Member.findOne({ member_id: req.auth.identifier }).lean(), 'Member')
+);
+
 module.exports = {
+  getCurrentMemberInvoice,
+  getMemberInvoice,
   listMemberDirectory,
   listMembers,
   getMemberById,

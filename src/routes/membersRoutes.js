@@ -3,6 +3,8 @@ const { rejectPut } = require('../middleware/methodNotAllowed');
 const { requireMemberAuth, requireTrainerAdmin, requireTrainerAuth } = require('../middleware/auth');
 
 const {
+  getCurrentMemberInvoice,
+  getMemberInvoice,
   listMemberDirectory,
   listMembers,
   getMemberById,
@@ -20,11 +22,15 @@ router.route('/me')
   .patch(requireMemberAuth, updateCurrentMember)
   .put(requireMemberAuth, rejectMemberPut);
 
+router.get('/me/invoice', requireMemberAuth, getCurrentMemberInvoice);
+
 router.get('/directory', requireTrainerAuth, listMemberDirectory);
 
 router.route('/')
   .get(requireTrainerAdmin, listMembers)
   .post(requireTrainerAdmin, createMember);
+
+router.get('/:member_id/invoice', requireTrainerAuth, getMemberInvoice);
 
 router.route('/:member_id')
   .get(requireTrainerAdmin, getMemberById)
