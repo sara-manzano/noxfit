@@ -63,7 +63,7 @@
 }
 
 .trainer-card:hover {
-  transform: translateY(-3px) rotate(-0.4deg);
+  transform: translateY(-3px);
 }
 
 .trainer-card:nth-child(3n + 1) {
@@ -95,6 +95,9 @@
 }
 
 .trainer-center {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.88rem;
   font-weight: 700;
   color: inherit;
@@ -126,24 +129,6 @@
 .trainer-facts dd {
   margin: 0;
   font-weight: 800;
-}
-
-.trainer-card.trainer-card-woman:nth-child(n) {
-  background: rgba(var(--rgb-primary-deep), 0.22);
-  border: 2px solid var(--color-pink);
-  color: var(--color-ink);
-}
-
-.trainer-card-woman:nth-child(n) .trainer-avatar {
-  background: var(--color-pink);
-  color: var(--color-ink);
-  box-shadow: -5px 5px 0 var(--color-ink);
-}
-
-.trainer-card-woman:nth-child(n) .trainer-bio,
-.trainer-card-woman:nth-child(n) .trainer-facts dt {
-  color: var(--color-ink);
-  opacity: 0.7;
 }
 
 .trainer-card.trainer-card-black:nth-child(n) {

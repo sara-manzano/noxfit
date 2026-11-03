@@ -161,6 +161,25 @@
   background: var(--plan-accent);
 }
 
+.plan-cta {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.plan-cta .button {
+  border: 2px solid var(--color-ink);
+  background: var(--gradient-primary-deep);
+  color: var(--color-on-primary);
+  box-shadow: 4px 4px 0 var(--color-ink);
+}
+
+.plan-cta small {
+  max-width: 38ch;
+  color: rgba(var(--rgb-cream), 0.7);
+}
+
 .plan-sticker {
   position: relative;
   z-index: 1;
@@ -191,6 +210,10 @@
   text-transform: uppercase;
 }
 
+.plan-video {
+  box-shadow: 8px 8px 0 var(--plan-accent);
+}
+
 .plan-section h2 {
   margin: 0 0 var(--space-md);
   font-family: var(--font-heading);
@@ -200,7 +223,7 @@
 
 .plan-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-md);
   margin: 0;
   padding: 0;
@@ -211,22 +234,21 @@
   display: grid;
   gap: var(--space-xs);
   padding: var(--space-lg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-blob-c);
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius-card);
   background: var(--color-surface-strong);
-  box-shadow: var(--shadow-card-dark);
-  transform: rotate(calc((var(--i) - 1.5) * 0.6deg));
+  box-shadow: 6px 6px 0 var(--color-ink);
   transition: transform 200ms ease, box-shadow 200ms ease;
   animation: plan-tile-in 420ms ease both;
   animation-delay: calc(var(--i) * 90ms);
 }
 
-.plan-tile:nth-child(even) {
-  border-radius: var(--radius-blob-b);
+.plan-tile:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .plan-tile:hover {
-  transform: translateY(-6px) rotate(0deg);
+  transform: translate(-2px, -2px);
   box-shadow: 8px 8px 0 var(--plan-accent);
 }
 
@@ -242,7 +264,7 @@
   padding: var(--space-xl);
   border: 2px solid var(--color-primary-deep);
   border-radius: var(--radius-blob-a);
-  background: #fff;
+  background: var(--color-surface-strong);
   box-shadow: 8px 8px 0 var(--color-primary-deep);
 }
 
@@ -289,7 +311,7 @@
 
 .plan-other:hover,
 .plan-other:focus-visible {
-  transform: translateY(-4px) rotate(-0.6deg);
+  transform: translateY(-4px);
   box-shadow: 6px 6px 0 var(--color-ink);
 }
 
@@ -351,6 +373,10 @@
 }
 
 @media (max-width: 720px) {
+  .plan-tiles {
+    grid-template-columns: 1fr;
+  }
+
   .plan-hero {
     grid-template-columns: 1fr;
   }

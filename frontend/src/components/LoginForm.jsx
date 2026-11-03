@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import gymImage from '../assets/Gym.png';
 import { MadridMap, gyms } from './MadridMap.jsx';
+import { MediaSlot } from './MediaSlot.jsx';
 import { RegisterForm } from './RegisterForm.jsx';
 import { PasswordResetForm } from './PasswordResetForm.jsx';
 import { plans } from '../lib/plans.js';
@@ -36,6 +37,12 @@ const services = [
   'Nutrición deportiva',
 ];
 
+const highlightChecks = [
+  'Código QR de acceso',
+  'Aviso 24 h antes de cada sesión',
+  'Lista de espera automática',
+];
+
 const cityHighlights = ['Madrid'];
 
 const contact = {
@@ -52,11 +59,19 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
     return token ? { token, role: params.get('role') === 'trainer' ? 'trainer' : 'member' } : null;
   });
   const [isRecovering, setIsRecovering] = useState(Boolean(resetParams));
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(
+    () => new URLSearchParams(window.location.search).get('register') === '1'
+  );
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('register') === '1') {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isMapOpen) return undefined;
@@ -113,7 +128,13 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
           </div>
 
           <figure className="login-figure">
-            <img src={gymImage} alt="Gimnasio Noxfit" />
+            <MediaSlot
+              name="hero"
+              kind="video"
+              autoPlay
+              alt="Entrenamiento en Noxfit"
+              fallback={<img src={gymImage} alt="Gimnasio Noxfit" />}
+            />
             <figcaption>
               <strong>Dos</strong>
               <span>centros</span>
@@ -125,6 +146,13 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
           <article className="bento-tile bento-why">
             <span className="bento-kicker">Por qué Noxfit</span>
             <p className="bento-intro">Un centro de entrenamiento más, pero con un ambiente familiar y atención cercana. Nuestra misión es ofrecer una experiencia integral a nuestros socios e impulsar su desarrollo personal.</p>
+            <MediaSlot
+              name="why"
+              kind="image"
+              alt="Entrenamiento funcional en Noxfit"
+              label="Foto del equipo"
+              className="bento-media"
+            />
             <ul className="bento-differentiators">
               {differentiators.map((item, index) => (
                 <li key={item.title}>
@@ -141,10 +169,14 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
           <article className="bento-tile bento-highlight">
             <strong>100% </strong>
             <span>Agenda confirmada en el momento y acceso controlado al centro.</span>
+            <ul className="bento-checks">
+              {highlightChecks.map((item) => <li key={item}>{item}</li>)}
+            </ul>
           </article>
 
           <article className="bento-tile bento-services">
             <span className="bento-kicker">Qué ofrecemos</span>
+            <p className="bento-note">Reserva sesiones personales o grupales con el entrenador de tu especialidad.</p>
             <div className="service-chip-grid">
               {services.map((service) => (
                 <span key={service} className="service-chip">{service}</span>
@@ -177,7 +209,8 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
                 <li key={plan.slug} className={plan.featured ? 'plan-item plan-item-featured' : 'plan-item'}>
                   <a href={`#${plan.slug}`}>
                     {plan.featured ? <em className="plan-badge">Recomendado</em> : null}
-                    <strong>{plan.name} · {plan.priceLabel}</strong>
+                    <strong className="plan-name">{plan.name}</strong>
+                    <span className="plan-price">{plan.price} €<small>/mes</small></span>
                     <span>{plan.summary}</span>
                     <span className="plan-more">Qué incluye →</span>
                   </a>
@@ -280,7 +313,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
 
           <label className="field">
             <span>Email</span>
-            <input name="email" type="email" autoComplete="username" autoFocus value={credentials.email} onChange={handleChange} required />
+            <input name="email" type="email" placeholder="tu@email.com" autoComplete="username" autoFocus value={credentials.email} onChange={handleChange} required />
           </label>
 
           <label className="field">
@@ -289,6 +322,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
               <input
                 name="password"
                 type={showPassword ? 'text' : 'password'}
+                placeholder="Tu contraseña"
                 autoComplete="current-password"
                 value={credentials.password}
                 onChange={handleChange}
@@ -317,12 +351,6 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
             Registrarse
           </button>
         </form>
-
-        <div className="auth-support-band">
-          <p className="support-copy">
-            Si aún no tienes una cuenta, puedes registrarte para empezar a disfrutar de nuestros servicios.
-          </p>
-        </div>
       </section>
       )}
     </main>

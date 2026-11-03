@@ -30,8 +30,13 @@ const AppContent = () => {
     setStaticPage(null);
   };
 
+  const chooseRegister = () => {
+    window.history.pushState(null, '', `${window.location.pathname}?register=1`);
+    setStaticPage(null);
+  };
+
   if (planRoutes.includes(staticPage)) {
-    return <PlanPage slug={staticPage} onBack={closeStaticPage} />;
+    return <PlanPage slug={staticPage} onBack={closeStaticPage} onChoose={chooseRegister} />;
   }
 
   if (staticPage) {

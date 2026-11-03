@@ -28,6 +28,7 @@ export const ReservationCard = ({
   onCancel,
   onReschedule,
   loadCheckinCode,
+  compact = false,
 }) => {
   const { day, month, weekday } = getDateParts(reservation.date);
 
@@ -51,23 +52,22 @@ export const ReservationCard = ({
         </p>
         <div className="reservation-chips">
           <span>{reservation.center || 'Sin centro'}</span>
-          <span>Reservada por {reservation.booked_by === 'trainer' ? 'entrenador' : 'socio'}</span>
+          {compact ? null : <span>Reservada por {reservation.booked_by === 'trainer' ? 'entrenador' : 'socio'}</span>}
         </div>
-        <div className="reservation-bottom">
-          <span className="reservation-price">{reservation.trainer?.hourly_rate != null ? `${formatCurrency(reservation.trainer.hourly_rate)}/h` : 'Sin tarifa'}</span>
-          {canDelete ? (
-            <button className="reservation-delete" type="button" onClick={() => onDelete(reservation.reservation_id)} disabled={disabled}>
-              Eliminar
-            </button>
-          ) : null}
-        </div>
+        {compact ? null : (
+          <div className="reservation-bottom">
+            <span className="reservation-price">{reservation.trainer?.hourly_rate != null ? `${formatCurrency(reservation.trainer.hourly_rate)}/h` : 'Sin tarifa'}</span>
+          </div>
+        )}
         <ReservationActions
           reservation={reservation}
           canCancel={canCancel}
           canReschedule={canReschedule}
+          canDelete={canDelete}
           showQr={showQr}
           onCancel={onCancel}
           onReschedule={onReschedule}
+          onDelete={onDelete}
           loadCheckinCode={loadCheckinCode}
           disabled={disabled}
         />

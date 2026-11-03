@@ -61,6 +61,74 @@
   gap: var(--space-md);
 }
 
+.collection-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  padding: 0.3rem;
+  border-radius: var(--radius-pill);
+  background: rgba(var(--rgb-ink), 0.08);
+}
+
+.collection-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-dim);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.collection-tab span {
+  min-width: 1.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: rgba(var(--rgb-ink), 0.1);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.collection-tab:hover:not(.collection-tab-active) {
+  background: rgba(var(--rgb-ink), 0.08);
+}
+
+.collection-tab-active {
+  background: var(--color-ink);
+  color: var(--color-primary);
+}
+
+.collection-tab-active span {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.collection-tab:focus-visible {
+  outline: 2px solid var(--color-primary-deep);
+  outline-offset: 2px;
+}
+
+.card-grid-heading {
+  grid-column: 1 / -1;
+  margin: var(--space-xs) 0 0;
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--color-eyebrow);
+}
+
+.card-grid-heading:first-child {
+  margin-top: 0;
+}
+
 .card-grid-more {
   grid-column: 1 / -1;
   justify-self: center;
@@ -151,4 +219,85 @@
 .panel-list .section-heading h2 {
   font-size: clamp(2.6rem, 4vw, 3.4rem);
   letter-spacing: 0.03em;
+}
+
+.collection-new,
+.collection-sheet-close,
+.collection-sheet-backdrop {
+  display: none;
+}
+
+@media (max-width: 1080px) {
+  /* Fill-mode forwards would leave a transform that traps the fixed sheet. */
+  .collection-shell.collection-shell {
+    animation-fill-mode: backwards;
+  }
+
+  .collection-new {
+    display: block;
+    position: fixed;
+    inset: auto 0 1rem 0;
+    z-index: 800;
+    width: fit-content;
+    margin-inline: auto;
+    padding: 0.9rem 1.8rem;
+    border: 2px solid var(--color-ink);
+    background: var(--gradient-primary-deep);
+    box-shadow: 4px 4px 0 var(--color-ink);
+    white-space: nowrap;
+  }
+
+  .collection-sheet-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    background: rgba(var(--rgb-ink), 0.55);
+  }
+
+  .collection-shell .panel.panel-form {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 901;
+    max-height: 88vh;
+    overflow-y: auto;
+    border-radius: 28px 28px 0 0;
+    transform: translateY(105%);
+    visibility: hidden;
+    transition: transform 240ms ease, visibility 0s linear 240ms;
+  }
+
+  .collection-shell .panel.panel-form.panel-form-open {
+    transform: none;
+    visibility: visible;
+    transition: transform 240ms ease;
+  }
+
+  .collection-sheet-close {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 2px solid var(--color-ink);
+    border-radius: 50%;
+    background: var(--color-surface-strong);
+    color: var(--color-ink);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .collection-shell {
+    padding-bottom: 4.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collection-shell .panel.panel-form {
+    transition: none;
+  }
 }

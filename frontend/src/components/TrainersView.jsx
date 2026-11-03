@@ -8,10 +8,6 @@ const initialsOf = (name = '') => name
   .map((part) => part[0].toUpperCase())
   .join('');
 
-const womenNames = new Set(['natalia', 'aida', 'maria', 'maría', 'susana']);
-
-const isWoman = (name = '') => womenNames.has(name.trim().split(' ')[0].toLowerCase());
-
 const focusByActivity = {
   'nutrición': 'diseña planes de alimentación personalizados para apoyar tus objetivos',
   'pilates': 'trabaja la fuerza, la flexibilidad y el control del cuerpo',
@@ -21,19 +17,9 @@ const focusByActivity = {
   'entrenamiento funcional': 'adapta las sesiones a tu nivel para ganar fuerza, movilidad y resistencia',
 };
 
-const emojiByActivity = {
-  'nutrición': '🥑',
-  'pilates': '🧘',
-  'musculación': '🏋️',
-  'crossfit': '🔥',
-  'spinning': '🚴',
-  'entrenamiento funcional': '🤸',
-};
-
 const nutritionActivity = 'nutrición';
 
-const funEmojis = ['💪', '⚡', '🏆', '🎯', '🥇', '😎'];
-
+// Fallback para entrenadores sin `bio` en la base de datos.
 const bioByFirstName = {
   alberto: 'Prioriza la calidad del movimiento antes que la carga. Diseña circuitos funcionales progresivos que mejoran la movilidad y la resistencia sin pasar por alto la técnica.',
   natalia: 'Especialista en control postural y estabilidad del core. Sus sesiones de Pilates combinan precisión y respiración para aliviar tensiones y fortalecer desde la base.',
@@ -48,6 +34,8 @@ const bioByFirstName = {
 };
 
 const describeTrainer = (trainer) => {
+  if (trainer.bio) return trainer.bio;
+
   const bio = bioByFirstName[(trainer.full_name || '').trim().split(' ')[0].toLowerCase()];
 
   if (bio) return bio;
@@ -60,14 +48,7 @@ const describeTrainer = (trainer) => {
   return `${trainer.full_name} ${focus}${experience}.`;
 };
 
-const cardTones = (trainers) => {
-  let men = 0;
-
-  return trainers.map((trainer) => {
-    if (isWoman(trainer.full_name)) return 'trainer-card-woman';
-    return men++ % 2 === 0 ? 'trainer-card-black' : 'trainer-card-gray';
-  });
-};
+const cardTones = (trainers) => trainers.map((_, index) => (index % 2 === 0 ? 'trainer-card-black' : 'trainer-card-gray'));
 
 export const TrainersView = ({ trainers, activityFilter = '', onClearFilter }) => {
   const normalizedFilter = activityFilter.trim().toLowerCase();
@@ -98,14 +79,20 @@ export const TrainersView = ({ trainers, activityFilter = '', onClearFilter }) =
                   ? <img src={trainer.avatar} alt={trainer.full_name} />
                   : initialsOf(trainer.full_name)}
               </div>
-              <h3>{trainer.full_name} <span aria-hidden="true">{funEmojis[index % funEmojis.length]}</span></h3>
+              <h3>{trainer.full_name}</h3>
               <span className="metric-pill metric-pill-accent">
-                {emojiByActivity[(trainer.activity_type || '').trim().toLowerCase()] || '🏅'} {trainer.activity_type || 'Sin especialidad'}
+                {trainer.activity_type || 'Sin especialidad'}
               </span>
               {(trainer.activity_type || '').trim().toLowerCase() === nutritionActivity ? null : (
-                <span className="metric-pill metric-pill-light">{emojiByActivity[nutritionActivity]} Nutrición</span>
+                <span className="metric-pill metric-pill-light">Nutrición</span>
               )}
-              <span className="trainer-center">📍 {trainer.center || 'Sin centro'}</span>
+              <span className="trainer-center">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />
+                  <circle cx="12" cy="10" r="2.5" />
+                </svg>
+                {trainer.center || 'Sin centro'}
+              </span>
               <p className="trainer-bio">{describeTrainer(trainer)}</p>
               {trainer.years_experience !== undefined || trainer.hourly_rate !== undefined ? (
                 <dl className="trainer-facts">

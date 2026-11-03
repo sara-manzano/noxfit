@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { memberFields, membershipOptions } from '../lib/forms.js';
-import { formatMembershipFee } from '../lib/formatters.js';
 import { imageFileToAvatar } from '../lib/avatar.js';
 import defaultAvatar from '../assets/default-avatar.svg';
-import gymImage from '../assets/fucional.png';
 import { useCollectionFilters } from '../hooks/useCollectionFilters.js';
 import { useDashboardData } from '../hooks/useDashboardData.js';
 import { AccountForm } from './AccountForm.jsx';
@@ -12,6 +10,11 @@ import { MemberCard } from './MemberCard.jsx';
 import { ReservationCard } from './ReservationCard.jsx';
 import { ReservationForm } from './ReservationForm.jsx';
 import { StatCard } from './StatCard.jsx';
+import { ProfilePlan } from './ProfilePlan.jsx';
+import { MediaSlot } from './MediaSlot.jsx';
+import { NextSession } from './NextSession.jsx';
+import { getReservationStart, getWeekLabel } from '../lib/schedule.js';
+import { centerMediaName } from '../lib/media.js';
 import { TrainersView } from './TrainersView.jsx';
 import { ServicesView } from './ServicesView.jsx';
 import { CalendarView } from './CalendarView.jsx';
@@ -120,6 +123,12 @@ export const AppShell = ({ session, onLogout }) => {
   useEffect(() => {
     clearLaunchParams();
   }, []);
+
+  useEffect(() => {
+    if (dashboard.error) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [dashboard.error]);
   const visibleTrainers = dashboard.trainers.length
     ? dashboard.trainers
     : dashboard.trainerDirectory.length
@@ -151,6 +160,7 @@ export const AppShell = ({ session, onLogout }) => {
       (item) => getReservationDateTerms(item.date),
     ],
     filterAccessor: (item) => item.status,
+    initialFilter: 'confirmada',
   });
 
   useEffect(() => {
@@ -159,6 +169,13 @@ export const AppShell = ({ session, onLogout }) => {
 
   const upcomingReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Confirmada').length;
   const completedReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Completada').length;
+  const cancelledReservations = dashboard.reservations.filter((reservation) => reservation.status === 'Cancelada').length;
+  const reservationTabs = [
+    { value: 'confirmada', label: 'Próximas', count: upcomingReservations },
+    { value: 'completada', label: 'Pasadas', count: completedReservations },
+    { value: 'cancelada', label: 'Canceladas', count: cancelledReservations },
+    { value: 'all', label: 'Todas', count: dashboard.reservations.length },
+  ];
 
   const showReservationsByStatus = (status) => {
     reservationsFilters.setQuery('');
@@ -200,28 +217,40 @@ export const AppShell = ({ session, onLogout }) => {
       return <article className="empty-card reservation-empty">No hay reservas que coincidan con el filtro actual.</article>;
     }
 
+    const isUpcomingTab = reservationsFilters.selectedFilter === 'confirmada';
+    const direction = isUpcomingTab || reservationsFilters.selectedFilter === 'all' ? 1 : -1;
     const sortedReservations = [...reservationsFilters.visibleItems].sort((a, b) => (
-      new Date(a.date) - new Date(b.date) || (a.time_slot || '').localeCompare(b.time_slot || '')
+      direction * (new Date(a.date) - new Date(b.date) || (a.time_slot || '').localeCompare(b.time_slot || ''))
     ));
+    let lastWeek = '';
 
     return (
       <>
-        {sortedReservations.slice(0, reservationLimit).map((reservation) => (
-          <ReservationCard
-            key={reservation.reservation_id}
-            reservation={reservation}
-            memberFallbackName={isMember ? dashboard.profile?.full_name : undefined}
-            onDelete={dashboard.deleteReservation}
-            canDelete={!isStandardTrainer}
-            disabled={dashboard.isSubmitting}
-            canCancel
-            canReschedule
-            showQr={isMember}
-            onCancel={dashboard.cancelReservation}
-            onReschedule={dashboard.rescheduleReservation}
-            loadCheckinCode={dashboard.getCheckinCode}
-          />
-        ))}
+        {sortedReservations.slice(0, reservationLimit).map((reservation) => {
+          const week = isUpcomingTab ? getWeekLabel(getReservationStart(reservation)) : '';
+          const heading = week && week !== lastWeek ? <h4 className="card-grid-heading">{week}</h4> : null;
+          lastWeek = week || lastWeek;
+
+          return (
+            <Fragment key={reservation.reservation_id}>
+              {heading}
+              <ReservationCard
+                reservation={reservation}
+                memberFallbackName={isMember ? dashboard.profile?.full_name : undefined}
+                onDelete={dashboard.deleteReservation}
+                canDelete={!isStandardTrainer}
+                disabled={dashboard.isSubmitting}
+                canCancel
+                canReschedule
+                showQr={isMember}
+                compact={isMember}
+                onCancel={dashboard.cancelReservation}
+                onReschedule={dashboard.rescheduleReservation}
+                loadCheckinCode={dashboard.getCheckinCode}
+              />
+            </Fragment>
+          );
+        })}
         {sortedReservations.length > reservationLimit ? (
           <button
             className="button button-secondary card-grid-more"
@@ -246,6 +275,7 @@ export const AppShell = ({ session, onLogout }) => {
       filterLabel="Plan"
       filterOptions={membershipOptions.map((option) => ({ value: option.toLowerCase(), label: option }))}
       countLabel={`${membersFilters.visibleCount} de ${membersFilters.totalCount}`}
+      formLabel="Alta de socio"
       form={
         <AccountForm
           title="Alta de socio"
@@ -270,7 +300,9 @@ export const AppShell = ({ session, onLogout }) => {
         onFilterChange={reservationsFilters.setSelectedFilter}
         filterLabel="Estado"
         filterOptions={buildFilterOptions(dashboard.reservations, (item) => item.status, ['Confirmada', 'Completada', 'Cancelada'])}
+        tabs={reservationTabs}
         countLabel={`${reservationsFilters.visibleCount} de ${reservationsFilters.totalCount}`}
+        formLabel="Nueva reserva"
         form={
           <ReservationForm
             onSubmit={dashboard.createReservation}
@@ -334,11 +366,25 @@ export const AppShell = ({ session, onLogout }) => {
         <div className="dashboard-side-stack">
           <div className="profile-card profile-card-jg">
             <div className="profile-card-header">
-              <img
-                className="profile-avatar"
-                src={dashboard.profile?.avatar || defaultAvatar}
-                alt="Foto de perfil"
-              />
+              <button
+                className="profile-avatar-button"
+                type="button"
+                aria-label="Cambiar foto de perfil"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={dashboard.isSubmitting || !dashboard.profile}
+              >
+                <img
+                  className="profile-avatar"
+                  src={dashboard.profile?.avatar || defaultAvatar}
+                  alt="Foto de perfil"
+                />
+                <span className="profile-avatar-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+                    <circle cx="12" cy="13" r="3.5" />
+                  </svg>
+                </span>
+              </button>
               <div className="profile-card-identity">
                 <h2>{dashboard.profile?.full_name || session.user.full_name}</h2>
                 <p title={dashboard.profile?.email || session.user.email}>
@@ -347,16 +393,11 @@ export const AppShell = ({ session, onLogout }) => {
               </div>
             </div>
             {session.role === 'member' && dashboard.profile ? (
-              <dl className="profile-details">
-                <div>
-                  <dt>Plan</dt>
-                  <dd>{dashboard.profile.membership_type || 'Sin plan'}</dd>
-                </div>
-                <div>
-                  <dt>Cuota</dt>
-                  <dd>{formatMembershipFee(dashboard.profile.membership_type)}</dd>
-                </div>
-              </dl>
+              <ProfilePlan
+                membershipType={dashboard.profile.membership_type}
+                sessionCredits={dashboard.profile.session_credits}
+                onManage={() => setActiveView('billing')}
+              />
             ) : null}
             {session.role === 'trainer' && dashboard.profile ? (
               <dl className="profile-details">
@@ -378,14 +419,6 @@ export const AppShell = ({ session, onLogout }) => {
                 hidden
                 onChange={handleAvatarSelected}
               />
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={() => avatarInputRef.current?.click()}
-                disabled={dashboard.isSubmitting || !dashboard.profile}
-              >
-                Cambiar foto
-              </button>
               {dashboard.profile?.avatar ? (
                 <button
                   className="button button-secondary"
@@ -406,9 +439,12 @@ export const AppShell = ({ session, onLogout }) => {
       </section>
 
       <section className="stats-grid stats-grid-jg stats-grid-member">
-        <div className="stat-card stat-card-image">
-          <img src={gymImage} alt="Gimnasio Noxfit" />
-        </div>
+        <NextSession
+          reservations={dashboard.reservations}
+          isMember={isMember}
+          loadCheckinCode={dashboard.getCheckinCode}
+          onViewAll={() => setActiveView('reservations')}
+        />
         <div className="stat-stack">
           <StatCard
             label="Reservas activas"
@@ -439,6 +475,13 @@ export const AppShell = ({ session, onLogout }) => {
                   aria-pressed={isSelected}
                   onClick={() => setSelectedCenter(isSelected ? '' : gym.name)}
                 >
+                  <MediaSlot
+                    name={centerMediaName(gym.name)}
+                    kind="image"
+                    alt={gym.name}
+                    label={`Foto ${gym.name}`}
+                    className="footprint-media"
+                  />
                   <span className="eyebrow">{isSelected ? 'Centro elegido' : 'Centro de entrenamiento'}</span>
                   <h3>{gym.name}</h3>
                   <p>{gym.address}</p>

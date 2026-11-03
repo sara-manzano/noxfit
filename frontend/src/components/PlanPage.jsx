@@ -1,7 +1,8 @@
 import { plans } from '../lib/plans.js';
+import { MediaSlot } from './MediaSlot.jsx';
 import './PlanPage.css';
 
-export const PlanPage = ({ slug, onBack }) => {
+export const PlanPage = ({ slug, onBack, onChoose }) => {
   const plan = plans.find((item) => item.slug === slug);
 
   return (
@@ -25,6 +26,10 @@ export const PlanPage = ({ slug, onBack }) => {
             ))}
             <em>Nivel {plan.level} de {plans.length}</em>
           </div>
+          <div className="plan-cta">
+            <button className="button" type="button" onClick={onChoose}>Crear mi cuenta</button>
+            {plan.level > 1 ? <small>Te registras en el plan Básica y puedes contratar {plan.name} desde Facturación.</small> : null}
+          </div>
         </div>
 
         <div className="plan-sticker">
@@ -32,6 +37,15 @@ export const PlanPage = ({ slug, onBack }) => {
           <span>€ / mes</span>
         </div>
       </section>
+
+      <MediaSlot
+        name={slug}
+        kind="video"
+        autoPlay
+        alt={`Así se entrena en el plan ${plan.name}`}
+        label={`Vídeo del plan ${plan.name}`}
+        className="plan-video"
+      />
 
       <section className="plan-section">
         <h2>Qué incluye</h2>

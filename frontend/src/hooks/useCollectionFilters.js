@@ -2,9 +2,9 @@ import { useDeferredValue, useState } from 'react';
 
 const includesQuery = (value, query) => String(value || '').toLowerCase().includes(query);
 
-export const useCollectionFilters = (items, { searchGetters, filterAccessor }) => {
+export const useCollectionFilters = (items, { searchGetters, filterAccessor, initialFilter = 'all' }) => {
   const [query, setQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [selectedFilter, setSelectedFilter] = useState(initialFilter);
   const deferredQuery = useDeferredValue(query.trim().toLowerCase());
 
   const visibleItems = items.filter((item) => {

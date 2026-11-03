@@ -127,7 +127,6 @@ export const useDashboardData = (session, onSessionExpired) => {
 
   useEffect(() => {
     refreshData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.role, session?.token, session?.user?.is_admin]);
 
   const runMutation = useCallback(async (operation, successMessage, { silent = false } = {}) => {

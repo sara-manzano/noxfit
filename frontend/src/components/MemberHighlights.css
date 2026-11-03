@@ -50,19 +50,19 @@
 
 .member-highlights-promo {
   padding: var(--space-lg);
-  border: 2px solid #ffd60a;
-  background: rgba(255, 214, 10, 0.1);
-  box-shadow: 0 0 40px rgba(255, 214, 10, 0.18);
+  border: 2px solid var(--color-promo);
+  background: rgba(var(--rgb-promo), 0.1);
+  box-shadow: 0 0 40px rgba(var(--rgb-promo), 0.18);
 }
 
 .member-highlights-promo h3 {
   font-size: 2rem;
-  color: #ffd60a;
+  color: var(--color-promo);
 }
 
 .member-highlights-promo li strong {
   font-size: 1.15rem;
-  color: #ffd60a;
+  color: var(--color-promo);
 }
 
 .member-highlights-promo li span {
@@ -112,5 +112,5 @@
 
 .member-highlights-cancel {
   background: var(--color-danger);
-  color: #fff;
+  color: var(--color-on-dark);
 }

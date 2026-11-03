@@ -35,6 +35,23 @@
   color: var(--color-danger);
 }
 
+.reservation-action-primary {
+  border-color: var(--color-ink);
+  background: var(--gradient-primary);
+  color: var(--color-on-primary);
+}
+
+.reservation-action-more {
+  min-width: 2.4rem;
+  padding-inline: 0.6rem;
+  line-height: 1;
+}
+
+.reservation-actions-secondary {
+  padding-top: var(--space-xs);
+  border-top: 1px dashed rgba(var(--rgb-ink), 0.2);
+}
+
 .reservation-action:disabled {
   opacity: 0.5;
   cursor: not-allowed;

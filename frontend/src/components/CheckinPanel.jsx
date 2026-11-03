@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import qrImage from '../assets/codigo-qr.png';
 import './CheckinPanel.css';
 
-// Accepts the raw code or the full URL encoded in the member's QR.
 const extractCode = (value) => {
   const trimmed = value.trim();
   const match = trimmed.match(/[?&]checkin=([0-9a-f]+)/i);

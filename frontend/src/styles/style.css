@@ -17,6 +17,7 @@
   --color-warning: #8f6619;
   --color-on-dark: #fcf8ee;
   --color-on-primary: #001f28;
+  --color-promo: #ffd60a;
   --color-primary-light: #7df0ff;
   --color-primary-mid: #ff6be3;
   --color-danger-strong: #9e243f;
@@ -39,6 +40,7 @@
   --rgb-paper: 255, 251, 245;
   --rgb-primary: 45, 226, 255;
   --rgb-primary-deep: 255, 47, 208;
+  --rgb-promo: 255, 214, 10;
   --rgb-on-primary: 0, 31, 40;
   --rgb-danger: 190, 66, 83;
   --rgb-danger-soft: 216, 79, 95;
