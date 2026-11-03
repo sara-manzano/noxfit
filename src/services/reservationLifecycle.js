@@ -26,6 +26,14 @@ const ensureOutsideChangeWindow = (reservation, now = new Date()) => {
   }
 };
 
+const ensureNotInPast = (reservation, now = new Date()) => {
+  const window = getReservationWindow(reservation);
+
+  if (window && window.start.getTime() <= now.getTime()) {
+    throw createStatusError('Reservations cannot be made for a time that has already started', 400);
+  }
+};
+
 const releaseSlot = async (reservation) => {
   try {
     await promoteFromWaitlist({
@@ -39,6 +47,7 @@ const releaseSlot = async (reservation) => {
 };
 
 module.exports = {
+  ensureNotInPast,
   ensureOutsideChangeWindow,
   releaseSlot,
 };
