@@ -4,6 +4,7 @@ const { generateId } = require('../config/ids');
 const { normalizeDateOnly } = require('../config/validation');
 const { ensureNoReservationConflicts, createWithConflictCheck } = require('./reservationConflicts');
 const { notifyReservation } = require('./notifications');
+const { takeSessionCredit, returnCredit } = require('./sessionCredits');
 
 const tryCreateReservationFor = async (entry) => {
   const slot = {
@@ -14,18 +15,27 @@ const tryCreateReservationFor = async (entry) => {
     activity_type: entry.activity_type,
     status: 'Confirmada',
   };
+  let creditUsed = false;
 
   try {
     await ensureNoReservationConflicts(Reservation, slot);
+
+    // Throws 402 when the member can no longer pay; the entry then keeps waiting.
+    creditUsed = await takeSessionCredit(entry.member);
 
     return await createWithConflictCheck(Reservation, {
       reservation_id: generateId('R'),
       ...slot,
       booked_by: 'member',
       center: entry.center,
+      credit_used: creditUsed,
     });
   } catch (error) {
-    if (error.statusCode === 409 || error.code === 11000) {
+    if (creditUsed) {
+      await returnCredit(entry.member);
+    }
+
+    if (error.statusCode === 409 || error.statusCode === 402 || error.code === 11000) {
       return null;
     }
 

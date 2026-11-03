@@ -1608,6 +1608,56 @@
         }
       }
     },
+    "/billing/packs": {
+      "get": {
+        "tags": ["Billing"],
+        "summary": "Get the member's session credits and the packs available for purchase",
+        "operationId": "getSessionPacks",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Session pack summary",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionPackSummary" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/billing/packs/checkout": {
+      "post": {
+        "tags": ["Billing"],
+        "summary": "Start a one-off Stripe Checkout payment for a session pack",
+        "operationId": "createPackCheckoutSession",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PackCheckoutRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Checkout session created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UrlResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
     "/billing/portal": {
       "post": {
         "tags": ["Billing"],
@@ -2036,6 +2086,11 @@
           "subscription_cancel_at_period_end": {
             "type": "boolean"
           },
+          "session_credits": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Remaining sessions from purchased packs, maintained by the billing webhook and reservations."
+          },
           "active": {
             "type": "boolean"
           },
@@ -2235,6 +2290,10 @@
             "type": "string",
             "format": "date-time"
           },
+          "credit_used": {
+            "type": "boolean",
+            "description": "True when a session-pack credit paid for this reservation; it is refunded on cancellation."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -2339,6 +2398,34 @@
           "plan": { "$ref": "#/components/schemas/MembershipType" }
         },
         "additionalProperties": false
+      },
+      "PackCheckoutRequest": {
+        "type": "object",
+        "required": ["pack"],
+        "properties": {
+          "pack": { "type": "string", "enum": ["pack_5", "pack_10"] }
+        },
+        "additionalProperties": false
+      },
+      "SessionPackSummary": {
+        "type": "object",
+        "required": ["configured", "session_credits", "packs"],
+        "properties": {
+          "configured": { "type": "boolean", "description": "False when Stripe is not set up on the server." },
+          "session_credits": { "type": "integer", "minimum": 0 },
+          "packs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pack": { "type": "string", "enum": ["pack_5", "pack_10"] },
+                "sessions": { "type": "integer" },
+                "amount": { "type": "number", "description": "Price in currency units (not cents)." },
+                "currency": { "type": "string" }
+              }
+            }
+          }
+        }
       },
       "UrlResponse": {
         "type": "object",

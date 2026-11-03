@@ -5,6 +5,8 @@ const { MEMBERSHIP_TYPES } = require('../config/validation');
 const {
   getAvailablePlans,
   getPriceId,
+  getSessionPack,
+  getSessionPacks,
   getStripe,
   getWebhookSecret,
   isStripeConfigured,
@@ -89,6 +91,51 @@ const createCheckoutSession = async (req, res) => {
   return sendItem(res, { url: session.url }, 201);
 };
 
+const getSessionPacksSummary = async (req, res) => {
+  const member = await loadMember(req);
+
+  return sendItem(res, {
+    configured: isStripeConfigured(),
+    session_credits: member.session_credits ?? 0,
+    packs: getSessionPacks().map((pack) => ({
+      pack: pack.pack,
+      sessions: pack.sessions,
+      amount: pack.amount_cents / 100,
+      currency: pack.currency,
+    })),
+  });
+};
+
+const createPackCheckoutSession = async (req, res) => {
+  const member = await loadMember(req);
+  const pack = getSessionPack(req.body?.pack);
+
+  if (!pack) {
+    throw createStatusError(`pack must be one of: ${getSessionPacks().map((item) => item.pack).join(', ')}`, 400);
+  }
+
+  const stripe = getStripe();
+  const customer = await ensureCustomer(stripe, member);
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    customer,
+    client_reference_id: member.member_id,
+    line_items: [{
+      price_data: {
+        currency: pack.currency,
+        unit_amount: pack.amount_cents,
+        product_data: { name: `Bono de ${pack.sessions} sesiones` },
+      },
+      quantity: 1,
+    }],
+    metadata: { member_id: member.member_id, pack: pack.pack },
+    success_url: `${getAppUrl()}/?billing=pack_success`,
+    cancel_url: `${getAppUrl()}/?billing=pack_cancelled`,
+  });
+
+  return sendItem(res, { url: session.url }, 201);
+};
+
 const createPortalSession = async (req, res) => {
   const member = await loadMember(req);
 
@@ -151,6 +198,8 @@ const handleWebhook = async (req, res) => {
 module.exports = {
   getSubscription,
   createCheckoutSession,
+  getSessionPacksSummary,
+  createPackCheckoutSession,
   createPortalSession,
   listInvoices,
   handleWebhook,

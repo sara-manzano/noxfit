@@ -30,12 +30,17 @@ const futureDate = (days) => {
   return date;
 };
 
+const MEMBERSHIP_TYPES = ['Básica', 'Premium', 'VIP'];
+let memberCounter = 0;
+
 const createMember = async (id) => Member.create({
   member_id: id,
   full_name: `Member ${id}`,
   email: `${id}@noxfit.test`,
   password_hash: await hashPassword(PASSWORD),
-  membership_type: 'Premium',
+  membership_type: MEMBERSHIP_TYPES[memberCounter++ % MEMBERSHIP_TYPES.length],
+  subscription_status: 'active',
+  subscription_current_period_end: new Date('2030-01-01T00:00:00.000Z'),
 });
 
 const createTrainer = async (id, overrides = {}) => Trainer.create({

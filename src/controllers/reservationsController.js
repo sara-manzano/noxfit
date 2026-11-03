@@ -6,7 +6,7 @@ const { sendCollection, sendItem, sendNoContent } = require('../http/responses')
 const { sanitizeReservationPayload } = require('../middleware/validators');
 const { createStatusError, createForbiddenError } = require('../http/errors');
 const { generateId } = require('../config/ids');
-const { isValidTimeSlot, isWithinOpeningHours, normalizeDateOnly } = require('../config/validation');
+const { isValidTimeSlot, isWithinOpeningHours, normalizeDateOnly, ACTIVE_RESERVATION_STATUSES } = require('../config/validation');
 const { isMemberAuth, isTrainerAdmin, isStandardTrainer } = require('../middleware/auth');
 const { ensureFound } = require('./accountControllerHelpers');
 const {
@@ -18,6 +18,12 @@ const {
 } = require('../services/reservationConflicts');
 const { ensureOutsideChangeWindow, releaseSlot } = require('../services/reservationLifecycle');
 const { notifyReservation } = require('../services/notifications');
+const {
+  refundDeletedReservationCredit,
+  refundReservationCredit,
+  returnCredit,
+  takeSessionCredit,
+} = require('../services/sessionCredits');
 const { getReservationWindow, MINUTE_MS } = require('../services/reservationTime');
 
 const CHECKIN_OPENS_MINUTES_BEFORE = 30;
@@ -276,7 +282,20 @@ const createReservation = async (req, res) => {
   await ensureTrainerMatchesCenter(payload.trainer, payload.center);
   await ensureSlotIsFree(payload);
 
-  const reservation = await createWithConflictCheck(Reservation, payload);
+  const usesCredit = Boolean(payload.member) && ACTIVE_RESERVATION_STATUSES.includes(payload.status || 'Confirmada');
+  const creditUsed = usesCredit && await takeSessionCredit(payload.member);
+  let reservation;
+
+  try {
+    reservation = await createWithConflictCheck(Reservation, { ...payload, credit_used: creditUsed });
+  } catch (error) {
+    if (creditUsed) {
+      await returnCredit(payload.member);
+    }
+
+    throw error;
+  }
+
   const createdReservation = await Reservation.findById(reservation._id)
     .populate(reservationPopulation)
     .lean();
@@ -386,6 +405,7 @@ const applyReservationUpdate = async (req, res, body, { requireConfirmed = false
   }
 
   if (isCancelling) {
+    await refundReservationCredit(existingReservation);
     await notifyReservation('cancellation', reservation._id);
     await releaseSlot(existingReservation);
   } else if (isMoving && wasActive) {
@@ -443,6 +463,7 @@ const cancelReservation = async (req, res) => {
     throw createStatusError('Only confirmed reservations can be cancelled', 409);
   }
 
+  await refundReservationCredit(existingReservation);
   await notifyReservation('cancellation', reservation._id);
   await releaseSlot(existingReservation);
 
@@ -469,6 +490,7 @@ const deleteReservation = async (req, res) => {
   );
 
   if (deleted.status === 'Confirmada') {
+    await refundDeletedReservationCredit(deleted);
     await releaseSlot(deleted);
   }
 

@@ -16,16 +16,21 @@ const Reservation = require('../src/models/reservations');
 const PASSWORD = 'Noxfit123';
 
 let mongoServer;
+let memberCounter = 0;
+const MEMBERSHIP_TYPES = ['Básica', 'Premium', 'VIP'];
 
 const createMember = async (overrides = {}) => {
   const password_hash = await hashPassword(PASSWORD);
+  const membership_type = MEMBERSHIP_TYPES[memberCounter++ % MEMBERSHIP_TYPES.length];
 
   return Member.create({
     member_id: overrides.member_id || `member-${Math.random().toString(36).slice(2, 10)}`,
     full_name: overrides.full_name || 'Test Member',
     email: overrides.email || `member-${Math.random().toString(36).slice(2, 10)}@noxfit.test`,
     password_hash,
-    membership_type: 'Premium',
+    membership_type,
+    subscription_status: 'active',
+    subscription_current_period_end: new Date('2030-01-01T00:00:00.000Z'),
     ...overrides,
   });
 };

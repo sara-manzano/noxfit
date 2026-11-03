@@ -9,6 +9,7 @@ const memberSchema = new mongoose.Schema({
   subscription_status: { type: String },
   subscription_current_period_end: { type: Date },
   subscription_cancel_at_period_end: { type: Boolean },
+  session_credits: { type: Number, min: 0, default: 0 },
   stripe_customer_id: { type: String, select: false, index: true, sparse: true },
   stripe_subscription_id: { type: String, select: false },
 });

@@ -332,7 +332,16 @@ const logSeedSummary = ({ insertedMembers, insertedTrainers, reservations, admin
 
 const parseActive = (value) => (value === undefined || value === '' ? true : parseBoolean(value));
 
-const mapMembers = (rows, resolvePasswordHash) => Promise.all(rows.map(async (row) => ({
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Deterministic mix of trialing/active, renewal dates and pending cancellations.
+const buildSeedSubscription = (index) => ({
+  subscription_status: index % 7 === 3 ? 'trialing' : 'active',
+  subscription_current_period_end: new Date(Date.now() + (5 + ((index * 7) % 26)) * DAY_MS),
+  subscription_cancel_at_period_end: index % 5 === 4,
+});
+
+const mapMembers = (rows, resolvePasswordHash) => Promise.all(rows.map(async (row, index) => ({
   member_id: row.member_id,
   full_name: row.full_name,
   email: row.email,
@@ -340,6 +349,7 @@ const mapMembers = (rows, resolvePasswordHash) => Promise.all(rows.map(async (ro
   phone: row.phone || undefined,
   membership_type: row.membership_type || undefined,
   join_date: parseDate(row.join_date, { normalizeDate: true }),
+  ...buildSeedSubscription(index),
   active: parseActive(row.active)
 })));
 

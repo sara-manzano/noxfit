@@ -1,5 +1,6 @@
 const Member = require('../models/members');
-const { getPlanForPriceId } = require('../config/stripe');
+const { getPlanForPriceId, getSessionPack } = require('../config/stripe');
+const { creditPackPurchase } = require('./sessionCredits');
 
 const ENTITLED_STATUSES = ['active', 'trialing'];
 const DEFAULT_PLAN = 'Básica';
@@ -61,7 +62,26 @@ const applySubscriptionDeleted = async (subscription) => {
   });
 };
 
+const applyPackPayment = async (session) => {
+  const memberId = session.client_reference_id || session.metadata?.member_id;
+  const pack = getSessionPack(session.metadata?.pack);
+
+  if (session.payment_status !== 'paid' || !memberId || !pack) {
+    return;
+  }
+
+  const member = await Member.findOne({ member_id: memberId }).select('_id').lean();
+
+  if (member) {
+    await creditPackPurchase({ session, memberId: member._id, pack });
+  }
+};
+
 const applyCheckoutCompleted = async (session) => {
+  if (session.mode === 'payment') {
+    return applyPackPayment(session);
+  }
+
   const memberId = session.client_reference_id;
 
   if (session.mode !== 'subscription' || !memberId) {
@@ -81,6 +101,7 @@ const applyStripeEvent = async (event) => {
 
   switch (event.type) {
     case 'checkout.session.completed':
+    case 'checkout.session.async_payment_succeeded':
       return applyCheckoutCompleted(object);
     case 'customer.subscription.created':
     case 'customer.subscription.updated':

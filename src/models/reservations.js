@@ -35,6 +35,7 @@ const reservationSchema = new mongoose.Schema({
     default: 'Confirmada',
   },
   price: { type: Number, min: 0 },
+  credit_used: { type: Boolean, default: false },
   cancelled_at: { type: Date },
   cancelled_by: { type: String, enum: RESERVATION_BOOKERS },
   checked_in_at: { type: Date },
