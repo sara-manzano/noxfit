@@ -194,6 +194,40 @@ test('a trainer can cancel inside the window but another member cannot cancel it
   assert.equal(byOtherMember.status, 403);
 });
 
+test('member cannot book or move a reservation into the past', async () => {
+  await createReservation({ reservation_id: 'res-keep', member: fixtures.memberA._id, trainer: fixtures.trainer._id });
+  const token = await login('member', 'member-a@noxfit.test');
+
+  const book = await request(app)
+    .post('/api/reservations')
+    .set('Authorization', token)
+    .send({ trainer_id: 'trainer-one', activity_type: 'CrossFit', date: futureDate(-1).toISOString(), time_slot: '10:00 - 11:00' });
+  const move = await request(app)
+    .post('/api/reservations/res-keep/reschedule')
+    .set('Authorization', token)
+    .send({ date: futureDate(-1).toISOString() });
+
+  assert.equal(book.status, 400);
+  assert.equal(move.status, 409);
+});
+
+test('member cannot delete a completed reservation but a trainer admin can', async () => {
+  await createReservation({
+    reservation_id: 'res-done',
+    member: fixtures.memberA._id,
+    trainer: fixtures.trainer._id,
+    status: 'Completada',
+  });
+  const memberToken = await login('member', 'member-a@noxfit.test');
+  const adminToken = await login('trainer', 'trainer-admin@noxfit.test');
+
+  const byMember = await request(app).delete('/api/reservations/res-done').set('Authorization', memberToken);
+  const byAdmin = await request(app).delete('/api/reservations/res-done').set('Authorization', adminToken);
+
+  assert.equal(byMember.status, 403);
+  assert.equal(byAdmin.status, 204);
+});
+
 test('member reschedules a confirmed reservation to a free slot', async () => {
   await createReservation({ reservation_id: 'res-move', member: fixtures.memberA._id, trainer: fixtures.trainer._id });
   const token = await login('member', 'member-a@noxfit.test');
@@ -312,7 +346,7 @@ test('check-in: member gets a code and the trainer validates it inside the sessi
   assert.equal(memberCheckin.status, 403);
   assert.equal(badCode.status, 404);
   assert.equal(checkin.status, 200);
-  assert.equal(checkin.body.status, 'Completada');
+  assert.equal(checkin.body.status, 'Completed');
   assert.ok(checkin.body.checked_in_at);
   assert.equal(checkin.body.checkin_code, undefined);
   assert.equal(again.status, 409);
