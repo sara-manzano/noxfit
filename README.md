@@ -74,6 +74,13 @@ SMTP_SECURE=false
 SMTP_USER=
 SMTP_PASS=
 MAIL_FROM=Noxfit <no-reply@noxfit.es>
+CANCELLATION_WINDOW_HOURS=2
+REMINDERS_ENABLED=true
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_BASICA=
+STRIPE_PRICE_PREMIUM=
+STRIPE_PRICE_VIP=
 ```
 
 Obligatorias para ejecutar la API:
@@ -95,6 +102,10 @@ Opcionales:
 - `APP_URL`: URL del frontend usada para construir el enlace de restablecimiento de contraseña; por defecto `http://localhost:5173`
 - `SMTP_HOST`, `SMTP_PORT` (por defecto `587`), `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`: servidor SMTP para enviar emails. Si `SMTP_HOST` no está definido, el enlace de restablecimiento se escribe en la consola del servidor
 - `MAIL_FROM`: remitente de los emails; por defecto `Noxfit <no-reply@noxfit.es>`
+- `CANCELLATION_WINDOW_HOURS`: horas mínimas antes de la sesión para que un member cancele o reprograme; por defecto `2`
+- `REMINDERS_ENABLED`: con valor `false` desactiva el job que envía recordatorios 24 h antes
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_BASICA`, `STRIPE_PRICE_PREMIUM`, `STRIPE_PRICE_VIP`: pagos y suscripciones con Stripe (ver sección Billing)
+- `SESSION_PACK_5_PRICE_CENTS`, `SESSION_PACK_10_PRICE_CENTS`: precio en céntimos de los bonos de sesiones; por defecto `4500` y `8000`
 
 Variables del frontend (`frontend/.env`):
 
@@ -368,6 +379,34 @@ Notas de acceso:
 | PATCH | `/api/reservations/:reservation_id` | Member o Trainer | Actualiza una reserva |
 | PUT | `/api/reservations/:reservation_id` | Member o Trainer | No permitido |
 | DELETE | `/api/reservations/:reservation_id` | Member o Trainer | Elimina una reserva |
+| POST | `/api/reservations/:reservation_id/cancel` | Member o Trainer | Cancela una reserva confirmada (avisa por email y promueve la lista de espera) |
+| POST | `/api/reservations/:reservation_id/reschedule` | Member o Trainer | Cambia `date` y/o `time_slot` de una reserva confirmada |
+| GET | `/api/reservations/:reservation_id/checkin-code` | Member | Código para el QR de check-in de su reserva |
+| POST | `/api/reservations/checkin` | Trainer | Valida un código de QR y marca la reserva como `Completada` |
+
+### Waitlist
+
+| Método | Ruta | Auth | Descripción |
+| --- | --- | --- | --- |
+| GET | `/api/waitlist` | Member o Trainer | Lista entradas en espera (member las suyas, trainer no admin las de sus sesiones) |
+| POST | `/api/waitlist` | Member | Se apunta a una franja completa (`trainer_id`, `date`, `time_slot`, `activity_type`) |
+| DELETE | `/api/waitlist/:waitlist_id` | Member o Trainer admin | Sale de la lista de espera |
+
+### Billing
+
+| Método | Ruta | Auth | Descripción |
+| --- | --- | --- | --- |
+| GET | `/api/billing/subscription` | Member | Estado de la suscripción y planes disponibles |
+| POST | `/api/billing/checkout` | Member | Crea una sesión de Stripe Checkout para un `plan` |
+| POST | `/api/billing/portal` | Member | Abre el portal de Stripe (cambiar plan, método de pago, cancelar) |
+| GET | `/api/billing/invoices` | Member | Historial de facturas |
+| GET | `/api/billing/packs` | Member | Saldo de sesiones (`session_credits`) y bonos disponibles |
+| POST | `/api/billing/packs/checkout` | Member | Pago único en Stripe Checkout de un `pack` (`pack_5` o `pack_10`) |
+| POST | `/api/billing/webhook` | Stripe | Webhook firmado que sincroniza plan y estado de la suscripción |
+
+Configuración de Stripe: define `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` y un precio por plan (`STRIPE_PRICE_BASICA`, `STRIPE_PRICE_PREMIUM`, `STRIPE_PRICE_VIP`). En el dashboard de Stripe apunta el webhook a `/api/billing/webhook` con los eventos `checkout.session.completed` y `customer.subscription.created|updated|deleted`. Sin `STRIPE_SECRET_KEY` los endpoints de pago responden `503`.
+
+Bonos de sesiones: el webhook `checkout.session.completed` (y `checkout.session.async_payment_succeeded`) suma las sesiones al `session_credits` del member, una sola vez por sesión de pago. Cuando un member sin suscripción activa (`active`/`trialing`) reserva — o un trainer reserva por él, o es promovido desde la lista de espera — se descuenta una sesión y la reserva queda con `credit_used: true`; al cancelarla o borrarla se devuelve. Sin saldo ni suscripción, `POST /api/reservations` responde `402` y la promoción de lista de espera se omite. Los suscriptores activos reservan sin gastar sesiones. Precios por defecto: 45 € (5 sesiones) y 80 € (10); se pueden cambiar con `SESSION_PACK_5_PRICE_CENTS` y `SESSION_PACK_10_PRICE_CENTS`.
 
 Campos relevantes de reservation:
 
@@ -473,6 +512,12 @@ Comportamiento:
 - un member no puede tener dos reservas activas en la misma franja
 - el `center` de la reserva debe coincidir con el centro del trainer; si no, la API devuelve `409`
 - un trainer no admin solo puede reprogramar sus propias reservas
+- un member solo puede cancelar, reprogramar o eliminar una reserva confirmada hasta `CANCELLATION_WINDOW_HOURS` horas antes de que empiece (por defecto 2); los trainers no tienen ese límite
+- al liberarse una plaza (cancelación, cambio de franja o borrado) se promueve automáticamente a la primera entrada compatible de la lista de espera y se le avisa por email
+- solo se puede entrar en la lista de espera de una franja que esté realmente completa
+- el check-in solo es válido desde 30 minutos antes de la sesión hasta que termina, y un trainer no admin solo puede validar sus propias reservas
+- los horarios (`time_slot`) se interpretan en hora de Madrid (`Europe/Madrid`)
+- el email de confirmación, cancelación, reprogramación, recordatorio (24 h antes) y plaza de lista de espera se envía por SMTP; si `SMTP_HOST` no está definido solo se registra en consola
 - el cambio de contraseña (reset) invalida el token de reset y registra `password_changed_at`
 
 ## Cobertura de tests actual
