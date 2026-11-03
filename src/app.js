@@ -9,7 +9,10 @@ const authRoutes = require('./routes/authRoutes');
 const membersRoutes = require('./routes/membersRoutes');
 const trainersRoutes = require('./routes/trainersRoutes');
 const reservationsRoutes = require('./routes/reservationsRoutes');
+const waitlistRoutes = require('./routes/waitlistRoutes');
+const billingRoutes = require('./routes/billingRoutes');
 const highlightsRoutes = require('./routes/highlightsRoutes');
+const { handleWebhook } = require('./controllers/billingController');
 
 const app = express();
 
@@ -43,6 +46,7 @@ const handleError = (error, _req, res, _next) => {
 
 app.use(cors());
 app.use(morgan('dev'));
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), handleWebhook);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use((req, _res, next) => {
@@ -69,6 +73,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/members', membersRoutes);
 app.use('/api/trainers', trainersRoutes);
 app.use('/api/reservations', reservationsRoutes);
+app.use('/api/waitlist', waitlistRoutes);
+app.use('/api/billing', billingRoutes);
 app.use('/api/highlights', highlightsRoutes);
 
 app.use('/api', (_req, res) => sendError(res, 404, 'Resource was not found'));

@@ -25,6 +25,12 @@
       "name": "Reservations"
     },
     {
+      "name": "Waitlist"
+    },
+    {
+      "name": "Billing"
+    },
+    {
       "name": "Highlights"
     }
   ],
@@ -1368,6 +1374,296 @@
         }
       }
     },
+    "/reservations/checkin": {
+      "post": {
+        "tags": ["Reservations"],
+        "summary": "Check a member in with the code from their QR (trainers only)",
+        "description": "Marks a confirmed reservation as Completada. Allowed from 30 minutes before the session starts until it ends. Non-admin trainers can only check in their own reservations.",
+        "operationId": "checkInReservation",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CheckinRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member checked in",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Reservation" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/reservations/{reservation_id}/cancel": {
+      "parameters": [{ "$ref": "#/components/parameters/ReservationIdPath" }],
+      "post": {
+        "tags": ["Reservations"],
+        "summary": "Cancel a confirmed reservation",
+        "description": "Members can only cancel their own reservations up to CANCELLATION_WINDOW_HOURS (default 2) before they start. Trainers are not bound by the window. Cancelling emails the member and promotes the first compatible waiting list entry.",
+        "operationId": "cancelReservation",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Reservation cancelled",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Reservation" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/reservations/{reservation_id}/reschedule": {
+      "parameters": [{ "$ref": "#/components/parameters/ReservationIdPath" }],
+      "post": {
+        "tags": ["Reservations"],
+        "summary": "Move a confirmed reservation to another date or time slot",
+        "description": "Members are bound by the same change window as cancellations. The new slot must be free for both the member and the trainer.",
+        "operationId": "rescheduleReservation",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RescheduleRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reservation rescheduled",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Reservation" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/reservations/{reservation_id}/checkin-code": {
+      "parameters": [{ "$ref": "#/components/parameters/ReservationIdPath" }],
+      "get": {
+        "tags": ["Reservations"],
+        "summary": "Get the check-in code to render as a QR (reservation owner only)",
+        "operationId": "getReservationCheckinCode",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Check-in code",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CheckinCode" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/waitlist": {
+      "get": {
+        "tags": ["Waitlist"],
+        "summary": "List waiting list entries",
+        "description": "Members see their own entries, non-admin trainers see entries for their sessions and admins see all of them. Only entries still waiting are returned.",
+        "operationId": "listWaitlist",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Waiting list entries",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WaitlistCollection" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Waitlist"],
+        "summary": "Join the waiting list of a full time slot (members only)",
+        "operationId": "joinWaitlist",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WaitlistRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Joined the waiting list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WaitlistEntry" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/waitlist/{waitlist_id}": {
+      "parameters": [
+        {
+          "name": "waitlist_id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "delete": {
+        "tags": ["Waitlist"],
+        "summary": "Leave the waiting list",
+        "operationId": "leaveWaitlist",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "204": { "description": "Entry removed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/billing/subscription": {
+      "get": {
+        "tags": ["Billing"],
+        "summary": "Get the member's subscription summary",
+        "operationId": "getSubscription",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Subscription summary",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SubscriptionSummary" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/billing/checkout": {
+      "post": {
+        "tags": ["Billing"],
+        "summary": "Start a Stripe Checkout subscription for a plan",
+        "operationId": "createCheckoutSession",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CheckoutRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Checkout session created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UrlResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/billing/portal": {
+      "post": {
+        "tags": ["Billing"],
+        "summary": "Open the Stripe billing portal to change plan, payment method or cancel",
+        "operationId": "createPortalSession",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Portal session created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UrlResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/billing/invoices": {
+      "get": {
+        "tags": ["Billing"],
+        "summary": "List the member's latest invoices",
+        "operationId": "listInvoices",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Invoice history",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InvoiceCollection" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/billing/webhook": {
+      "post": {
+        "tags": ["Billing"],
+        "summary": "Stripe webhook receiver",
+        "description": "Called by Stripe only. The raw body is verified with the Stripe-Signature header.",
+        "operationId": "stripeWebhook",
+        "responses": {
+          "200": { "description": "Event processed" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
     "/highlights": {
       "get": {
         "tags": [
@@ -1729,6 +2025,17 @@
             "type": "string",
             "format": "date-time"
           },
+          "subscription_status": {
+            "type": "string",
+            "description": "Stripe subscription status, maintained by the billing webhook."
+          },
+          "subscription_current_period_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subscription_cancel_at_period_end": {
+            "type": "boolean"
+          },
           "active": {
             "type": "boolean"
           },
@@ -1913,6 +2220,21 @@
             "type": "number",
             "minimum": 0
           },
+          "cancelled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cancelled_by": {
+            "type": "string",
+            "enum": [
+              "member",
+              "trainer"
+            ]
+          },
+          "checked_in_at": {
+            "type": "string",
+            "format": "date-time"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1923,6 +2245,128 @@
           }
         },
         "additionalProperties": false
+      },
+      "CheckinRequest": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": { "type": "string", "maxLength": 100 }
+        },
+        "additionalProperties": false
+      },
+      "CheckinCode": {
+        "type": "object",
+        "required": ["reservation_id", "code"],
+        "properties": {
+          "reservation_id": { "type": "string" },
+          "code": { "type": "string", "description": "Opaque value to encode in the member's QR." },
+          "valid_from": { "type": ["string", "null"], "format": "date-time" },
+          "valid_until": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "RescheduleRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "time_slot": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d) - ([01]\\d|2[0-3]):([0-5]\\d)$",
+            "example": "09:00 - 10:00"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaitlistRequest": {
+        "type": "object",
+        "required": ["trainer_id", "date", "time_slot"],
+        "properties": {
+          "trainer_id": { "type": "string" },
+          "activity_type": { "type": "string" },
+          "center": { "$ref": "#/components/schemas/TrainingCenter" },
+          "date": { "type": "string", "format": "date" },
+          "time_slot": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d) - ([01]\\d|2[0-3]):([0-5]\\d)$",
+            "example": "09:00 - 10:00"
+          }
+        }
+      },
+      "WaitlistEntry": {
+        "type": "object",
+        "required": ["waitlist_id", "member", "trainer", "date", "time_slot", "status", "position"],
+        "properties": {
+          "_id": { "type": "string" },
+          "waitlist_id": { "type": "string" },
+          "member": { "type": "object", "additionalProperties": true },
+          "trainer": { "$ref": "#/components/schemas/ReservationTrainer" },
+          "activity_type": { "type": "string" },
+          "center": { "$ref": "#/components/schemas/TrainingCenter" },
+          "date": { "type": "string", "format": "date-time" },
+          "time_slot": { "type": "string" },
+          "status": { "type": "string", "enum": ["Esperando", "Promovida"] },
+          "position": { "type": "integer", "minimum": 1, "description": "1-based place in the queue for that slot." },
+          "reservation_id": { "type": "string", "description": "Set once the entry is promoted to a reservation." },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WaitlistCollection": {
+        "type": "object",
+        "required": ["items", "total"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/WaitlistEntry" } },
+          "total": { "type": "integer" }
+        }
+      },
+      "SubscriptionSummary": {
+        "type": "object",
+        "required": ["configured", "available_plans", "membership_type", "cancel_at_period_end", "has_billing_account"],
+        "properties": {
+          "configured": { "type": "boolean", "description": "False when Stripe is not set up on the server." },
+          "available_plans": { "type": "array", "items": { "$ref": "#/components/schemas/MembershipType" } },
+          "membership_type": { "$ref": "#/components/schemas/MembershipType" },
+          "status": { "type": ["string", "null"], "description": "Stripe subscription status, null when the member never subscribed." },
+          "current_period_end": { "type": ["string", "null"], "format": "date-time" },
+          "cancel_at_period_end": { "type": "boolean" },
+          "has_billing_account": { "type": "boolean" }
+        }
+      },
+      "CheckoutRequest": {
+        "type": "object",
+        "required": ["plan"],
+        "properties": {
+          "plan": { "$ref": "#/components/schemas/MembershipType" }
+        },
+        "additionalProperties": false
+      },
+      "UrlResponse": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string", "format": "uri" }
+        }
+      },
+      "Invoice": {
+        "type": "object",
+        "properties": {
+          "invoice_id": { "type": "string" },
+          "number": { "type": ["string", "null"] },
+          "status": { "type": ["string", "null"] },
+          "amount_paid": { "type": "number", "description": "Amount in currency units (not cents)." },
+          "currency": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "hosted_invoice_url": { "type": ["string", "null"] },
+          "invoice_pdf": { "type": ["string", "null"] }
+        }
+      },
+      "InvoiceCollection": {
+        "type": "object",
+        "required": ["items", "total"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Invoice" } },
+          "total": { "type": "integer" }
+        }
       },
       "MemberCollection": {
         "type": "object",

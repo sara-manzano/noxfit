@@ -199,7 +199,8 @@ const readAccountFields = (payload, idField, { partial, requirePassword, allowId
 const sanitizeMemberPayload = (
   payload,
   { partial = false, requirePassword = false, allowIdentifierUpdate = true, allowPlanFields = true } = {}
-) => {const data = readAccountFields(payload, 'member_id', { partial, requirePassword, allowIdentifierUpdate });
+) => {
+  const data = readAccountFields(payload, 'member_id', { partial, requirePassword, allowIdentifierUpdate });
 
   if (allowPlanFields) {
     assignIfDefined(data, 'membership_type', readEnumField(payload, 'membership_type', MEMBERSHIP_TYPES));
@@ -265,27 +266,18 @@ const sanitizeReservationPayload = (
   } = {}
 ) => {
   const data = {};
+  const readId = (field, mustExist) => {
+    const value = readStringField(payload, field);
 
-  if (!partial) {
-    const reservationId = readStringField(payload, 'reservation_id');
-    assignIfDefined(
-      data,
-      'reservation_id',
-      requireReservationId ? requireField(reservationId, 'reservation_id') : reservationId
-    );
+    return mustExist ? requireField(value, field) : value;
+  };
 
-    const memberId = readStringField(payload, 'member_id');
-    const trainerId = readStringField(payload, 'trainer_id');
+  assignIfDefined(data, 'reservation_id', readId('reservation_id', !partial && requireReservationId));
+  assignIfDefined(data, 'member_id', readId('member_id', !partial && requireMemberId));
+  assignIfDefined(data, 'trainer_id', readId('trainer_id', !partial && requireTrainerId));
 
-    assignIfDefined(data, 'member_id', requireMemberId ? requireField(memberId, 'member_id') : memberId);
-    assignIfDefined(data, 'trainer_id', requireTrainerId ? requireField(trainerId, 'trainer_id') : trainerId);
-    data.date = requireField(readDateField(payload, 'date'), 'date');
-  } else {
-    assignIfDefined(data, 'reservation_id', readStringField(payload, 'reservation_id'));
-    assignIfDefined(data, 'member_id', readStringField(payload, 'member_id'));
-    assignIfDefined(data, 'trainer_id', readStringField(payload, 'trainer_id'));
-    assignIfDefined(data, 'date', readDateField(payload, 'date'));
-  }
+  const date = readDateField(payload, 'date');
+  assignIfDefined(data, 'date', partial ? date : requireField(date, 'date'));
 
   assignIfDefined(data, 'activity_type', readStringField(payload, 'activity_type'));
   assignIfDefined(data, 'center', readEnumField(payload, 'center', TRAINING_CENTERS));

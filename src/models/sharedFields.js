@@ -20,6 +20,8 @@ const sanitizeAccountResponse = (_, ret) => {
   delete ret.reset_token_expires;
   delete ret.password_changed_at;
   delete ret.bootstrap_admin;
+  delete ret.stripe_customer_id;
+  delete ret.stripe_subscription_id;
 
   return ret;
 };

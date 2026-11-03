@@ -13,5 +13,6 @@ const loginLimiter = createLimiter(15 * 60 * 1000, 10, { skipSuccessfulRequests:
 const registerLimiter = createLimiter(60 * 60 * 1000, 10);
 const forgotPasswordLimiter = createLimiter(60 * 60 * 1000, 5);
 const resetPasswordLimiter = createLimiter(15 * 60 * 1000, 10);
+const billingLimiter = createLimiter(15 * 60 * 1000, 30);
 
-module.exports = { loginLimiter, registerLimiter, forgotPasswordLimiter, resetPasswordLimiter };
+module.exports = { loginLimiter, registerLimiter, forgotPasswordLimiter, resetPasswordLimiter, billingLimiter };

@@ -8,7 +8,11 @@ const {
   getReservationById,
   createReservation,
   updateReservation,
+  rescheduleReservation,
+  cancelReservation,
   deleteReservation,
+  getCheckinCode,
+  checkInReservation,
 } = require('../controllers/reservationsController');
 
 const rejectReservationPut = rejectPut('reservations');
@@ -20,6 +24,11 @@ router.route('/')
   .post(createReservation);
 
 router.get('/availability', getTrainerAvailability);
+router.post('/checkin', checkInReservation);
+
+router.post('/:reservation_id/cancel', cancelReservation);
+router.post('/:reservation_id/reschedule', rescheduleReservation);
+router.get('/:reservation_id/checkin-code', getCheckinCode);
 
 router.route('/:reservation_id')
   .get(getReservationById)

@@ -5,7 +5,7 @@ const {
   buildSlotFilter,
   ensureNoReservationConflicts,
   getTrainerSlotStatus,
-} = require('../src/controllers/reservationConflicts');
+} = require('../src/services/reservationConflicts');
 const { normalizeDateOnly } = require('../src/config/validation');
 
 const createReservationModelStub = ({ member = null, trainerSlot = [] } = {}, onQuery) => ({

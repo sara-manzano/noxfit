@@ -7,6 +7,7 @@ const ExcelJS = require('exceljs');
 const Member = require('../src/models/members');
 const Trainer = require('../src/models/trainers');
 const Reservation = require('../src/models/reservations');
+const Waitlist = require('../src/models/waitlist');
 const connectToDatabase = require('../src/config/database');
 const { hashPassword } = require('../src/config/auth');
 const { normalizeDateOnly } = require('../src/config/validation');
@@ -14,61 +15,29 @@ const { dataDirectory, loadCsv } = require('./loadCsv');
 
 const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD;
 const ADMIN_TRAINER_ID = process.env.SEED_ADMIN_TRAINER_ID || '843d66cb-b0bf-4655-919f-01081bf4da2d';
-const DEFAULT_WORKBOOK_NAME = 'noxfit-data.xlsx';
-const DEFAULT_WORKBOOK_PATH = path.join(dataDirectory, DEFAULT_WORKBOOK_NAME);
+const DEFAULT_WORKBOOK_PATH = path.join(dataDirectory, 'noxfit-data.xlsx');
 const ACTIVITY_TYPE_NORMALIZATION = {
   'Entenamiento Funcinal': 'Entrenamiento Funcional'
 };
 
-const normalizePassword = (value) => {
-  if (typeof value !== 'string') {
-    return '';
-  }
+const cleanText = (value) => (typeof value === 'string' ? value.trim() : '');
 
-  return value.trim();
-};
-
-const mergePasswordFieldFromRows = (rows, passwordRows, identifierField) => {
-  const passwordByIdentifier = new Map(
-    passwordRows
-      .filter((row) => row[identifierField])
-      .map((row) => [String(row[identifierField]).trim(), normalizePassword(row.password)])
-  );
-
-  return rows.map((row) => {
-    if (normalizePassword(row.password)) {
-      return row;
-    }
-
-    const identifier = row[identifierField] ? String(row[identifierField]).trim() : '';
-    const password = passwordByIdentifier.get(identifier);
-
-    if (!password) {
-      return row;
-    }
-
-    return {
-      ...row,
-      password,
-    };
-  });
-};
-
-const mergeCenterFieldFromRows = (rows, csvRows, identifierField) => {
-  const centerByIdentifier = new Map(
+// Fills `field` on rows that lack it using the CSV row with the same identifier.
+const mergeMissingField = (rows, csvRows, identifierField, field) => {
+  const valueByIdentifier = new Map(
     csvRows
-      .filter((row) => row[identifierField] && row.center)
-      .map((row) => [String(row[identifierField]).trim(), row.center.trim()])
+      .filter((row) => row[identifierField] && cleanText(row[field]))
+      .map((row) => [String(row[identifierField]).trim(), cleanText(row[field])])
   );
 
   return rows.map((row) => {
-    if (row.center) {
+    if (cleanText(row[field])) {
       return row;
     }
 
-    const center = centerByIdentifier.get(String(row[identifierField] || '').trim());
+    const value = valueByIdentifier.get(String(row[identifierField] ?? '').trim());
 
-    return center ? { ...row, center } : row;
+    return value ? { ...row, [field]: value } : row;
   });
 };
 
@@ -76,7 +45,7 @@ const buildPasswordHashResolver = async () => {
   const cache = new Map();
 
   return async (rawPassword) => {
-    const normalizedPassword = normalizePassword(rawPassword) || DEFAULT_SEED_PASSWORD;
+    const normalizedPassword = cleanText(rawPassword) || DEFAULT_SEED_PASSWORD;
 
     if (!normalizedPassword) {
       throw new Error('A row has no password and SEED_DEFAULT_PASSWORD is not set');
@@ -264,11 +233,12 @@ const loadSeedRows = async () => {
     return {
       sourceLabel: `Excel workbook (${path.basename(workbookPath)})`,
       rows: [
-        mergePasswordFieldFromRows(workbookMemberRows, memberCsvRows, 'member_id'),
-        mergeCenterFieldFromRows(
-          mergePasswordFieldFromRows(workbookTrainerRows, trainerCsvRows, 'trainer_id'),
+        mergeMissingField(workbookMemberRows, memberCsvRows, 'member_id', 'password'),
+        mergeMissingField(
+          mergeMissingField(workbookTrainerRows, trainerCsvRows, 'trainer_id', 'password'),
           trainerCsvRows,
-          'trainer_id'
+          'trainer_id',
+          'center'
         ),
         workbookReservationRows,
       ],
@@ -292,7 +262,7 @@ const buildLookupMap = (items, fieldName) => new Map(
 const RESET_REQUESTED = process.argv.includes('--reset') || process.env.SEED_RESET === 'true';
 
 const clearCollections = async () => {
-  await Reservation.deleteMany({});
+  await Promise.all([Reservation.deleteMany({}), Waitlist.deleteMany({})]);
   await Promise.all([
     Member.deleteMany({}),
     Trainer.deleteMany({}),
@@ -360,6 +330,8 @@ const logSeedSummary = ({ insertedMembers, insertedTrainers, reservations, admin
   console.log(`Initial admin trainer: ${adminTrainerId}`);
 };
 
+const parseActive = (value) => (value === undefined || value === '' ? true : parseBoolean(value));
+
 const mapMembers = (rows, resolvePasswordHash) => Promise.all(rows.map(async (row) => ({
   member_id: row.member_id,
   full_name: row.full_name,
@@ -368,7 +340,7 @@ const mapMembers = (rows, resolvePasswordHash) => Promise.all(rows.map(async (ro
   phone: row.phone || undefined,
   membership_type: row.membership_type || undefined,
   join_date: parseDate(row.join_date, { normalizeDate: true }),
-  active: row.active === undefined || row.active === '' ? true : parseBoolean(row.active)
+  active: parseActive(row.active)
 })));
 
 const mapTrainers = (rows, resolvePasswordHash, adminTrainerId) => Promise.all(rows.map(async (row) => ({
@@ -383,7 +355,7 @@ const mapTrainers = (rows, resolvePasswordHash, adminTrainerId) => Promise.all(r
   hourly_rate: parseNumber(row.hourly_rate),
   is_admin: row.trainer_id === adminTrainerId,
   bootstrap_admin: row.trainer_id === adminTrainerId,
-  active: row.active === undefined || row.active === '' ? true : parseBoolean(row.active)
+  active: parseActive(row.active)
 })));
 
 const mapReservations = (rows, membersById, trainersById) => rows.map((row) => {

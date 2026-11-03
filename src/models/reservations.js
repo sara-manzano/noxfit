@@ -35,9 +35,23 @@ const reservationSchema = new mongoose.Schema({
     default: 'Confirmada',
   },
   price: { type: Number, min: 0 },
+  cancelled_at: { type: Date },
+  cancelled_by: { type: String, enum: RESERVATION_BOOKERS },
+  checked_in_at: { type: Date },
+  checkin_code: { type: String, select: false },
+  reminder_sent_at: { type: Date, select: false },
 });
 
 reservationSchema.index({ trainer: 1, date: 1, time_slot: 1 });
+
+reservationSchema.index(
+  { checkin_code: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { checkin_code: { $type: 'string' } },
+    name: 'unique_checkin_code',
+  }
+);
 
 reservationSchema.index(
   { member: 1, date: 1, time_slot: 1 },

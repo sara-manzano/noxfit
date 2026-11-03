@@ -40,6 +40,7 @@ const RESERVATION_STATUSES = ['Confirmada', 'Completada', 'Cancelada'];
 const ACTIVE_RESERVATION_STATUSES = ['Confirmada', 'Completada'];
 const RESERVATION_BOOKERS = ['member', 'trainer'];
 const MAX_RESERVATIONS_PER_TRAINER_SLOT = 12;
+const WAITLIST_STATUSES = ['Esperando', 'Promovida'];
 
 const isPersonalTraining = (activityType) => (
   typeof activityType === 'string' && activityType.trim().toLowerCase() === 'entrenamiento personal'
@@ -52,8 +53,10 @@ module.exports = {
   RESERVATION_BOOKERS,
   RESERVATION_STATUSES,
   TRAINING_CENTERS,
+  WAITLIST_STATUSES,
   isPersonalTraining,
   isValidTimeSlot,
   isWithinOpeningHours,
   normalizeDateOnly,
+  parseTimeSlot,
 };

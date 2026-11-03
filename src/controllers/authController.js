@@ -6,6 +6,7 @@ const { sendItem } = require('../http/responses');
 const { sanitizeRoleLoginPayload, sanitizeMemberPayload, sanitizeForgotPasswordPayload, sanitizeResetPasswordPayload } = require('../middleware/validators');
 const { authenticateAccount, createAccountRecord, requestPasswordReset, resetAccountPassword } = require('./accountControllerHelpers');
 const { sendPasswordResetEmail } = require('../config/mailer');
+const { getAppUrl } = require('../config/appUrl');
 
 const getAccountModel = (role) => {
   if (role === 'member') return Member;
@@ -35,8 +36,7 @@ const forgotPassword = async (req, res) => {
   const token = await requestPasswordReset(Model, email);
 
   if (token) {
-    const appUrl = process.env.APP_URL || 'http://localhost:5173';
-    const resetUrl = `${appUrl}/?reset=${token}&role=${role}`;
+    const resetUrl = `${getAppUrl()}/?reset=${token}&role=${role}`;
 
     sendPasswordResetEmail(email, resetUrl).catch((mailError) => {
       console.error('Password reset email failed:', mailError.message);

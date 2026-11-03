@@ -117,7 +117,14 @@ const requireMemberAuth = withAuth((auth) => ensureRole(auth, 'member'));
 const requireTrainerAuth = withAuth((auth) => ensureRole(auth, 'trainer'));
 const requireTrainerAdmin = withAuth(ensureTrainerAdmin);
 
+const isMemberAuth = (req) => req.auth?.role === 'member';
+const isTrainerAdmin = (req) => req.auth?.role === 'trainer' && Boolean(req.auth.isAdmin);
+const isStandardTrainer = (req) => req.auth?.role === 'trainer' && !req.auth.isAdmin;
+
 module.exports = {
+  isMemberAuth,
+  isTrainerAdmin,
+  isStandardTrainer,
   authenticateRequest,
   requireMemberAuth,
   requireTrainerAuth,
