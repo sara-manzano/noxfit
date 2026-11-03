@@ -1101,7 +1101,7 @@
           "Reservations"
         ],
         "summary": "Create a reservation",
-        "description": "If a member is authenticated, member_id is optional and forced to the current user. An admin trainer can create reservations for any member.",
+        "description": "If a member is authenticated, member_id is optional and forced to the current user. An admin trainer can create reservations for any member. Each active reservation spends one session credit of the member unless they have an active subscription; with neither, the request fails with 402.",
         "operationId": "createReservation",
         "security": [
           {
@@ -1134,6 +1134,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
@@ -1866,6 +1869,16 @@
       },
       "NotFound": {
         "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "PaymentRequired": {
+        "description": "No session credits left and no active subscription",
         "content": {
           "application/json": {
             "schema": {
