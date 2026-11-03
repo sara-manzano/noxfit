@@ -15,6 +15,14 @@ const Reservation = require('../src/models/reservations');
 
 const PASSWORD = 'Noxfit123';
 
+const daysFromNow = (days) => {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date;
+};
+const isoDay = (days) => daysFromNow(days).toISOString().slice(0, 10);
+
 let mongoServer;
 let memberCounter = 0;
 const MEMBERSHIP_TYPES = ['Básica', 'Premium', 'VIP'];
@@ -54,7 +62,7 @@ const createReservation = (overrides = {}) => Reservation.create({
   member: overrides.member,
   trainer: overrides.trainer,
   activity_type: overrides.activity_type || 'CrossFit',
-  date: overrides.date || new Date('2026-11-10T00:00:00.000Z'),
+  date: overrides.date || daysFromNow(7),
   time_slot: overrides.time_slot || '10:00 - 11:00',
   status: overrides.status || 'Confirmada',
   price: overrides.price || 40,
@@ -96,7 +104,7 @@ const createFixtures = async () => {
     member: memberA._id,
     trainer: trainerAdmin._id,
     activity_type: 'CrossFit',
-    date: new Date('2026-11-10T00:00:00.000Z'),
+    date: daysFromNow(7),
     time_slot: '10:00 - 11:00',
     status: 'Confirmada',
   });
@@ -106,7 +114,7 @@ const createFixtures = async () => {
     member: memberB._id,
     trainer: trainerStandard._id,
     activity_type: 'Pilates',
-    date: new Date('2026-11-11T00:00:00.000Z'),
+    date: daysFromNow(8),
     time_slot: '12:00 - 13:00',
     status: 'Completada',
   });
@@ -239,7 +247,7 @@ test('standard trainer creates reservations as themselves and cannot book for an
     .send({
       reservation_id: 'reservation-by-trainer',
       member_id: 'member-a',
-      date: '2026-12-01',
+      date: isoDay(28),
       time_slot: '10:00 - 11:00',
     });
 
@@ -256,7 +264,7 @@ test('standard trainer creates reservations as themselves and cannot book for an
       reservation_id: 'reservation-by-member',
       trainer_id: 'trainer-standard',
       booked_by: 'trainer',
-      date: '2026-12-03',
+      date: isoDay(30),
       time_slot: '10:00 - 11:00',
     });
 
@@ -270,7 +278,7 @@ test('standard trainer creates reservations as themselves and cannot book for an
       reservation_id: 'reservation-other-trainer',
       member_id: 'member-a',
       trainer_id: 'trainer-admin',
-      date: '2026-12-02',
+      date: isoDay(29),
       time_slot: '10:00 - 11:00',
     });
 
@@ -287,14 +295,14 @@ test('trainer bookings require a member and show up in that member\'s reservatio
   const missingMember = await request(app)
     .post('/api/reservations')
     .set('Authorization', `Bearer ${standardLogin.body.token}`)
-    .send({ activity_type: 'Pilates', date: '2026-12-05', time_slot: '10:00 - 11:00' });
+    .send({ activity_type: 'Pilates', date: isoDay(32), time_slot: '10:00 - 11:00' });
 
   assert.equal(missingMember.status, 400);
 
   const own = await request(app)
     .post('/api/reservations')
     .set('Authorization', `Bearer ${standardLogin.body.token}`)
-    .send({ member_id: 'member-a', activity_type: 'Pilates', date: '2026-12-05', time_slot: '10:00 - 11:00' });
+    .send({ member_id: 'member-a', activity_type: 'Pilates', date: isoDay(32), time_slot: '10:00 - 11:00' });
 
   assert.equal(own.status, 201);
   assert.match(own.body.reservation_id, /^R-/);
@@ -316,7 +324,7 @@ test('trainer bookings require a member and show up in that member\'s reservatio
       member_id: 'member-b',
       trainer_id: 'trainer-admin',
       activity_type: 'CrossFit',
-      date: '2026-12-05',
+      date: isoDay(32),
       time_slot: '10:00 - 11:00',
     });
 
@@ -325,7 +333,7 @@ test('trainer bookings require a member and show up in that member\'s reservatio
   const conflict = await request(app)
     .post('/api/reservations')
     .set('Authorization', `Bearer ${standardLogin.body.token}`)
-    .send({ member_id: 'member-b', activity_type: 'Pilates', date: '2026-12-05', time_slot: '10:00 - 11:00' });
+    .send({ member_id: 'member-b', activity_type: 'Pilates', date: isoDay(32), time_slot: '10:00 - 11:00' });
 
   assert.equal(conflict.status, 409);
 });
@@ -334,7 +342,7 @@ test('standard trainers can only reschedule their own reservations', async () =>
   await createFixtures();
 
   const standardToken = (await loginTrainer('trainer-standard@noxfit.test')).body.token;
-  const date = '2026-11-20';
+  const date = isoDay(17);
 
   const moved = await request(app)
     .patch('/api/reservations/reservation-b')
@@ -491,13 +499,14 @@ test('unknown api routes return a JSON 404 error', async () => {
 });
 
 test('reservation dates are normalized before persistence', async () => {
+  const day = daysFromNow(7);
   const reservation = await createReservation({
     member: new mongoose.Types.ObjectId(),
     trainer: new mongoose.Types.ObjectId(),
-    date: new Date('2026-11-10T15:30:00.000Z'),
+    date: new Date(day.getTime() + 15.5 * 60 * 60 * 1000),
   });
 
-  assert.equal(reservation.date.toISOString(), '2026-11-10T00:00:00.000Z');
+  assert.equal(reservation.date.toISOString(), day.toISOString());
 });
 
 test('member only sees their own reservations and cannot query another member by id', async () => {
@@ -606,7 +615,7 @@ test('creating a reservation rejects slots where the trainer has a personal trai
     member: memberA._id,
     trainer: trainerAdmin._id,
     activity_type: 'Entrenamiento personal',
-    date: new Date('2026-11-20T00:00:00.000Z'),
+    date: daysFromNow(17),
     time_slot: '10:00 - 11:00',
   });
 
@@ -618,7 +627,7 @@ test('creating a reservation rejects slots where the trainer has a personal trai
       member_id: memberB.member_id,
       trainer_id: 'trainer-admin',
       activity_type: 'CrossFit',
-      date: '2026-11-20',
+      date: isoDay(17),
       time_slot: '10:00 - 11:00',
       status: 'Confirmada',
       price: 50,
@@ -639,7 +648,7 @@ test('a personal training cannot be booked on a slot that already has reservatio
       member_id: memberB.member_id,
       trainer_id: 'trainer-admin',
       activity_type: 'Entrenamiento personal',
-      date: '2026-11-10',
+      date: isoDay(7),
       time_slot: '10:00 - 11:00',
     });
 
@@ -663,7 +672,7 @@ test('a trainer accepts up to 12 reservations per slot and rejects the 13th', as
       member_id: member.member_id,
       trainer_id: trainerStandard.trainer_id,
       activity_type: 'Pilates',
-      date: '2026-11-25',
+      date: isoDay(22),
       time_slot: '17:00 - 18:00',
     });
 
@@ -686,13 +695,13 @@ test('availability marks trainers with a personal training as unavailable', asyn
     member: memberA._id,
     trainer: trainerAdmin._id,
     activity_type: 'Entrenamiento personal',
-    date: new Date('2026-11-22T00:00:00.000Z'),
+    date: daysFromNow(19),
     time_slot: '08:00 - 09:00',
   });
 
   const response = await request(app)
     .get('/api/reservations/availability')
-    .query({ date: '2026-11-22', time_slot: '08:00 - 09:00' })
+    .query({ date: isoDay(19), time_slot: '08:00 - 09:00' })
     .set('Authorization', `Bearer ${memberLogin.body.token}`);
 
   assert.equal(response.status, 200);
@@ -728,7 +737,7 @@ test('creating a reservation rejects member slot conflicts with 409', async () =
       reservation_id: 'reservation-conflict-member',
       trainer_id: 'trainer-standard',
       activity_type: 'Pilates',
-      date: '2026-11-10',
+      date: isoDay(7),
       time_slot: '10:00 - 11:00',
       status: 'Confirmada',
       price: 50,
@@ -747,7 +756,7 @@ test('updating a reservation rejects moving it into an occupied trainer slot', a
     member: memberB._id,
     trainer: trainerAdmin._id,
     activity_type: 'Entrenamiento personal',
-    date: new Date('2026-11-12T00:00:00.000Z'),
+    date: daysFromNow(9),
     time_slot: '09:00 - 10:00',
     status: 'Confirmada',
   });
@@ -757,7 +766,7 @@ test('updating a reservation rejects moving it into an occupied trainer slot', a
     member: memberA._id,
     trainer: trainerStandard._id,
     activity_type: 'Pilates',
-    date: new Date('2026-11-13T00:00:00.000Z'),
+    date: daysFromNow(10),
     time_slot: '15:00 - 16:00',
     status: 'Confirmada',
   });
@@ -767,7 +776,7 @@ test('updating a reservation rejects moving it into an occupied trainer slot', a
     .set('Authorization', `Bearer ${adminLogin.body.token}`)
     .send({
       trainer_id: 'trainer-admin',
-      date: '2026-11-12',
+      date: isoDay(9),
       time_slot: '09:00 - 10:00',
     });
 
@@ -784,7 +793,7 @@ test('updating a reservation rejects moving it into an occupied member slot', as
     member: memberA._id,
     trainer: trainerAdmin._id,
     activity_type: 'CrossFit',
-    date: new Date('2026-11-14T00:00:00.000Z'),
+    date: daysFromNow(11),
     time_slot: '11:00 - 12:00',
     status: 'Confirmada',
   });
@@ -794,7 +803,7 @@ test('updating a reservation rejects moving it into an occupied member slot', as
     member: memberB._id,
     trainer: trainerStandard._id,
     activity_type: 'Pilates',
-    date: new Date('2026-11-15T00:00:00.000Z'),
+    date: daysFromNow(12),
     time_slot: '16:00 - 17:00',
     status: 'Confirmada',
   });
@@ -804,7 +813,7 @@ test('updating a reservation rejects moving it into an occupied member slot', as
     .set('Authorization', `Bearer ${adminLogin.body.token}`)
     .send({
       member_id: 'member-a',
-      date: '2026-11-14',
+      date: isoDay(11),
       time_slot: '11:00 - 12:00',
     });
 
