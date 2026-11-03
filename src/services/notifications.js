@@ -1,7 +1,6 @@
 const mailer = require('../config/mailer');
 const Reservation = require('../models/reservations');
 
-// Notification failures must never fail the request that triggered them.
 const notifyReservation = async (kind, reservationId) => {
   try {
     const reservation = await Reservation.findById(reservationId)

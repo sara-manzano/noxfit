@@ -2,7 +2,6 @@ const { createStatusError } = require('../http/errors');
 const PDFDocument = require('pdfkit');
 
 const CURRENCY = 'EUR';
-// Plan and reservation prices already include VAT.
 const TAX_RATE = 0.21;
 const PLAN_MONTHLY_CENTS = { 'Básica': 990, Premium: 1990, VIP: 2990 };
 

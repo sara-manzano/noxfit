@@ -175,7 +175,6 @@ const listInvoices = async (req, res) => {
   })));
 };
 
-// Mounted before express.json(): the signature is computed over the raw body.
 const handleWebhook = async (req, res) => {
   const signature = req.headers['stripe-signature'];
   let event;

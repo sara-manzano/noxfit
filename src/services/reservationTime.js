@@ -22,7 +22,6 @@ const getZoneOffsetMs = (utcMs) => {
   return zonedAsUtc - Math.floor(utcMs / 1000) * 1000;
 };
 
-// Reservation dates are stored as UTC midnight; time slots are wall-clock time in Madrid.
 const zonedMinutesToUtcMs = (date, minutes) => {
   const guess = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, minutes);
   const firstPass = guess - getZoneOffsetMs(guess);

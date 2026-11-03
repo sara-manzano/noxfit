@@ -36,7 +36,6 @@ const findMemberConflict = (ReservationModel, slotFilter, member) => (
   ReservationModel.findOne({ ...slotFilter, member }).select('_id').lean()
 );
 
-// Returns the reason the trainer cannot take another booking in the slot, or null if there is room.
 const findTrainerConflict = async (ReservationModel, { reservation_id, trainer, date, time_slot, activity_type }) => {
   const slotReservations = await ReservationModel
     .find({ ...buildSlotFilter({ reservation_id, date, time_slot }), trainer })
@@ -68,7 +67,6 @@ const ensureNoReservationConflicts = async (ReservationModel, slot) => {
   }
 };
 
-// Re-checks after insert so two concurrent bookings cannot both claim the last spot.
 const createWithConflictCheck = async (ReservationModel, data) => {
   const reservation = await ReservationModel.create(data);
 

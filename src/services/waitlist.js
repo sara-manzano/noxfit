@@ -20,7 +20,6 @@ const tryCreateReservationFor = async (entry) => {
   try {
     await ensureNoReservationConflicts(Reservation, slot);
 
-    // Throws 402 when the member can no longer pay; the entry then keeps waiting.
     creditUsed = await takeSessionCredit(entry.member);
 
     return await createWithConflictCheck(Reservation, {

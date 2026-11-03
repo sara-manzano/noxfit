@@ -7,7 +7,6 @@ const ENTITLED_STATUSES = ['active', 'trialing'];
 
 const getId = (reference) => reference?._id || reference;
 
-// Returns false when the checkout session was already credited.
 const creditPackPurchase = async ({ session, memberId, pack }) => {
   try {
     await SessionPackPurchase.create({
@@ -36,7 +35,6 @@ const creditPackPurchase = async ({ session, memberId, pack }) => {
   return true;
 };
 
-// Active subscribers book without credits; everyone else spends one. Returns true when a credit was taken.
 const takeSessionCredit = async (memberReference) => {
   const memberId = getId(memberReference);
 
@@ -59,7 +57,6 @@ const takeSessionCredit = async (memberReference) => {
 
 const returnCredit = (memberId) => Member.updateOne({ _id: getId(memberId) }, { $inc: { session_credits: 1 } });
 
-// The credit_used flip is atomic so a credit is never refunded twice.
 const refundReservationCredit = async (reservation) => {
   if (!reservation?.credit_used || !reservation.member) {
     return false;
