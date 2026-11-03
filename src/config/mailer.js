@@ -18,7 +18,9 @@ const deliver = async ({ to, subject, text }) => {
   const transport = createTransport();
 
   if (!transport) {
-    console.log(`[mailer] SMTP_HOST not set. To: ${to}\nSubject: ${subject}\n${text}`);
+    const body = process.env.NODE_ENV === 'production' ? '' : `\n${text}`;
+
+    console.log(`[mailer] SMTP_HOST not set. To: ${to}\nSubject: ${subject}${body}`);
     return;
   }
 
