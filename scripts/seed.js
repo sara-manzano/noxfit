@@ -22,7 +22,6 @@ const ACTIVITY_TYPE_NORMALIZATION = {
 
 const cleanText = (value) => (typeof value === 'string' ? value.trim() : '');
 
-// Fills `field` on rows that lack it using the CSV row with the same identifier.
 const mergeMissingField = (rows, csvRows, identifierField, field) => {
   const valueByIdentifier = new Map(
     csvRows
@@ -334,7 +333,6 @@ const parseActive = (value) => (value === undefined || value === '' ? true : par
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Deterministic mix of trialing/active, renewal dates and pending cancellations.
 const buildSeedSubscription = (index) => ({
   subscription_status: index % 7 === 3 ? 'trialing' : 'active',
   subscription_current_period_end: new Date(Date.now() + (5 + ((index * 7) % 26)) * DAY_MS),
@@ -363,6 +361,7 @@ const mapTrainers = (rows, resolvePasswordHash, adminTrainerId) => Promise.all(r
   phone: row.phone || undefined,
   years_experience: parseNumber(row.years_experience),
   hourly_rate: parseNumber(row.hourly_rate),
+  bio: row.bio || undefined,
   is_admin: row.trainer_id === adminTrainerId,
   bootstrap_admin: row.trainer_id === adminTrainerId,
   active: parseActive(row.active)

@@ -2224,6 +2224,10 @@
             "type": "number",
             "minimum": 0
           },
+          "bio": {
+            "type": ["string", "null"],
+            "maxLength": 400
+          },
           "is_admin": {
             "type": "boolean"
           },
@@ -2660,6 +2664,9 @@
                 },
                 "center": {
                   "type": "string"
+                },
+                "bio": {
+                  "type": ["string", "null"]
                 }
               }
             }
@@ -2883,6 +2890,10 @@
             "type": "number",
             "minimum": 0
           },
+          "bio": {
+            "type": ["string", "null"],
+            "maxLength": 400
+          },
           "active": {
             "type": "boolean"
           }
@@ -2943,6 +2954,10 @@
             "type": "number",
             "minimum": 0
           },
+          "bio": {
+            "type": ["string", "null"],
+            "maxLength": 400
+          },
           "active": {
             "type": "boolean"
           }
@@ -2986,6 +3001,10 @@
           "hourly_rate": {
             "type": "number",
             "minimum": 0
+          },
+          "bio": {
+            "type": ["string", "null"],
+            "maxLength": 400
           },
           "is_admin": {
             "type": "boolean"

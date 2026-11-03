@@ -11,6 +11,7 @@ const {
 const MIN_PASSWORD_LENGTH = 8;
 const AVATAR_PATTERN = /^https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]+\/image\/upload\/[A-Za-z0-9_.,:/-]+$/;
 const MAX_AVATAR_LENGTH = 500;
+const MAX_BIO_LENGTH = 400;
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim() !== '';
 
@@ -171,6 +172,20 @@ const readAvatarField = (payload, fieldName = 'avatar') => {
   return value;
 };
 
+const readBioField = (payload) => {
+  if (payload.bio === null) {
+    return null;
+  }
+
+  const value = readStringField(payload, 'bio');
+
+  if (value !== undefined && value.length > MAX_BIO_LENGTH) {
+    throw createValidationError(`bio must be at most ${MAX_BIO_LENGTH} characters long`);
+  }
+
+  return value;
+};
+
 const readAccountFields = (payload, idField, { partial, requirePassword, allowIdentifierUpdate }) => {
   const data = {};
 
@@ -225,6 +240,7 @@ const sanitizeTrainerPayload = (
   assignIfDefined(data, 'center', readEnumField(payload, 'center', TRAINING_CENTERS));
   assignIfDefined(data, 'years_experience', readNumberField(payload, 'years_experience'));
   assignIfDefined(data, 'hourly_rate', readNumberField(payload, 'hourly_rate'));
+  assignIfDefined(data, 'bio', readBioField(payload));
 
   if (allowAdminField) {
     assignIfDefined(data, 'is_admin', readBooleanField(payload, 'is_admin'));

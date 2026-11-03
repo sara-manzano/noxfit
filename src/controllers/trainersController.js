@@ -60,7 +60,7 @@ const listTrainers = async (req, res) => {
 
 const listTrainerDirectory = async (_req, res) => sendCollection(
   res,
-  await listAccountDirectory(Trainer, 'trainer_id full_name activity_type center avatar')
+  await listAccountDirectory(Trainer, 'trainer_id full_name activity_type center avatar bio')
 );
 
 const getTrainerById = async (req, res) => {

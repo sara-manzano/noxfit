@@ -8,6 +8,7 @@ const trainerSchema = new mongoose.Schema({
   center: { type: String, enum: TRAINING_CENTERS },
   years_experience: { type: Number, min: 0 },
   hourly_rate: { type: Number, min: 0 },
+  bio: { type: String, trim: true, maxlength: 400 },
   is_admin: { type: Boolean, default: false },
   bootstrap_admin: { type: Boolean, default: false, select: false },
 });
