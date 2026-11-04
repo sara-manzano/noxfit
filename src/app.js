@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const helmet = require('helmet');
+const mongoose = require('mongoose');
 const swaggerUi = require('swagger-ui-express');
 const { sendError } = require('./http/responses');
 const openApiDocument = require('../openapi.json');
@@ -15,6 +17,10 @@ const highlightsRoutes = require('./routes/highlightsRoutes');
 const { handleWebhook } = require('./controllers/billingController');
 
 const app = express();
+
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', /^\d+$/.test(process.env.TRUST_PROXY) ? Number(process.env.TRUST_PROXY) : process.env.TRUST_PROXY);
+}
 
 const shouldLogError = (error) => !error?.statusCode || error.statusCode >= 500;
 
@@ -44,10 +50,14 @@ const handleError = (error, _req, res, _next) => {
   return sendError(res, 500, 'Internal server error');
 };
 
-app.use(cors());
-app.use(morgan('dev'));
+const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map((origin) => origin.trim()).filter(Boolean);
+
+// CSP desactivada para no romper Swagger UI; la API solo sirve JSON.
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(cors(corsOrigins.length > 0 ? { origin: corsOrigins } : undefined));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), handleWebhook);
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use((req, _res, next) => {
   req.body ??= {};
@@ -62,8 +72,10 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument, {
 }));
 
 app.get('/api/health', (_req, res) => {
-  res.status(200).json({
-    ok: true,
+  const dbConnected = mongoose.connection.readyState === 1;
+
+  res.status(dbConnected ? 200 : 503).json({
+    ok: dbConnected,
     service: 'Noxfit API',
     timestamp: new Date().toISOString(),
   });

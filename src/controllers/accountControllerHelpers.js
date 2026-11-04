@@ -1,4 +1,5 @@
 const Reservation = require('../models/reservations');
+const Waitlist = require('../models/waitlist');
 const crypto = require('node:crypto');
 const { createStatusError } = require('../http/errors');
 const { hashPassword, comparePassword, signAccountToken, DUMMY_PASSWORD_HASH } = require('../config/auth');
@@ -71,7 +72,22 @@ const deleteAccountRecord = async (Model, identifierField, identifierValue, rese
     throw createStatusError(`${resourceName} cannot be deleted while reservations are linked to the account`, 409);
   }
 
+  // Waitlist entries use the same member/trainer field names as reservations
+  if (reservationField === 'member') {
+    await Waitlist.deleteMany({ member: account._id });
+  } else if (await Waitlist.exists({ [reservationField]: account._id, status: 'Esperando' })) {
+    throw createStatusError(`${resourceName} cannot be deleted while members are waiting for its slots`, 409);
+  }
+
   await Model.findOneAndDelete({ [identifierField]: identifierValue });
+};
+
+const ensureCurrentPassword = async (Model, identifierField, identifierValue, currentPassword) => {
+  const account = await Model.findOne({ [identifierField]: identifierValue }).select('+password_hash').lean();
+
+  if (!await comparePassword(currentPassword, account?.password_hash)) {
+    throw createStatusError('current_password is missing or incorrect', 403);
+  }
 };
 
 const authenticateAccount = async (Model, role, email, password) => {
@@ -139,5 +155,6 @@ module.exports = {
   createAccountRecord,
   updateAccountRecord,
   deleteAccountRecord,
+  ensureCurrentPassword,
   authenticateAccount,
 };

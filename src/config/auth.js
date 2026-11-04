@@ -9,9 +9,12 @@ const getJwtSecret = () => {
   return process.env.JWT_SECRET;
 };
 
-const hashPassword = async (password) => bcrypt.hash(password, 10);
+const BCRYPT_ROUNDS = 12;
+const JWT_ALGORITHM = 'HS256';
 
-const DUMMY_PASSWORD_HASH = bcrypt.hashSync('noxfit-dummy-password', 10);
+const hashPassword = async (password) => bcrypt.hash(password, BCRYPT_ROUNDS);
+
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('noxfit-dummy-password', BCRYPT_ROUNDS);
 
 const comparePassword = async (password, passwordHash) => {
   if (typeof password !== 'string' || typeof passwordHash !== 'string' || passwordHash.length === 0) {
@@ -21,9 +24,9 @@ const comparePassword = async (password, passwordHash) => {
   return bcrypt.compare(password, passwordHash);
 };
 
-const signToken = (payload) => jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
+const signToken = (payload) => jwt.sign(payload, getJwtSecret(), { algorithm: JWT_ALGORITHM, expiresIn: '7d' });
 
-const verifyToken = (token) => jwt.verify(token, getJwtSecret());
+const verifyToken = (token) => jwt.verify(token, getJwtSecret(), { algorithms: [JWT_ALGORITHM] });
 
 const signAccountToken = (role, account) => {
   if (role === 'trainer') {
@@ -37,6 +40,7 @@ module.exports = {
   hashPassword,
   comparePassword,
   DUMMY_PASSWORD_HASH,
+  getJwtSecret,
   signAccountToken,
   verifyToken,
 };

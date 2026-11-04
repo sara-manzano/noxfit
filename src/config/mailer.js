@@ -1,17 +1,30 @@
 const nodemailer = require('nodemailer');
 const { formatReservationDate } = require('../services/reservationTime');
 
+let cachedTransport;
+let cachedTransportKey;
+
 const createTransport = () => {
   if (!process.env.SMTP_HOST) {
     return null;
   }
 
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
-  });
+  const port = Number(process.env.SMTP_PORT) || 587;
+  const secure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : port === 465;
+  const { SMTP_HOST: host, SMTP_USER: user, SMTP_PASS: pass } = process.env;
+  const key = JSON.stringify([host, port, secure, user, pass]);
+
+  if (!cachedTransport || cachedTransportKey !== key) {
+    cachedTransport = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: user ? { user, pass } : undefined,
+    });
+    cachedTransportKey = key;
+  }
+
+  return cachedTransport;
 };
 
 const deliver = async ({ to, subject, text }) => {

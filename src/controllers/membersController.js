@@ -14,6 +14,7 @@ const {
   createAccountRecord,
   updateAccountRecord,
   deleteAccountRecord,
+  ensureCurrentPassword,
 } = require('./accountControllerHelpers');
 
 const listMembers = async (req, res) => {
@@ -58,12 +59,18 @@ const applyMemberUpdate = async (res, member_id, body, options) => {
   return sendItem(res, member);
 };
 
-const updateCurrentMember = (req, res) => applyMemberUpdate(
-  res,
-  req.auth.identifier,
-  req.body,
-  { allowIdentifierUpdate: false, allowPlanFields: false }
-);
+const updateCurrentMember = async (req, res) => {
+  if (req.body.password !== undefined) {
+    await ensureCurrentPassword(Member, 'member_id', req.auth.identifier, req.body.current_password);
+  }
+
+  return applyMemberUpdate(
+    res,
+    req.auth.identifier,
+    req.body,
+    { allowIdentifierUpdate: false, allowPlanFields: false, allowActiveField: false }
+  );
+};
 
 const updateMember = (req, res) => applyMemberUpdate(res, req.params.member_id, req.body);
 

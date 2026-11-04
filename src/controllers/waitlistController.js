@@ -44,7 +44,10 @@ const listWaitlist = async (req, res) => {
     .sort({ date: 1, time_slot: 1, createdAt: 1 })
     .lean();
 
-  return sendCollection(res, await Promise.all(entries.map(withPosition)));
+  // Entries whose member or trainer was deleted cannot be populated
+  const liveEntries = entries.filter((entry) => entry.member && entry.trainer);
+
+  return sendCollection(res, await Promise.all(liveEntries.map(withPosition)));
 };
 
 const joinWaitlist = async (req, res) => {

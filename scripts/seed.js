@@ -63,10 +63,6 @@ const resolveAdminTrainerId = (trainerRows) => {
     throw new Error('No trainers were found in the CSV, so an admin cannot be assigned');
   }
 
-  if (!ADMIN_TRAINER_ID) {
-    return trainerRows[0].trainer_id;
-  }
-
   const exists = trainerRows.some((row) => row.trainer_id === ADMIN_TRAINER_ID);
 
   if (!exists) {
@@ -272,13 +268,30 @@ const withoutUndefined = (document) => Object.fromEntries(
   Object.entries(document).filter(([, value]) => value !== undefined)
 );
 
+const SET_ON_INSERT_FIELDS = [
+  'password_hash',
+  'subscription_status',
+  'subscription_current_period_end',
+  'subscription_cancel_at_period_end',
+];
+
 const upsertDocuments = async (Model, identifierField, documents) => {
   await Model.bulkWrite(documents.map((document) => {
-    const { password_hash, ...fields } = withoutUndefined(document);
+    const fields = withoutUndefined(document);
+    const setOnInsert = {};
+
+    // Never overwrite credentials or real Stripe state on re-seed
+    for (const field of SET_ON_INSERT_FIELDS) {
+      if (field in fields) {
+        setOnInsert[field] = fields[field];
+        delete fields[field];
+      }
+    }
+
     const update = { $set: fields };
 
-    if (password_hash) {
-      update.$setOnInsert = { password_hash };
+    if (Object.keys(setOnInsert).length) {
+      update.$setOnInsert = setOnInsert;
     }
 
     return {

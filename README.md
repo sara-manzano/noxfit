@@ -99,6 +99,8 @@ Opcionales:
 - `SEED_ADMIN_TRAINER_ID`: selecciona qué trainer del CSV será admin inicial
 - `SEED_RESET`: con valor `true` equivale a pasar `--reset` al seed
 - `DB_NAME`: sobrescribe el nombre de base de datos de `MONGODB_URI`
+- `CORS_ORIGIN`: orígenes permitidos separados por comas (p. ej. `https://noxfit.es`); si no se define, se permite cualquier origen
+- `TRUST_PROXY`: número de proxies (o lista de IPs) delante de la API, para que los limitadores de peticiones vean la IP real del cliente
 - `APP_URL`: URL del frontend usada para construir el enlace de restablecimiento de contraseña; por defecto `http://localhost:5173`
 - `SMTP_HOST`, `SMTP_PORT` (por defecto `587`), `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`: servidor SMTP para enviar emails. Si `SMTP_HOST` no está definido, el enlace de restablecimiento se escribe en la consola del servidor
 - `MAIL_FROM`: remitente de los emails; por defecto `Noxfit <no-reply@noxfit.es>`

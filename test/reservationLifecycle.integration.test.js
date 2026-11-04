@@ -346,7 +346,7 @@ test('check-in: member gets a code and the trainer validates it inside the sessi
   assert.equal(memberCheckin.status, 403);
   assert.equal(badCode.status, 404);
   assert.equal(checkin.status, 200);
-  assert.equal(checkin.body.status, 'Completed');
+  assert.equal(checkin.body.status, 'Completada');
   assert.ok(checkin.body.checked_in_at);
   assert.equal(checkin.body.checkin_code, undefined);
   assert.equal(again.status, 409);

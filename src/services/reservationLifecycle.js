@@ -1,4 +1,5 @@
 const { createStatusError } = require('../http/errors');
+const { getReferenceId } = require('../config/ids');
 const { getReservationWindow, HOUR_MS } = require('./reservationTime');
 const { promoteFromWaitlist } = require('./waitlist');
 
@@ -26,18 +27,18 @@ const ensureOutsideChangeWindow = (reservation, now = new Date()) => {
   }
 };
 
-const ensureNotInPast = (reservation, now = new Date()) => {
+const ensureNotInPast = (reservation, { now = new Date(), statusCode = 400 } = {}) => {
   const window = getReservationWindow(reservation);
 
   if (window && window.start.getTime() <= now.getTime()) {
-    throw createStatusError('Reservations cannot be made for a time that has already started', 400);
+    throw createStatusError('Reservations cannot be made for a time that has already started', statusCode);
   }
 };
 
 const releaseSlot = async (reservation) => {
   try {
     await promoteFromWaitlist({
-      trainer: reservation.trainer?._id || reservation.trainer,
+      trainer: getReferenceId(reservation.trainer),
       date: reservation.date,
       time_slot: reservation.time_slot,
     });

@@ -2,4 +2,6 @@ const crypto = require('node:crypto');
 
 const generateId = (prefix) => `${prefix}-${crypto.randomBytes(5).toString('hex')}`;
 
-module.exports = { generateId };
+const getReferenceId = (reference) => reference?._id || reference;
+
+module.exports = { generateId, getReferenceId };

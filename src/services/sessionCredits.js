@@ -2,10 +2,8 @@ const Member = require('../models/members');
 const Reservation = require('../models/reservations');
 const SessionPackPurchase = require('../models/sessionPackPurchases');
 const { createStatusError } = require('../http/errors');
-
-const ENTITLED_STATUSES = ['active', 'trialing'];
-
-const getId = (reference) => reference?._id || reference;
+const { getReferenceId } = require('../config/ids');
+const { ENTITLED_SUBSCRIPTION_STATUSES } = require('../config/validation');
 
 const creditPackPurchase = async ({ session, memberId, pack }) => {
   try {
@@ -36,9 +34,9 @@ const creditPackPurchase = async ({ session, memberId, pack }) => {
 };
 
 const takeSessionCredit = async (memberReference) => {
-  const memberId = getId(memberReference);
+  const memberId = getReferenceId(memberReference);
 
-  if (await Member.exists({ _id: memberId, subscription_status: { $in: ENTITLED_STATUSES } })) {
+  if (await Member.exists({ _id: memberId, subscription_status: { $in: ENTITLED_SUBSCRIPTION_STATUSES } })) {
     return false;
   }
 
@@ -55,7 +53,7 @@ const takeSessionCredit = async (memberReference) => {
   return true;
 };
 
-const returnCredit = (memberId) => Member.updateOne({ _id: getId(memberId) }, { $inc: { session_credits: 1 } });
+const returnCredit = (memberId) => Member.updateOne({ _id: getReferenceId(memberId) }, { $inc: { session_credits: 1 } });
 
 const refundReservationCredit = async (reservation) => {
   if (!reservation?.credit_used || !reservation.member) {

@@ -67,7 +67,7 @@ const updateHighlights = async (req, res) => {
   const document = await Highlights.findOneAndUpdate(
     { key: 'main' },
     { $set: update },
-    { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', runValidators: true, setDefaultsOnInsert: true }
   ).lean();
 
   return sendItem(res, serialize(document));

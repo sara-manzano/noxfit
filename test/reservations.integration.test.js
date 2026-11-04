@@ -820,3 +820,81 @@ test('updating a reservation rejects moving it into an occupied member slot', as
   assert.equal(response.status, 409);
   assert.equal(response.body.error, 'Member already has a reservation for that time slot');
 });
+test('self-service password change requires the current password and ignores active', async () => {
+  await createFixtures();
+
+  const memberToken = (await loginMember('member-a@noxfit.test')).body.token;
+  const standardToken = (await loginTrainer('trainer-standard@noxfit.test')).body.token;
+
+  const missing = await request(app).patch('/api/members/me').set('Authorization', `Bearer ${memberToken}`).send({ password: 'NewPassword1' });
+  const wrong = await request(app).patch('/api/members/me').set('Authorization', `Bearer ${memberToken}`).send({ password: 'NewPassword1', current_password: 'nope' });
+  const deactivate = await request(app).patch('/api/members/me').set('Authorization', `Bearer ${memberToken}`).send({ active: false });
+  const trainerChange = await request(app)
+    .patch('/api/trainers/me')
+    .set('Authorization', `Bearer ${standardToken}`)
+    .send({ password: 'NewPassword1', current_password: PASSWORD });
+  const relogin = await request(app).post('/api/auth/login').send({ role: 'trainer', email: 'trainer-standard@noxfit.test', password: 'NewPassword1' });
+
+  assert.equal(missing.status, 403);
+  assert.equal(wrong.status, 403);
+  assert.equal(deactivate.status, 200);
+  assert.equal((await Member.findOne({ member_id: 'member-a' })).active, true);
+  assert.equal(trainerChange.status, 200);
+  assert.equal(relogin.status, 200);
+});
+
+test('deleting a member clears its waitlist entries and deleting a trainer with waiting members is blocked', async () => {
+  const { memberA, trainerStandard } = await createFixtures();
+  const Waitlist = require('../src/models/waitlist');
+  const adminToken = (await loginTrainer('trainer-admin@noxfit.test')).body.token;
+  const entry = {
+    trainer: trainerStandard._id,
+    date: daysFromNow(9),
+    time_slot: '10:00 - 11:00',
+  };
+
+  await Waitlist.create({ waitlist_id: 'w-1', member: memberA._id, ...entry });
+
+  const blocked = await request(app).delete('/api/trainers/trainer-standard').set('Authorization', `Bearer ${adminToken}`);
+  await Reservation.deleteMany({ member: memberA._id });
+  const removed = await request(app).delete('/api/members/member-a').set('Authorization', `Bearer ${adminToken}`);
+
+  assert.equal(blocked.status, 409);
+  assert.equal(removed.status, 204);
+  assert.equal(await Waitlist.countDocuments({}), 0);
+});
+
+test('availability lists only active trainers and can filter by center', async () => {
+  await createFixtures();
+  await createTrainer({ trainer_id: 'trainer-inactive', email: 'inactive@noxfit.test', active: false });
+  await Trainer.updateOne({ trainer_id: 'trainer-standard' }, { center: 'Noxfit Alcobendas' });
+
+  const token = (await loginMember('member-a@noxfit.test')).body.token;
+  const query = `date=${isoDay(20)}&time_slot=10:00%20-%2011:00`;
+  const all = await request(app).get(`/api/reservations/availability?${query}`).set('Authorization', `Bearer ${token}`);
+  const byCenter = await request(app).get(`/api/reservations/availability?${query}&center=Noxfit%20Alcobendas`).set('Authorization', `Bearer ${token}`);
+  const badCenter = await request(app).get(`/api/reservations/availability?${query}&center=Mars`).set('Authorization', `Bearer ${token}`);
+
+  assert.deepEqual(all.body.items.map((item) => item.trainer_id).sort(), ['trainer-admin', 'trainer-standard']);
+  assert.deepEqual(byCenter.body.items.map((item) => item.trainer_id), ['trainer-standard']);
+  assert.equal(badCenter.status, 400);
+});
+
+test('only trainer admins can update highlights', async () => {
+  await createFixtures();
+
+  const adminToken = (await loginTrainer('trainer-admin@noxfit.test')).body.token;
+  const standardToken = (await loginTrainer('trainer-standard@noxfit.test')).body.token;
+  const memberToken = (await loginMember('member-a@noxfit.test')).body.token;
+  const payload = { news: [{ title: 'Aviso', text: 'Texto' }] };
+
+  const asStandard = await request(app).patch('/api/highlights').set('Authorization', `Bearer ${standardToken}`).send(payload);
+  const asMember = await request(app).patch('/api/highlights').set('Authorization', `Bearer ${memberToken}`).send(payload);
+  const asAdmin = await request(app).patch('/api/highlights').set('Authorization', `Bearer ${adminToken}`).send(payload);
+  const read = await request(app).get('/api/highlights').set('Authorization', `Bearer ${memberToken}`);
+
+  assert.equal(asStandard.status, 403);
+  assert.equal(asMember.status, 403);
+  assert.equal(asAdmin.status, 200);
+  assert.deepEqual(read.body.news, payload.news);
+});

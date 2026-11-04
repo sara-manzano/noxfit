@@ -1,12 +1,12 @@
 const Member = require('../models/members');
 const Trainer = require('../models/trainers');
 const Reservation = require('../models/reservations');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const { sendCollection, sendItem, sendNoContent } = require('../http/responses');
 const { sanitizeReservationPayload } = require('../middleware/validators');
 const { createStatusError, createForbiddenError } = require('../http/errors');
-const { generateId } = require('../config/ids');
-const { isValidTimeSlot, isWithinOpeningHours, normalizeDateOnly, ACTIVE_RESERVATION_STATUSES } = require('../config/validation');
+const { generateId, getReferenceId } = require('../config/ids');
+const { getBookableTimeSlotError, normalizeDateOnly, ACTIVE_RESERVATION_STATUSES, TRAINING_CENTERS } = require('../config/validation');
 const { isMemberAuth, isTrainerAdmin, isStandardTrainer } = require('../middleware/auth');
 const { ensureFound } = require('./accountControllerHelpers');
 const {
@@ -16,7 +16,7 @@ const {
   ensureTrainerWorksAtCenter,
   getTrainerSlotStatus,
 } = require('../services/reservationConflicts');
-const { ensureOutsideChangeWindow, releaseSlot } = require('../services/reservationLifecycle');
+const { ensureNotInPast, ensureOutsideChangeWindow, releaseSlot } = require('../services/reservationLifecycle');
 const { notifyReservation } = require('../services/notifications');
 const {
   refundDeletedReservationCredit,
@@ -33,8 +33,6 @@ const reservationPopulation = [
   { path: 'member', select: 'member_id full_name email membership_type' },
   { path: 'trainer', select: 'trainer_id full_name activity_type center hourly_rate' },
 ];
-
-const getReferenceId = (reference) => reference?._id || reference;
 
 const getCheckinWindow = (reservation) => {
   const window = getReservationWindow(reservation);
@@ -197,16 +195,21 @@ const getTrainerAvailability = async (req, res) => {
     throw createStatusError('date must be a valid date', 400);
   }
 
-  if (!isValidTimeSlot(time_slot)) {
-    throw createStatusError('time_slot must use HH:MM - HH:MM and end after it starts', 400);
+  const timeSlotError = getBookableTimeSlotError(time_slot);
+
+  if (timeSlotError) {
+    throw createStatusError(`time_slot ${timeSlotError}`, 400);
   }
 
-  if (!isWithinOpeningHours(time_slot)) {
-    throw createStatusError('time_slot must be within opening hours (07:00 - 20:00)', 400);
+  const { center } = req.query;
+
+  if (center !== undefined && !TRAINING_CENTERS.includes(center)) {
+    throw createStatusError(`center must be one of: ${TRAINING_CENTERS.join(', ')}`, 400);
   }
 
+  const trainerFilter = { active: { $ne: false }, ...(center ? { center } : {}) };
   const [trainers, slotReservations] = await Promise.all([
-    Trainer.find().select('trainer_id').lean(),
+    Trainer.find(trainerFilter).select('trainer_id').lean(),
     Reservation.find(buildSlotFilter({ date, time_slot: time_slot.trim() })).select('trainer activity_type').lean(),
   ]);
 
@@ -278,6 +281,10 @@ const createReservation = async (req, res) => {
   assignCurrentTrainer(req, reservationData);
 
   const payload = await resolveReservationReferences(reservationData);
+
+  if (isMemberAuth(req)) {
+    ensureNotInPast(payload);
+  }
 
   await ensureTrainerMatchesCenter(payload.trainer, payload.center);
   await ensureSlotIsFree(payload);
@@ -385,6 +392,10 @@ const applyReservationUpdate = async (req, res, body, { requireConfirmed = false
     status: payload.status || existingReservation.status,
   };
 
+  if (isMemberAuth(req) && isMoving) {
+    ensureNotInPast(slot, { statusCode: 409 });
+  }
+
   await ensureNoReservationConflicts(Reservation, { reservation_id: req.params.reservation_id, ...slot });
 
   const reservation = await Reservation.findOneAndUpdate(
@@ -478,6 +489,10 @@ const deleteReservation = async (req, res) => {
   if (!isTrainerAdmin(req)) {
     const reservation = await findReservationForOwnershipCheck(req.params.reservation_id);
     ensureReservationOwner(req, reservation, 'delete');
+
+    if (reservation.status === 'Completada') {
+      throw createForbiddenError('Completed reservations can only be deleted by a trainer admin');
+    }
 
     if (reservation.status === 'Confirmada') {
       ensureOutsideChangeWindow(reservation);

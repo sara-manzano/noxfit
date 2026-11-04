@@ -7,7 +7,7 @@ const HIGHLIGHT_MAX_ITEMS = 6;
 
 const DEFAULT_HIGHLIGHTS = {
   news: [
-    { title: 'Nuevo horario de verano', text: 'Todos los centros abren de 7:00 a 22:00 desde el 1 de noviembre.' },
+    { title: 'Volvemos al horario de otoño', text: 'Todos los centros abren de 7:00 a 20:00 desde el 1 de noviembre.' },
     { title: 'Zona funcional ampliada', text: 'Más espacio y material en el centro de Madrid.' },
   ],
   activities: [

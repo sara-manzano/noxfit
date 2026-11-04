@@ -13,6 +13,7 @@ const {
   createAccountRecord,
   updateAccountRecord,
   deleteAccountRecord,
+  ensureCurrentPassword,
 } = require('./accountControllerHelpers');
 
 const isSameToken = (received, expected) => {
@@ -113,12 +114,18 @@ const applyTrainerUpdate = async (res, trainer_id, body, options) => {
   return sendItem(res, trainer);
 };
 
-const updateCurrentTrainer = (req, res) => {
-  if (!req.auth.isAdmin && Object.keys(req.body).some((field) => field !== 'avatar')) {
-    throw createForbiddenError('Trainer admin access is required to change fields other than avatar');
+const SELF_SERVICE_FIELDS = ['avatar', 'password', 'current_password'];
+
+const updateCurrentTrainer = async (req, res) => {
+  if (!req.auth.isAdmin && Object.keys(req.body).some((field) => !SELF_SERVICE_FIELDS.includes(field))) {
+    throw createForbiddenError('Trainer admin access is required to change fields other than avatar and password');
   }
 
-  return applyTrainerUpdate(res, req.auth.identifier, req.body, { allowIdentifierUpdate: false });
+  if (req.body.password !== undefined) {
+    await ensureCurrentPassword(Trainer, 'trainer_id', req.auth.identifier, req.body.current_password);
+  }
+
+  return applyTrainerUpdate(res, req.auth.identifier, req.body, { allowIdentifierUpdate: false, allowActiveField: false });
 };
 
 const updateTrainer = (req, res) => applyTrainerUpdate(

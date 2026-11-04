@@ -4,8 +4,7 @@ const {
   RESERVATION_BOOKERS,
   RESERVATION_STATUSES,
   TRAINING_CENTERS,
-  isValidTimeSlot,
-  isWithinOpeningHours,
+  getBookableTimeSlotError,
   normalizeDateOnly,
 } = require('../config/validation');
 const MIN_PASSWORD_LENGTH = 8;
@@ -119,12 +118,10 @@ const readTimeSlotField = (payload, fieldName) => {
     return undefined;
   }
 
-  if (!isValidTimeSlot(value)) {
-    throw createValidationError(`${fieldName} must use HH:MM - HH:MM and end after it starts`);
-  }
+  const error = getBookableTimeSlotError(value);
 
-  if (!isWithinOpeningHours(value)) {
-    throw createValidationError(`${fieldName} must be within opening hours (07:00 - 20:00)`);
+  if (error) {
+    throw createValidationError(`${fieldName} ${error}`);
   }
 
   return value;
@@ -186,7 +183,7 @@ const readBioField = (payload) => {
   return value;
 };
 
-const readAccountFields = (payload, idField, { partial, requirePassword, allowIdentifierUpdate }) => {
+const readAccountFields = (payload, idField, { partial, requirePassword, allowIdentifierUpdate, allowActiveField = true }) => {
   const data = {};
 
   if (partial) {
@@ -206,16 +203,19 @@ const readAccountFields = (payload, idField, { partial, requirePassword, allowId
   assignIfDefined(data, 'password', requirePassword ? requireField(password, 'password') : password);
   assignIfDefined(data, 'phone', readStringField(payload, 'phone'));
   assignIfDefined(data, 'avatar', readAvatarField(payload));
-  assignIfDefined(data, 'active', readBooleanField(payload, 'active'));
+
+  if (allowActiveField) {
+    assignIfDefined(data, 'active', readBooleanField(payload, 'active'));
+  }
 
   return data;
 };
 
 const sanitizeMemberPayload = (
   payload,
-  { partial = false, requirePassword = false, allowIdentifierUpdate = true, allowPlanFields = true } = {}
+  { partial = false, requirePassword = false, allowIdentifierUpdate = true, allowPlanFields = true, allowActiveField = true } = {}
 ) => {
-  const data = readAccountFields(payload, 'member_id', { partial, requirePassword, allowIdentifierUpdate });
+  const data = readAccountFields(payload, 'member_id', { partial, requirePassword, allowIdentifierUpdate, allowActiveField });
 
   if (allowPlanFields) {
     assignIfDefined(data, 'membership_type', readEnumField(payload, 'membership_type', MEMBERSHIP_TYPES));
@@ -232,9 +232,10 @@ const sanitizeTrainerPayload = (
     requirePassword = false,
     allowAdminField = false,
     allowIdentifierUpdate = true,
+    allowActiveField = true,
   } = {}
 ) => {
-  const data = readAccountFields(payload, 'trainer_id', { partial, requirePassword, allowIdentifierUpdate });
+  const data = readAccountFields(payload, 'trainer_id', { partial, requirePassword, allowIdentifierUpdate, allowActiveField });
 
   assignIfDefined(data, 'activity_type', readStringField(payload, 'activity_type'));
   assignIfDefined(data, 'center', readEnumField(payload, 'center', TRAINING_CENTERS));
@@ -249,20 +250,17 @@ const sanitizeTrainerPayload = (
   return data;
 };
 
-const sanitizeRoleLoginPayload = (payload) => {
-  const role = requireField(readStringField(payload, 'role'), 'role');
-  const email = requireField(readEmailField(payload, 'email'), 'email');
-  const password = requireField(readPasswordField(payload, 'password'), 'password');
+const readRoleAndEmail = (payload) => ({
+  role: requireField(readStringField(payload, 'role'), 'role').toLowerCase(),
+  email: requireField(readEmailField(payload, 'email'), 'email'),
+});
 
-  return { role: role.toLowerCase(), email, password };
-};
+const sanitizeRoleLoginPayload = (payload) => ({
+  ...readRoleAndEmail(payload),
+  password: requireField(readPasswordField(payload, 'password'), 'password'),
+});
 
-const sanitizeForgotPasswordPayload = (payload) => {
-  const role = requireField(readStringField(payload, 'role'), 'role');
-  const email = requireField(readEmailField(payload, 'email'), 'email');
-
-  return { role: role.toLowerCase(), email };
-};
+const sanitizeForgotPasswordPayload = (payload) => readRoleAndEmail(payload);
 
 const sanitizeResetPasswordPayload = (payload) => {
   const role = requireField(readStringField(payload, 'role'), 'role');

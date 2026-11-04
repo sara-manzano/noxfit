@@ -327,6 +327,7 @@
           "Members"
         ],
         "summary": "Partially update the authenticated member profile",
+        "description": "Changing the password requires current_password. The active field is ignored.",
         "operationId": "updateCurrentMember",
         "security": [
           {
@@ -792,6 +793,7 @@
         "tags": [
           "Trainers"
         ],
+        "description": "Standard trainers can only change avatar and password. Changing the password requires current_password. The active field is ignored.",
         "summary": "Partially update the authenticated trainer profile",
         "operationId": "updateCurrentTrainer",
         "security": [
@@ -1234,6 +1236,19 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "center",
+            "in": "query",
+            "required": false,
+            "description": "Only list active trainers working at this center",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Noxfit Salamanca",
+                "Noxfit Alcobendas"
+              ]
             }
           }
         ],
@@ -1804,7 +1819,7 @@
         "tags": [
           "Highlights"
         ],
-        "summary": "Replace one or more highlight sections (trainers only)",
+        "summary": "Replace one or more highlight sections (trainer admins only)",
         "operationId": "updateHighlights",
         "security": [
           {

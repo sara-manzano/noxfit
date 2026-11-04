@@ -1,9 +1,10 @@
 const Member = require('../models/members');
 const { getPlanForPriceId, getSessionPack } = require('../config/stripe');
+const { ENTITLED_SUBSCRIPTION_STATUSES } = require('../config/validation');
 const { creditPackPurchase } = require('./sessionCredits');
 
-const ENTITLED_STATUSES = ['active', 'trialing'];
 const DEFAULT_PLAN = 'Básica';
+const LAPSED_STATUSES = ['canceled', 'unpaid', 'incomplete_expired'];
 
 const toDate = (seconds) => (typeof seconds === 'number' ? new Date(seconds * 1000) : undefined);
 
@@ -39,8 +40,10 @@ const applySubscription = async (subscription) => {
     subscription_cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
   };
 
-  if (plan && ENTITLED_STATUSES.includes(subscription.status)) {
+  if (plan && ENTITLED_SUBSCRIPTION_STATUSES.includes(subscription.status)) {
     update.membership_type = plan;
+  } else if (LAPSED_STATUSES.includes(subscription.status)) {
+    update.membership_type = DEFAULT_PLAN;
   }
 
   await Member.updateOne({ _id: member._id }, { $set: update });

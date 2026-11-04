@@ -1,7 +1,7 @@
 const TIME_SLOT_PATTERN = /^([01]\d|2[0-3]):([0-5]\d) - ([01]\d|2[0-3]):([0-5]\d)$/;
 
 const normalizeDateOnly = (value) => {
-  const date = new Date(value);
+  const date = value === null ? new Date(NaN) : new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return date;
@@ -34,6 +34,18 @@ const isWithinOpeningHours = (value) => {
   return Boolean(slot) && slot.start >= OPENING_MINUTES && slot.end <= CLOSING_MINUTES;
 };
 
+const getBookableTimeSlotError = (value) => {
+  if (!isValidTimeSlot(value)) {
+    return 'must use HH:MM - HH:MM and end after it starts';
+  }
+
+  if (!isWithinOpeningHours(value)) {
+    return 'must be within opening hours (07:00 - 20:00)';
+  }
+
+  return null;
+};
+
 const TRAINING_CENTERS = ['Noxfit Salamanca', 'Noxfit Alcobendas'];
 const MEMBERSHIP_TYPES = ['Básica', 'Premium', 'VIP'];
 const RESERVATION_STATUSES = ['Confirmada', 'Completada', 'Cancelada'];
@@ -41,6 +53,7 @@ const ACTIVE_RESERVATION_STATUSES = ['Confirmada', 'Completada'];
 const RESERVATION_BOOKERS = ['member', 'trainer'];
 const MAX_RESERVATIONS_PER_TRAINER_SLOT = 12;
 const WAITLIST_STATUSES = ['Esperando', 'Promovida'];
+const ENTITLED_SUBSCRIPTION_STATUSES = ['active', 'trialing'];
 
 const isPersonalTraining = (activityType) => (
   typeof activityType === 'string' && activityType.trim().toLowerCase() === 'entrenamiento personal'
@@ -48,15 +61,16 @@ const isPersonalTraining = (activityType) => (
 
 module.exports = {
   ACTIVE_RESERVATION_STATUSES,
+  ENTITLED_SUBSCRIPTION_STATUSES,
   MAX_RESERVATIONS_PER_TRAINER_SLOT,
   MEMBERSHIP_TYPES,
   RESERVATION_BOOKERS,
   RESERVATION_STATUSES,
   TRAINING_CENTERS,
   WAITLIST_STATUSES,
+  getBookableTimeSlotError,
   isPersonalTraining,
   isValidTimeSlot,
-  isWithinOpeningHours,
   normalizeDateOnly,
   parseTimeSlot,
 };
