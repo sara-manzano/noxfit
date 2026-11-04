@@ -74,7 +74,7 @@ a {
 }
 
 .status-pill {
-  background: rgba(var(--rgb-ink), 0.08);
+  background: var(--color-fill-faint);
   color: var(--color-text-strong);
 }
 
@@ -84,18 +84,13 @@ a {
 }
 
 .status-neutral {
-  background: rgba(var(--rgb-ink), 0.08);
+  background: var(--color-fill-faint);
   color: var(--color-text-soft);
 }
 
 .status-warning {
   background: rgba(var(--rgb-danger-soft), 0.15);
   color: var(--color-danger);
-}
-
-.metric-pill-dark {
-  background: rgba(var(--rgb-ink), 0.9);
-  color: var(--color-on-dark);
 }
 
 .metric-pill-accent {
@@ -162,7 +157,7 @@ a {
 .field input,
 .field select {
   width: 100%;
-  border: 1px solid rgba(var(--rgb-ink), 0.12);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   padding: 0.9rem 1rem;
   background: rgba(var(--rgb-paper), 0.92);
@@ -215,13 +210,8 @@ a {
 }
 
 .button-secondary {
-  background: rgba(var(--rgb-ink), 0.08);
+  background: var(--color-fill-faint);
   color: var(--color-ink);
-}
-
-.button-ghost {
-  background: rgba(var(--rgb-ink), 0.9);
-  color: var(--color-on-dark);
 }
 
 .support-copy {
@@ -251,7 +241,7 @@ a {
 .hero-lead {
   max-width: 62ch;
   margin: 0;
-  color: rgba(var(--rgb-cream), 0.76);
+  color: var(--color-on-dark-muted);
   font-size: 1.02rem;
 }
 
@@ -328,7 +318,7 @@ a {
 .view-heading p {
   max-width: 60ch;
   margin: 0;
-  color: rgba(var(--rgb-cream), 0.76);
+  color: var(--color-on-dark-muted);
 }
 
 .panel .field input,
@@ -339,7 +329,7 @@ a {
 
 .panel .button-secondary {
   background: transparent;
-  border: 2px solid rgba(var(--rgb-ink), 0.85);
+  border: 2px solid var(--color-outline);
 }
 
 .panel .button-secondary:hover {
@@ -352,7 +342,6 @@ a {
 .panel,
 .stat-card,
 .entity-card,
-.feature-panel,
 .brand-hero,
 .button,
 .field input,
@@ -362,7 +351,6 @@ a {
 
 .stat-card:hover,
 .entity-card:hover,
-.feature-panel:hover,
 .panel:hover,
 .auth-card:hover {
   transform: translateY(-2px);

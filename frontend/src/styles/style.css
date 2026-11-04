@@ -14,7 +14,6 @@
   --color-secondary: #f3ede1;
   --color-danger: #be4253;
   --color-success: #5c8f11;
-  --color-warning: #8f6619;
   --color-on-dark: #fcf8ee;
   --color-on-primary: #001f28;
   --color-promo: #ffd60a;
@@ -33,6 +32,18 @@
   --color-bg-start: #f8f1e4;
   --color-bg-mid: #f3eadc;
   --color-bg-end: #efe9de;
+  --color-white: #fff;
+  --color-graphite-deep: #1b1b1b;
+  --color-graphite: #2c2c2c;
+  --color-card-bg: rgba(var(--rgb-cream), 0.94);
+  --color-overlay: rgba(var(--rgb-ink), 0.6);
+  --color-fill-faint: rgba(var(--rgb-ink), 0.08);
+  --color-border-strong: rgba(var(--rgb-ink), 0.12);
+  --color-outline: rgba(var(--rgb-ink), 0.85);
+  --color-on-dark-dim: rgba(var(--rgb-cream), 0.6);
+  --color-on-dark-muted: rgba(var(--rgb-cream), 0.72);
+  --color-on-dark-soft: rgba(var(--rgb-cream), 0.8);
+  --color-line-on-dark: rgba(var(--rgb-cream), 0.14);
 
   --rgb-ink: 20, 20, 20;
   --rgb-ink-soft: 32, 32, 32;
@@ -41,7 +52,6 @@
   --rgb-primary: 45, 226, 255;
   --rgb-primary-deep: 255, 47, 208;
   --rgb-promo: 255, 214, 10;
-  --rgb-on-primary: 0, 31, 40;
   --rgb-danger: 190, 66, 83;
   --rgb-danger-soft: 216, 79, 95;
   --rgb-success-soft: 31, 143, 103;

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useEscapeKey } from '../hooks/useEscapeKey.js';
 import './ConfirmDialog.css';
 
 export const ConfirmDialog = ({ title, message, confirmLabel, onConfirm, onCancel }) => {
@@ -9,13 +10,7 @@ export const ConfirmDialog = ({ title, message, confirmLabel, onConfirm, onCance
     cancelRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onCancel();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onCancel]);
+  useEscapeKey(onCancel);
 
   return createPortal(
     <div className="confirm-overlay" onClick={onCancel}>

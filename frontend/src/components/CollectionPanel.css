@@ -31,18 +31,6 @@
   z-index: 1;
 }
 
-.panel-topline {
-  display: inline-flex;
-  margin-bottom: var(--space-sm);
-  padding: 0.38rem 0.78rem;
-  border-radius: var(--radius-pill);
-  background: rgba(var(--rgb-ink), 0.08);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -68,7 +56,7 @@
   margin-bottom: var(--space-md);
   padding: 0.3rem;
   border-radius: var(--radius-pill);
-  background: rgba(var(--rgb-ink), 0.08);
+  background: var(--color-fill-faint);
 }
 
 .collection-tab {
@@ -97,7 +85,7 @@
 }
 
 .collection-tab:hover:not(.collection-tab-active) {
-  background: rgba(var(--rgb-ink), 0.08);
+  background: var(--color-fill-faint);
 }
 
 .collection-tab-active {
@@ -168,7 +156,7 @@
   overflow: hidden;
   padding-top: calc(var(--space-lg) + 0.7rem);
   border-radius: var(--radius-blob-b);
-  background: rgba(var(--rgb-cream), 0.94);
+  background: var(--color-card-bg);
 }
 
 .panel-form::before {
@@ -211,11 +199,6 @@
   transform: none;
 }
 
-.panel-topline {
-  background: var(--color-ink);
-  color: var(--color-primary);
-}
-
 .panel-list .section-heading h2 {
   font-size: clamp(2.6rem, 4vw, 3.4rem);
   letter-spacing: 0.03em;
@@ -252,7 +235,7 @@
     position: fixed;
     inset: 0;
     z-index: 900;
-    background: rgba(var(--rgb-ink), 0.55);
+    background: var(--color-overlay);
   }
 
   .collection-shell .panel.panel-form {

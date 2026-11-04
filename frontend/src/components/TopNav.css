@@ -43,7 +43,7 @@
   background: none;
   padding: 0.6rem 0.95rem;
   border-radius: var(--radius-pill);
-  color: rgba(var(--rgb-cream), 0.78);
+  color: var(--color-on-dark-soft);
   font-weight: 800;
   font-size: 0.9rem;
   text-transform: uppercase;
@@ -79,7 +79,7 @@
 }
 
 .top-nav-user span {
-  color: rgba(var(--rgb-cream), 0.6);
+  color: var(--color-on-dark-dim);
   font-size: 0.78rem;
 }
 

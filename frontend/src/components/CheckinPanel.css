@@ -6,7 +6,7 @@
   margin-inline: auto;
   padding-top: calc(var(--space-lg) + 0.7rem);
   border-radius: var(--radius-blob-b);
-  background: rgba(var(--rgb-cream), 0.94);
+  background: var(--color-card-bg);
 }
 
 .checkin-panel::before {

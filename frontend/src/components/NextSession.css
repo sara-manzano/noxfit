@@ -57,7 +57,7 @@
 
 .next-session p {
   margin: 0;
-  color: rgba(var(--rgb-cream), 0.78);
+  color: var(--color-on-dark-soft);
 }
 
 .next-session-detail strong {
@@ -73,7 +73,7 @@
 
 .next-session .button-secondary {
   background: transparent;
-  border: 2px solid rgba(var(--rgb-cream), 0.6);
+  border: 2px solid var(--color-on-dark-dim);
   color: var(--color-on-dark);
 }
 

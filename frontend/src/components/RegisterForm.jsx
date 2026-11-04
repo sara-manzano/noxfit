@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAsyncAction } from '../hooks/useAsyncAction.js';
 import './AuthCard.css';
 
 const initialValues = {
@@ -11,32 +12,26 @@ const initialValues = {
 
 export const RegisterForm = ({ onSubmit, onBack }) => {
   const [values, setValues] = useState(initialValues);
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { error, setError, isPending: isSubmitting, run } = useAsyncAction();
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setValues((current) => ({ ...current, [name]: value }));
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
     setError('');
 
     if (values.password !== values.confirmPassword) {
       setError('Las contraseñas no coinciden');
-      return;
+      return undefined;
     }
 
-    setIsSubmitting(true);
-
-    try {
+    return run(() => {
       const { confirmPassword, phone, ...rest } = values;
-      await onSubmit({ ...rest, ...(phone.trim() ? { phone: phone.trim() } : {}) });
-    } catch (submitError) {
-      setError(submitError.message);
-      setIsSubmitting(false);
-    }
+      return onSubmit({ ...rest, ...(phone.trim() ? { phone: phone.trim() } : {}) });
+    });
   };
 
   return (

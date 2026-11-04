@@ -11,7 +11,7 @@
 }
 
 .invoice-dialog::backdrop {
-  background: rgba(var(--rgb-ink), 0.55);
+  background: var(--color-overlay);
 }
 
 .invoice-dialog-head {

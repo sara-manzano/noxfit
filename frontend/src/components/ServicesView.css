@@ -123,7 +123,7 @@
 
 .svc-row-premium .svc-main p,
 .svc-row-premium .svc-empty {
-  color: rgba(var(--rgb-cream), 0.72);
+  color: var(--color-on-dark-muted);
 }
 
 .svc-row-premium .svc-trainers > span:not(.svc-label) {

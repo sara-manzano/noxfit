@@ -1,7 +1,7 @@
 .auth-card-jg {
   position: sticky;
   top: 1rem;
-  background: rgba(var(--rgb-cream), 0.94);
+  background: var(--color-card-bg);
 }
 
 .auth-card-topline {
@@ -9,7 +9,7 @@
   margin-bottom: var(--space-sm);
   padding: 0.4rem 0.8rem;
   border-radius: var(--radius-pill);
-  background: rgba(var(--rgb-ink), 0.08);
+  background: var(--color-fill-faint);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -52,7 +52,7 @@
   grid-template-columns: 1fr 1fr;
   padding: 0.3rem;
   border-radius: var(--radius-pill);
-  background: rgba(var(--rgb-ink), 0.08);
+  background: var(--color-fill-faint);
 }
 
 .role-option {
@@ -114,7 +114,7 @@
 
 .auth-card-jg .button-secondary {
   background: transparent;
-  border: 2px solid rgba(var(--rgb-ink), 0.85);
+  border: 2px solid var(--color-outline);
 }
 
 .auth-card-jg .button-secondary:hover {

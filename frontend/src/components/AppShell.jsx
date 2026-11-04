@@ -396,7 +396,9 @@ export const AppShell = ({ session, onLogout }) => {
               <ProfilePlan
                 membershipType={dashboard.profile.membership_type}
                 sessionCredits={dashboard.profile.session_credits}
+                session={session}
                 onManage={() => setActiveView('billing')}
+                onSessionExpired={onLogout}
               />
             ) : null}
             {session.role === 'trainer' && dashboard.profile ? (

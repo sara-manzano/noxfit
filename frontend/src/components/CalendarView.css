@@ -125,7 +125,7 @@
   overflow: hidden;
   padding-top: calc(var(--space-lg) + 0.7rem);
   border-radius: var(--radius-blob-b);
-  background: rgba(var(--rgb-cream), 0.94);
+  background: var(--color-card-bg);
 }
 
 .calendar-panel::before {
@@ -164,7 +164,7 @@
 }
 
 .calendar-detail .support-copy {
-  color: rgba(var(--rgb-cream), 0.7);
+  color: var(--color-on-dark-muted);
 }
 
 .calendar-event {
@@ -173,11 +173,11 @@
 }
 
 .calendar-event small {
-  color: rgba(var(--rgb-cream), 0.6);
+  color: var(--color-on-dark-dim);
 }
 
 .calendar-event-done {
-  border-left-color: rgba(var(--rgb-cream), 0.6);
+  border-left-color: var(--color-on-dark-dim);
 }
 
 .calendar-badge {

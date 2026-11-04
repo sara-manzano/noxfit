@@ -74,3 +74,25 @@
 .profile-plan-link:focus-visible {
   color: var(--color-eyebrow);
 }
+
+.profile-plan-panel {
+  display: grid;
+  grid-column: 1 / -1;
+  justify-items: start;
+  gap: var(--space-xs);
+  padding: 0.9rem 1rem;
+  border: 2px dashed var(--color-ink);
+  border-radius: 20px;
+}
+
+.profile-plan-note {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.profile-plan-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}

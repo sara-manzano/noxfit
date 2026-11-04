@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { accountsApi } from '../api/client.js';
+import { useAsyncAction } from '../hooks/useAsyncAction.js';
 import { formatDate } from '../lib/formatters.js';
 import './MemberInvoiceDialog.css';
 
@@ -12,30 +13,17 @@ export const MemberInvoiceDialog = ({ session, member, onClose, onSessionExpired
   const dialogRef = useRef(null);
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [invoice, setInvoice] = useState(null);
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { error, isPending: isLoading, run } = useAsyncAction({
+    onError: (requestError) => {
+      if (requestError.status !== 401) return false;
+      onSessionExpired();
+      return true;
+    },
+  });
 
   useEffect(() => {
     dialogRef.current?.showModal();
   }, []);
-
-  const run = async (task) => {
-    setError('');
-    setIsLoading(true);
-
-    try {
-      await task();
-    } catch (requestError) {
-      if (requestError.status === 401) {
-        onSessionExpired();
-        return;
-      }
-
-      setError(requestError.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const generate = (event) => {
     event.preventDefault();

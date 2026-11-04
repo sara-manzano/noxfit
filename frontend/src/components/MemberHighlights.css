@@ -18,7 +18,7 @@
 .member-highlights-group {
   padding: var(--space-md);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(var(--rgb-cream), 0.14);
+  border: 1px solid var(--color-line-on-dark);
   background: rgba(var(--rgb-cream), 0.06);
 }
 
@@ -45,7 +45,7 @@
 
 .member-highlights-group li span {
   font-size: 0.9rem;
-  color: rgba(var(--rgb-cream), 0.76);
+  color: var(--color-on-dark-muted);
 }
 
 .member-highlights-promo {
@@ -83,7 +83,7 @@
 
 .member-highlights-edit-item {
   padding-bottom: var(--space-sm);
-  border-bottom: 1px solid rgba(var(--rgb-cream), 0.14);
+  border-bottom: 1px solid var(--color-line-on-dark);
 }
 
 .member-highlights-edit-item input,

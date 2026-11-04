@@ -79,12 +79,12 @@
 }
 
 .trainer-card:nth-child(3n + 1) .trainer-facts dt {
-  color: rgba(var(--rgb-cream), 0.6);
+  color: var(--color-on-dark-dim);
 }
 
 .trainer-card:nth-child(3n + 2) {
   border-radius: var(--radius-blob-b);
-  background: rgba(var(--rgb-cream), 0.94);
+  background: var(--color-card-bg);
 }
 
 .trainer-card:nth-child(3n) {
@@ -111,7 +111,7 @@
 }
 
 .trainer-card:nth-child(3n + 1) .trainer-bio {
-  color: rgba(var(--rgb-cream), 0.75);
+  color: var(--color-on-dark-muted);
 }
 
 .trainer-facts {
@@ -157,7 +157,7 @@
 
 .trainer-card-black:nth-child(n) .trainer-bio,
 .trainer-card-black:nth-child(n) .trainer-facts dt {
-  color: rgba(var(--rgb-cream), 0.7);
+  color: var(--color-on-dark-muted);
 }
 
 .trainer-card-gray:nth-child(n) .trainer-bio,

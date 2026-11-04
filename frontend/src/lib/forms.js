@@ -1,6 +1,6 @@
 export const membershipOptions = ['Básica', 'Premium', 'VIP'];
-export const personalTrainingActivity = 'Entrenamiento personal';
-export const groupTrainingActivity = 'Entrenamiento grupal';
+const personalTrainingActivity = 'Entrenamiento personal';
+const groupTrainingActivity = 'Entrenamiento grupal';
 export const trainingTypeOptions = [personalTrainingActivity, groupTrainingActivity];
 export const isPersonalTraining = (activity = '') => activity.trim().toLowerCase() === personalTrainingActivity.toLowerCase();
 export const timeSlotOptions = [

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import gymImage from '../assets/Gym.png';
+import { useAsyncAction } from '../hooks/useAsyncAction.js';
+import { useEscapeKey } from '../hooks/useEscapeKey.js';
 import { MadridMap, gyms } from './MadridMap.jsx';
 import { MediaSlot } from './MediaSlot.jsx';
 import { RegisterForm } from './RegisterForm.jsx';
@@ -62,8 +64,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
   const [isRegistering, setIsRegistering] = useState(
     () => new URLSearchParams(window.location.search).get('register') === '1'
   );
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { error, isPending: isSubmitting, run } = useAsyncAction();
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -73,32 +74,16 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
     }
   }, []);
 
-  useEffect(() => {
-    if (!isMapOpen) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') setIsMapOpen(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isMapOpen]);
+  useEscapeKey(() => setIsMapOpen(false), isMapOpen);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setCredentials((current) => ({ ...current, [name]: value }));
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
-    setIsSubmitting(true);
-    setError('');
-
-    try {
-      await onSubmit(credentials);
-    } catch (submitError) {
-      setError(submitError.message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    return run(() => onSubmit(credentials));
   };
 
   const handleRecoveryBack = () => {

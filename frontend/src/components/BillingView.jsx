@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { accountsApi, billingApi } from '../api/client.js';
+import { SUBSCRIBED_STATUSES, formatAmount } from '../lib/billing.js';
 import { formatDate } from '../lib/formatters.js';
 import { plans } from '../lib/plans.js';
 import './BillingView.css';
-
-const SUBSCRIBED_STATUSES = ['active', 'trialing', 'past_due'];
 
 const statusLabels = {
   active: 'Activa',
@@ -24,11 +23,6 @@ const invoiceStatuses = {
   void: { label: 'Anulada', tone: 'status-neutral' },
   draft: { label: 'Borrador', tone: 'status-neutral' },
 };
-
-const formatAmount = (amount, currency) => new Intl.NumberFormat('es-ES', {
-  style: 'currency',
-  currency: (currency || 'eur').toUpperCase(),
-}).format(amount);
 
 export const BillingView = ({ session, onSessionExpired, returnStatus }) => {
   const [subscription, setSubscription] = useState(null);

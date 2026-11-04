@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { authApi } from '../api/client.js';
+import { useAsyncAction } from '../hooks/useAsyncAction.js';
 import './AuthCard.css';
 
 export const PasswordResetForm = ({ role: initialRole, resetToken, onBack }) => {
@@ -7,24 +8,20 @@ export const PasswordResetForm = ({ role: initialRole, resetToken, onBack }) => 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const { error, setError, isPending: isSubmitting, run } = useAsyncAction();
   const [message, setMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const isResetting = Boolean(resetToken);
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
-    setError('');
     setMessage('');
 
     if (isResetting && password !== confirmPassword) {
       setError('Las contraseñas no coinciden');
-      return;
+      return undefined;
     }
 
-    setIsSubmitting(true);
-
-    try {
+    return run(async () => {
       if (isResetting) {
         await authApi.resetPassword({ role, token: resetToken, password });
         setMessage('Contraseña actualizada. Ya puedes iniciar sesión.');
@@ -32,11 +29,7 @@ export const PasswordResetForm = ({ role: initialRole, resetToken, onBack }) => 
         await authApi.forgotPassword({ role, email });
         setMessage('Si la cuenta existe, te hemos enviado un enlace para restablecer la contraseña.');
       }
-    } catch (submitError) {
-      setError(submitError.message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   return (

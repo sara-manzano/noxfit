@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey.js';
 import './CollectionPanel.css';
 
 export const CollectionPanel = ({
@@ -19,14 +20,7 @@ export const CollectionPanel = ({
 }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isFormOpen) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') setIsFormOpen(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFormOpen]);
+  useEscapeKey(() => setIsFormOpen(false), isFormOpen);
 
   return (
   <section className="collection-shell">
