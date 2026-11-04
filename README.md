@@ -4,7 +4,43 @@ Noxfit es la aplicación de un centro de entrenamiento con dos sedes en Madrid. 
 
 El backend está hecho con Express 5 y MongoDB (Mongoose), y se autentica con JWT. Todas las rutas cuelgan de `/api`. El frontend es una app de React que vive en `frontend/`.
 
-Lo que se puede hacer ahora mismo: reservar sesiones sin que se solapen, apuntarse a una lista de espera cuando una franja está llena, entrar al centro con un QR, recibir avisos por email (con recordatorio 24 horas antes) y pagar con Stripe, ya sea una suscripción o un bono de sesiones.
+Lo que se puede hacer ahora mismo: reservar sesiones sin que se solapen, apuntarse a una lista de espera cuando una franja está llena, entrar al centro con un QR, recibir avisos por email (con recordatorio 24 horas antes), pagar con Stripe (suscripción o bono de sesiones) y generar la factura mensual de cada socio en PDF.
+
+## Demo en vídeo
+
+<video src="docs/demo/noxfit-demo.mp4" poster="docs/demo/poster.png" controls width="100%">
+  <a href="docs/demo/noxfit-demo.mp4"><img src="docs/demo/poster.png" alt="Vídeo de demostración de Noxfit"></a>
+</video>
+
+[Abrir el vídeo de demostración](docs/demo/noxfit-demo.mp4) (2 min 47 s, con rótulos explicativos). Recorre:
+
+- el acceso y el perfil de un socio, el directorio de entrenadores y el catálogo de servicios
+- una reserva completa: crear, ver el código QR, reprogramar y cancelar
+- la suscripción, los bonos de sesiones y las facturas
+- el panel del entrenador admin: reservas, calendario, socios, entrenadores, facturas y check-in
+- la documentación de la API en Swagger UI
+
+## Capturas
+
+Página de inicio y acceso:
+
+![Página de inicio con el login](docs/screenshots/01-inicio.png)
+
+Vista de un socio:
+
+![Perfil del socio](docs/screenshots/02-socio-perfil.png)
+
+![Directorio de entrenadores](docs/screenshots/03-socio-entrenadores.png)
+
+Vista de un entrenador admin:
+
+![Gestión de reservas](docs/screenshots/05-admin-reservas.png)
+
+![Calendario de reservas](docs/screenshots/06-admin-calendario.png)
+
+![Check-in con QR](docs/screenshots/07-admin-checkin.png)
+
+![Gestión de socios](docs/screenshots/09-admin-socios.png)
 
 ## Con qué está hecho
 
@@ -42,6 +78,8 @@ scripts/
   check-openapi.js         -> valida el contrato OpenAPI
 frontend/
   src/                     -> app React (api, app, components, hooks, lib, styles)
+docs/
+  screenshots/             -> capturas de la app para este README
 .github/workflows/
   openapi-contract.yml     -> valida el contrato OpenAPI en CI
 data/
@@ -144,10 +182,14 @@ Es un panel hecho con React 19 y Vite. La sesión se guarda en `localStorage` y 
 Lo que ve cada persona depende de su rol:
 
 - **Perfil** (todos): datos de la cuenta, edición y avatar
+- **Reservas** (members y trainer admin): formulario para reservar eligiendo centro, entrenador y franja, y listado filtrable (próximas, pasadas, canceladas) con cancelar y reprogramar
 - **Socios** (trainer admin): gestión de members
 - **Entrenadores** (members y trainer admin): directorio de trainers, filtrable por actividad
 - **Servicios** (members): catálogo de actividades, que lleva a entrenadores y reservas
-- **Calendario de reservas**: reservas en un calendario, formulario para reservar eligiendo centro, entrenador y franja, y reprogramación arrastrando (solo las que están `Confirmada`)
+- **Suscripción** (members): plan actual, cambio de plan, compra de bonos de sesiones y facturas de Stripe
+- **Calendario de reservas** (trainers): reservas en un calendario y reprogramación arrastrando (solo las que están `Confirmada`)
+- **Facturas** (trainer admin): factura mensual de cada socio
+- **Check-in** (trainers): validación del QR de la reserva para registrar la asistencia
 
 Además:
 
@@ -197,6 +239,17 @@ Para tener datos con los que probar hay una carga inicial. Lee `data/noxfit-data
 ```bash
 npm run seed
 ```
+
+### Cuentas de prueba
+
+Tras el seed puedes entrar en el frontend con cualquier cuenta de `data/members.csv` (perfil Socio) o de `data/trainers.csv` (perfil Entrenador); la contraseña está en la columna `password` de cada fila.
+
+| Perfil | Email | Notas |
+| --- | --- | --- |
+| Socio | `Miri_sol@gmail.com` | Plan VIP |
+| Socio | `Jesus169@gmail.com` | Plan Básica |
+| Entrenador admin | `Naty@noxfit.es` | Ve socios, facturas, check-in y todas las reservas |
+| Entrenador | `Albert@noxfit.es` | Solo ve su propia agenda |
 
 Si quieres regenerar el Excel a partir de los CSV:
 
@@ -267,6 +320,8 @@ Sobre los updates:
 | GET | `/api/members/me` | Member | Obtiene el perfil autenticado |
 | PATCH | `/api/members/me` | Member | Actualiza el perfil autenticado |
 | PUT | `/api/members/me` | Member | No permitido |
+| GET | `/api/members/me/invoice` | Member | Factura mensual propia (`month=YYYY-MM`, `format=json\|html\|pdf`) |
+| GET | `/api/members/:member_id/invoice` | Trainer | Factura mensual de un member, con los mismos parámetros |
 | GET | `/api/members` | Trainer admin | Lista members |
 | POST | `/api/members` | Trainer admin | Crea un member |
 | GET | `/api/members/:member_id` | Trainer admin | Obtiene un member por `member_id` |
@@ -514,6 +569,9 @@ Los tests cubren, entre otras cosas:
 - rechazo de `PUT` en endpoints que solo admiten `PATCH`
 - normalización de fechas
 - conflictos de agenda
+- cancelación y reprogramación de reservas, con su ventana de antelación
+- facturación con Stripe: suscripciones, bonos de sesiones y webhook idempotente
+- factura mensual de cada member en JSON, HTML y PDF
 - errores JSON para rutas `/api` desconocidas
 
 ## Limitaciones conocidas
