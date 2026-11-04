@@ -63,7 +63,7 @@ Esto es lo que hay en cada carpeta:
 src/
   server.js                -> arranque del servidor
   app.js                   -> middlewares, rutas y manejo de errores
-  config/                  -> auth, base de datos, ids, mailer, Stripe, validaciones
+  config/                  -> auth, base de datos, ids, mailer, Stripe, URL de la app, validaciones
   controllers/             -> lógica de cada endpoint
     accountControllerHelpers.js -> CRUD y login que comparten members y trainers
   routes/                  -> definición de endpoints
@@ -183,19 +183,19 @@ Es un panel hecho con React 19 y Vite. La sesión se guarda en `localStorage` y 
 
 Lo que ve cada persona depende de su rol:
 
-- **Perfil** (todos): datos de la cuenta, edición y avatar
-- **Reservas** (members y trainer admin): formulario para reservar eligiendo centro, entrenador y franja, y listado filtrable (próximas, pasadas, canceladas) con cancelar y reprogramar
+- **Perfil** (todos): datos de la cuenta, edición, avatar, próximas sesiones y los bloques de noticias, promociones y actividades extras (los entrenadores pueden editarlos)
+- **Reservas** (todos): formulario para reservar eligiendo centro, entrenador y franja, y listado filtrable (próximas, pasadas, canceladas) con código QR, cancelar y reprogramar. Un entrenador sin permisos de admin solo ve las suyas
 - **Socios** (trainer admin): gestión de members
 - **Entrenadores** (members y trainer admin): directorio de trainers, filtrable por actividad
 - **Servicios** (members): catálogo de actividades, que lleva a entrenadores y reservas
 - **Suscripción** (members): plan actual, cambio de plan, compra de bonos de sesiones y facturas de Stripe
 - **Calendario de reservas** (trainers): reservas en un calendario y reprogramación arrastrando (solo las que están `Confirmada`)
-- **Facturas** (trainer admin): factura mensual de cada socio
-- **Check-in** (trainers): validación del QR de la reserva para registrar la asistencia
+- **Facturas** (trainers): factura mensual de cada socio
+- **Check-in** (trainers): validación del QR de la reserva para registrar la asistencia. El QR del socio codifica `/?checkin=<código>`; si un entrenador con sesión iniciada lo abre, aterriza directamente en esta vista con el código cargado
 
 Además:
 
-- cualquiera puede registrarse como member; el login es el mismo para members y trainers, y la contraseña se recupera desde `/?reset=<token>&role=<role>`
+- cualquiera puede registrarse como member (el enlace `/?register=1` abre el formulario de alta); el login es el mismo para members y trainers, y la contraseña se recupera desde `/?reset=<token>&role=<role>`
 - hay un mapa con los centros Noxfit Salamanca y Noxfit Alcobendas
 - los avatares se suben a Cloudinary
 
@@ -304,7 +304,7 @@ Sobre los updates:
 
 - para cambios parciales se usa `PATCH`
 - `PUT` devuelve `405 Method Not Allowed` en members, trainers y reservations
-- los endpoints de `/api/auth` tienen rate limiting; si te pasas, responden `429` con `Too many attempts, please try again later`
+- los endpoints de `/api/auth` y los de pago de `/api/billing` (checkout y portal) tienen rate limiting; si te pasas, responden `429` con `Too many attempts, please try again later`
 
 ## Recursos y acceso
 
@@ -342,6 +342,7 @@ Campos relevantes de member:
 - `join_date`
 - `avatar`: URL de Cloudinary (máx. 500 caracteres)
 - `active`
+- `session_credits`: saldo de sesiones de los bonos (solo lectura; lo actualiza el webhook de Stripe)
 
 ### Trainers
 
@@ -386,6 +387,7 @@ Campos relevantes de trainer:
 - `phone`
 - `years_experience`
 - `hourly_rate`
+- `bio`: presentación de hasta 400 caracteres
 - `is_admin`
 - `active`
 
@@ -393,7 +395,7 @@ Sobre el acceso a trainers:
 
 - el registro público de trainers solo sirve para crear el primer admin
 - después de ese primer alta, `/api/trainers/register` queda cerrado
-- un trainer sin permisos de admin puede usar `/api/trainers/me`, pero no puede entrar en reservations ni en las rutas de admin
+- un trainer sin permisos de admin puede usar `/api/trainers/me` y gestionar sus propias reservas, pero no puede entrar en las rutas de admin
 
 ### Reservations
 
@@ -418,6 +420,16 @@ Sobre el acceso a trainers:
 | GET | `/api/waitlist` | Member o Trainer | Lista entradas en espera (member las suyas, trainer no admin las de sus sesiones) |
 | POST | `/api/waitlist` | Member | Se apunta a una franja completa (`trainer_id`, `date`, `time_slot`, `activity_type`) |
 | DELETE | `/api/waitlist/:waitlist_id` | Member o Trainer admin | Sale de la lista de espera |
+
+### Highlights
+
+Bloques de noticias, promociones y actividades extras que se muestran en el perfil.
+
+| Método | Ruta | Auth | Descripción |
+| --- | --- | --- | --- |
+| GET | `/api/highlights` | Member o Trainer | Devuelve `news`, `activities` y `promotions` |
+| PATCH | `/api/highlights` | Trainer | Actualiza una o varias secciones (hasta 6 entradas, con `title` de 80 caracteres y `text` de 200 como máximo) |
+| PUT | `/api/highlights` | No | No permitido |
 
 ### Billing
 
@@ -447,6 +459,7 @@ Campos relevantes de reservation:
 - `status`: `Confirmada`, `Completada`, `Cancelada`
 - `price`
 - `booked_by`: `member` o `trainer`
+- `credit_used`, `cancelled_at`, `cancelled_by` y `checked_in_at` (solo lectura; los rellena la propia API al reservar con bono, cancelar o hacer check-in)
 
 Disponibilidad: `GET /api/reservations/availability?date=...&time_slot=HH:MM - HH:MM` devuelve, para cada trainer, `reservations_count`, `has_personal_training`, `spots_left` y `available`.
 
@@ -456,7 +469,7 @@ Quién puede ver y tocar qué en reservations:
 
 - un member solo ve sus propias reservas, y no puede pedir las de otro member con `member_id`
 - tampoco puede crear una reserva a nombre de otra cuenta ni moverla a otro member
-- un trainer no admin no entra en reservations
+- un trainer no admin solo ve y gestiona las reservas en las que figura como entrenador
 
 ## Qué devuelve el login
 
@@ -516,6 +529,7 @@ Lo que la API rechaza con un `400`:
 - `time_slot` que no siga el formato `HH:MM - HH:MM`, con hora final posterior a la inicial y dentro del horario de apertura (07:00 - 20:00)
 - `center` que no sea `Noxfit Salamanca` o `Noxfit Alcobendas`
 - `avatar` que no sea una URL de imagen de Cloudinary de como máximo 500 caracteres
+- `bio` de más de 400 caracteres
 
 La `date` se normaliza a medianoche UTC.
 
