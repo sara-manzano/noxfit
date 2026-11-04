@@ -1819,7 +1819,7 @@
         "tags": [
           "Highlights"
         ],
-        "summary": "Replace one or more highlight sections (trainer admins only)",
+        "summary": "Replace one or more highlight sections (trainers only)",
         "operationId": "updateHighlights",
         "security": [
           {

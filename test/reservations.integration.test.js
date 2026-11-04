@@ -880,21 +880,23 @@ test('availability lists only active trainers and can filter by center', async (
   assert.equal(badCenter.status, 400);
 });
 
-test('only trainer admins can update highlights', async () => {
+test('any trainer can update highlights but members cannot', async () => {
   await createFixtures();
 
   const adminToken = (await loginTrainer('trainer-admin@noxfit.test')).body.token;
   const standardToken = (await loginTrainer('trainer-standard@noxfit.test')).body.token;
   const memberToken = (await loginMember('member-a@noxfit.test')).body.token;
   const payload = { news: [{ title: 'Aviso', text: 'Texto' }] };
+  const standardPayload = { promotions: [{ title: 'Promo', text: 'Descuento' }] };
 
-  const asStandard = await request(app).patch('/api/highlights').set('Authorization', `Bearer ${standardToken}`).send(payload);
   const asMember = await request(app).patch('/api/highlights').set('Authorization', `Bearer ${memberToken}`).send(payload);
   const asAdmin = await request(app).patch('/api/highlights').set('Authorization', `Bearer ${adminToken}`).send(payload);
+  const asStandard = await request(app).patch('/api/highlights').set('Authorization', `Bearer ${standardToken}`).send(standardPayload);
   const read = await request(app).get('/api/highlights').set('Authorization', `Bearer ${memberToken}`);
 
-  assert.equal(asStandard.status, 403);
   assert.equal(asMember.status, 403);
   assert.equal(asAdmin.status, 200);
+  assert.equal(asStandard.status, 200);
   assert.deepEqual(read.body.news, payload.news);
+  assert.deepEqual(read.body.promotions, standardPayload.promotions);
 });
