@@ -11,6 +11,9 @@ const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
   getJwtSecret();
+  if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
+    throw new Error('CORS_ORIGIN must be set in production');
+  }
   await connectToDatabase();
   await Promise.all([Reservation.syncIndexes(), Waitlist.syncIndexes()]);
 

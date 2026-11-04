@@ -22,37 +22,25 @@ if (process.env.TRUST_PROXY) {
   app.set('trust proxy', /^\d+$/.test(process.env.TRUST_PROXY) ? Number(process.env.TRUST_PROXY) : process.env.TRUST_PROXY);
 }
 
-const shouldLogError = (error) => !error?.statusCode || error.statusCode >= 500;
+const describeError = (error) => {
+  if (error.name === 'ValidationError') {
+    return [400, Object.values(error.errors).map((entry) => entry.message).join(', ')];
+  }
+  if (error.code === 11000) {
+    return [409, `${Object.keys(error.keyPattern || {})[0] || 'field'} is already in use`];
+  }
+  if (error.name === 'CastError') return [400, 'Invalid identifier'];
+  if (error.statusCode) return [error.statusCode, error.message];
+  return [500, 'Internal server error'];
+};
 
 const handleError = (error, _req, res, _next) => {
-  if (shouldLogError(error)) {
-    console.error(error);
-  }
-
-  if (error.name === 'ValidationError') {
-    const messages = Object.values(error.errors).map((entry) => entry.message);
-    return sendError(res, 400, messages.join(', '));
-  }
-
-  if (error.code === 11000) {
-    const duplicatedField = Object.keys(error.keyPattern || {})[0] || 'field';
-    return sendError(res, 409, `${duplicatedField} is already in use`);
-  }
-
-  if (error.name === 'CastError') {
-    return sendError(res, 400, 'Invalid identifier');
-  }
-
-  if (error.statusCode) {
-    return sendError(res, error.statusCode, error.message);
-  }
-
-  return sendError(res, 500, 'Internal server error');
+  if (!error?.statusCode || error.statusCode >= 500) console.error(error);
+  return sendError(res, ...describeError(error));
 };
 
 const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map((origin) => origin.trim()).filter(Boolean);
 
-// CSP desactivada para no romper Swagger UI; la API solo sirve JSON.
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors(corsOrigins.length > 0 ? { origin: corsOrigins } : undefined));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));

@@ -18,16 +18,16 @@ const initialCredentials = {
 
 const differentiators = [
   {
-    title: 'Metodo personalizado',
-    description: 'Combina entrenamiento con un seguimiento cercano ajustado a las necesidades individuales de cada socio. Si se desea, se hace un plan personalizado y un seguimiento nutricional.',
+    title: 'Entrena a tu manera',
+    description: 'Tu entrenador adapta cada sesión a tu objetivo y a tu ritmo. ¿Quieres ir un paso más allá? Suma un plan personalizado y seguimiento nutricional.',
   },
   {
-    title: 'Equipo visible',
-    description: 'Los entrenadores siempre están presentes y disponibles para guiar a los socios en sus entrenamientos y resolver cualquier duda que puedan tener.',
+    title: 'Siempre con tu entrenador',
+    description: 'Aquí nadie entrena solo. Tu equipo está en sala para corregirte, motivarte y resolver cualquier duda al momento.',
   },
   {
-    title: 'Resultados medibles',
-    description: 'Los resultados de los entrenamientos se pueden medir y seguir de manera clara, permitiendo a los socios ver su progreso y ajustar sus objetivos.',
+    title: 'Progreso que se ve',
+    description: 'Mide tu evolución sesión a sesión, celebra cada avance y ponte la siguiente meta.',
   },
 ];
 
@@ -48,7 +48,7 @@ const highlightChecks = [
 const cityHighlights = ['Madrid'];
 
 const contact = {
-  phone: '+34 910 000 000',
+  phone: '',
   email: 'info@noxfit.es',
   instagram: 'https://www.instagram.com/noxfit',
 };
@@ -104,7 +104,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
             <span className="login-badge">Centro multidisciplinar</span>
             <h1 className="login-wordmark">NOXFIT</h1>
             <p className="hero-lead">
-              Noxfit es un centro multidisciplinar coordinado por entrenadores y orientado a ofrecer una experiencia integral a sus socios.
+              Entrena con 10 entrenadores que te empujan a más. Reserva tu sesión, llega y dalo todo.
             </p>
             <div className="login-pills">
               <span className="metric-pill metric-pill-accent">10 entrenadores</span>
@@ -130,7 +130,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
         <div className="login-bento">
           <article className="bento-tile bento-why">
             <span className="bento-kicker">Por qué Noxfit</span>
-            <p className="bento-intro">Un centro de entrenamiento más, pero con un ambiente familiar y atención cercana. Nuestra misión es ofrecer una experiencia integral a nuestros socios e impulsar su desarrollo personal.</p>
+            <p className="bento-intro">Un ambiente cercano, entrenadores que te conocen por tu nombre y sesiones pensadas para que cada día llegues un poco más lejos.</p>
             <MediaSlot
               name="why"
               kind="image"
@@ -153,7 +153,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
 
           <article className="bento-tile bento-highlight">
             <strong>100% </strong>
-            <span>Agenda confirmada en el momento y acceso controlado al centro.</span>
+            <span>Reserva confirmada al instante y acceso con tu código QR.</span>
             <ul className="bento-checks">
               {highlightChecks.map((item) => <li key={item}>{item}</li>)}
             </ul>
@@ -161,7 +161,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
 
           <article className="bento-tile bento-services">
             <span className="bento-kicker">Qué ofrecemos</span>
-            <p className="bento-note">Reserva sesiones personales o grupales con el entrenador de tu especialidad.</p>
+            <p className="bento-note">Elige tu sesión, personal o en grupo, y entrena con el especialista que mejor encaja contigo.</p>
             <div className="service-chip-grid">
               {services.map((service) => (
                 <span key={service} className="service-chip">{service}</span>
@@ -211,7 +211,7 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
         <footer className="login-footer">
           <div>
             <h3>Contacto</h3>
-            <a href={`tel:${contact.phone.replace(/\s/g, '')}`}>{contact.phone}</a>
+            {contact.phone && <a href={`tel:${contact.phone.replace(/\s/g, '')}`}>{contact.phone}</a>}
             <a href={`mailto:${contact.email}`}>{contact.email}</a>
             <a href={contact.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
           </div>

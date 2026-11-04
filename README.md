@@ -1,69 +1,72 @@
-# Noxfit API
+# Noxfit
 
-API REST para gestionar members, trainers y reservations de Noxfit.
+Noxfit es la aplicación de un centro de entrenamiento con dos sedes en Madrid. Los socios reservan sesiones con sus entrenadores, y los entrenadores llevan la agenda, los socios y los cobros. Aquí está todo: la API y el panel web.
 
-El backend está construido con Express 5, MongoDB con Mongoose y autenticación JWT Bearer. Todas las rutas públicas del contrato viven bajo el prefijo `/api`.
+El backend está hecho con Express 5 y MongoDB (Mongoose), y se autentica con JWT. Todas las rutas cuelgan de `/api`. El frontend es una app de React que vive en `frontend/`.
 
-El repositorio ahora incluye además un frontend React separado en `frontend/`, pensado como panel operativo para trabajar sobre members, trainers y reservations.
+Lo que se puede hacer ahora mismo: reservar sesiones sin que se solapen, apuntarse a una lista de espera cuando una franja está llena, entrar al centro con un QR, recibir avisos por email (con recordatorio 24 horas antes) y pagar con Stripe, ya sea una suscripción o un bono de sesiones.
 
-## Resumen técnico
+## Con qué está hecho
 
-- Runtime: Node.js 20.19+
-- Framework HTTP: Express 5
-- Frontend: React 19 + Vite
-- Base de datos: MongoDB
-- ODM: Mongoose
-- Auth: JWT Bearer
-- Password hashing: bcryptjs
-- Rate limiting: express-rate-limit
-- Email: nodemailer (recuperación de contraseña)
-- Avatares: Cloudinary (subida desde el frontend, la API guarda la URL)
-- Documentación: OpenAPI 3.1 + Swagger UI
-- Tests: Node test runner + Supertest + mongodb-memory-server
+- Node.js 20.19+ y Express 5
+- MongoDB con Mongoose
+- React 19 con Vite
+- JWT para las sesiones y bcryptjs para las contraseñas
+- express-rate-limit para frenar abusos en el login
+- nodemailer para los emails
+- Stripe para los pagos
+- Cloudinary para los avatares (se suben desde el frontend y la API solo guarda la URL)
+- OpenAPI 3.1 con Swagger UI para documentar la API
+- Tests con el runner de Node, Supertest y mongodb-memory-server
 
-## Estructura del proyecto
+## Cómo está organizado
+
+Esto es lo que hay en cada carpeta:
 
 ```text
 src/
   server.js                -> arranque del servidor
-  app.js                   -> middlewares, rutas y manejo global de errores
-  config/                  -> auth, base de datos, ids, mailer SMTP, validaciones
-  controllers/             -> lógica de negocio
-    accountControllerHelpers.js -> CRUD y login compartidos entre members y trainers
-    reservationConflicts.js     -> detección de conflictos de agenda
+  app.js                   -> middlewares, rutas y manejo de errores
+  config/                  -> auth, base de datos, ids, mailer, Stripe, validaciones
+  controllers/             -> lógica de cada endpoint
+    accountControllerHelpers.js -> CRUD y login que comparten members y trainers
   routes/                  -> definición de endpoints
   middleware/              -> auth, validación, rate limiters, 405
-  models/                  -> esquemas e índices Mongoose
+  models/                  -> esquemas e índices de Mongoose
+  services/                -> reglas de negocio (conflictos de agenda, lista de espera, bonos, facturas...)
+  jobs/                    -> recordatorios 24 h antes
   http/                    -> helpers de respuestas y errores
 scripts/
-  seed.js                  -> carga inicial desde el workbook Excel o los CSV
-  build-workbook.js        -> genera un Excel a partir de los CSV actuales
-  check-openapi.js         -> validación del contrato OpenAPI
+  seed.js                  -> carga inicial desde el Excel o los CSV
+  build-workbook.js        -> genera el Excel a partir de los CSV
+  check-openapi.js         -> valida el contrato OpenAPI
 frontend/
   src/                     -> app React (api, app, components, hooks, lib, styles)
 .github/workflows/
-  openapi-contract.yml     -> validación del contrato OpenAPI en CI
+  openapi-contract.yml     -> valida el contrato OpenAPI en CI
 data/
-  *.csv                    -> datos tabulares fuente
-  noxfit-data.xlsx         -> workbook Excel generado para el seed
+  *.csv                    -> datos de partida
+  noxfit-data.xlsx         -> Excel que genera el seed
 test/
-  *.test.js                -> pruebas unitarias e integración
+  *.test.js                -> tests unitarios y de integración
 ```
 
 ## Requisitos
 
+Necesitas:
+
 - Node.js 20.19 o superior
-- Una instancia de MongoDB accesible por `MONGODB_URI`
+- una instancia de MongoDB a la que puedas llegar con `MONGODB_URI` (en local sirve una instalación normal o un contenedor)
 
 ## Variables de entorno
 
-Crea un archivo `.env` en la raíz del proyecto:
+Copia este ejemplo en un `.env` en la raíz del proyecto y ajusta los valores. Los vacíos son opcionales:
 
 ```env
 MONGODB_URI=mongodb://127.0.0.1:27017/noxfit
 JWT_SECRET=replace-with-a-long-random-secret
 TRAINER_BOOTSTRAP_TOKEN=replace-with-a-one-time-bootstrap-token
-SEED_DEFAULT_PASSWORD=Noxfit123
+SEED_DEFAULT_PASSWORD=change-me-before-seeding
 SEED_ADMIN_TRAINER_ID=
 PORT=3000
 DB_NAME=
@@ -83,30 +86,30 @@ STRIPE_PRICE_PREMIUM=
 STRIPE_PRICE_VIP=
 ```
 
-Obligatorias para ejecutar la API:
+Sin estas dos la API no arranca:
 
 - `MONGODB_URI`
 - `JWT_SECRET`
 
-Obligatoria para el bootstrap público del primer trainer admin:
+Solo si vas a crear el primer trainer admin por la API (no hace falta si usas el seed):
 
 - `TRAINER_BOOTSTRAP_TOKEN`
 
-Opcionales:
+El resto son opcionales:
 
 - `PORT`: puerto HTTP; por defecto `3000`
-- `SEED_DEFAULT_PASSWORD`: contraseña fallback usada por el seed cuando una fila no trae `password`; por defecto `Noxfit123`
+- `SEED_DEFAULT_PASSWORD`: contraseña que usa el seed para las filas que no traen `password`. Si no la defines y hay una fila sin contraseña, el seed se detiene con un error
 - `SEED_ADMIN_TRAINER_ID`: selecciona qué trainer del CSV será admin inicial
 - `SEED_RESET`: con valor `true` equivale a pasar `--reset` al seed
 - `DB_NAME`: sobrescribe el nombre de base de datos de `MONGODB_URI`
-- `CORS_ORIGIN`: orígenes permitidos separados por comas (p. ej. `https://noxfit.es`); si no se define, se permite cualquier origen
-- `TRUST_PROXY`: número de proxies (o lista de IPs) delante de la API, para que los limitadores de peticiones vean la IP real del cliente
-- `APP_URL`: URL del frontend usada para construir el enlace de restablecimiento de contraseña; por defecto `http://localhost:5173`
-- `SMTP_HOST`, `SMTP_PORT` (por defecto `587`), `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`: servidor SMTP para enviar emails. Si `SMTP_HOST` no está definido, el enlace de restablecimiento se escribe en la consola del servidor
+- `CORS_ORIGIN`: orígenes permitidos separados por comas (p. ej. `https://noxfit.es`). En desarrollo, si no la defines, se acepta cualquier origen; con `NODE_ENV=production` el servidor se niega a arrancar sin ella
+- `TRUST_PROXY`: número de proxies (o lista de IPs) que hay delante de la API. Hace falta para que el rate limiting vea la IP real del cliente y no la del proxy
+- `APP_URL`: URL pública del frontend; se usa para montar el enlace del email de recuperación de contraseña. Por defecto `http://localhost:5173`
+- `SMTP_HOST`, `SMTP_PORT` (por defecto `587`), `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`: servidor SMTP para enviar emails. Si no defines `SMTP_HOST`, no se envía nada y el enlace de recuperación aparece en la consola del servidor, que es lo cómodo para desarrollar
 - `MAIL_FROM`: remitente de los emails; por defecto `Noxfit <no-reply@noxfit.es>`
-- `CANCELLATION_WINDOW_HOURS`: horas mínimas antes de la sesión para que un member cancele o reprograme; por defecto `2`
+- `CANCELLATION_WINDOW_HOURS`: horas mínimas de antelación para que un member pueda cancelar o reprogramar; por defecto `2`
 - `REMINDERS_ENABLED`: con valor `false` desactiva el job que envía recordatorios 24 h antes
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_BASICA`, `STRIPE_PRICE_PREMIUM`, `STRIPE_PRICE_VIP`: pagos y suscripciones con Stripe (ver sección Billing)
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_BASICA`, `STRIPE_PRICE_PREMIUM`, `STRIPE_PRICE_VIP`: pagos y suscripciones con Stripe (más detalles en la sección Billing)
 - `SESSION_PACK_5_PRICE_CENTS`, `SESSION_PACK_10_PRICE_CENTS`: precio en céntimos de los bonos de sesiones; por defecto `4500` y `8000`
 
 Variables del frontend (`frontend/.env`):
@@ -114,102 +117,74 @@ Variables del frontend (`frontend/.env`):
 - `VITE_API_BASE_URL`: URL base de la API; por defecto `http://localhost:3000/api`
 - `VITE_CLOUDINARY_CLOUD_NAME` y `VITE_CLOUDINARY_UPLOAD_PRESET`: necesarias para subir avatares a Cloudinary
 
-## Instalación
+## Instalación y arranque
+
+Instala las dependencias del backend y del frontend:
 
 ```bash
 npm install
 npm install --prefix frontend
 ```
 
-## Ejecución
-
-Desarrollo:
+Con el `.env` listo, arranca la API (con recarga automática) y, en otra terminal, el frontend:
 
 ```bash
 npm run dev
-```
-
-Frontend en desarrollo:
-
-```bash
 npm run frontend:dev
 ```
 
-Ejecución local:
+Si prefieres arrancar la API sin recarga, usa `npm start`.
 
-```bash
-npm start
-```
-
-El servidor escucha en:
-
-```text
-http://localhost:3000
-```
-
-La base URL del API es:
-
-```text
-http://localhost:3000/api
-```
-
-El frontend de Vite arranca por defecto en:
-
-```text
-http://localhost:5173
-```
-
-Si el API no está en `http://localhost:3000`, configura `VITE_API_BASE_URL` antes de arrancar el frontend.
+La API queda en `http://localhost:3000/api` y el frontend en `http://localhost:5173`. Si cambias el puerto de la API, pon la nueva URL en `VITE_API_BASE_URL` dentro de `frontend/.env` antes de arrancar el frontend.
 
 ## Frontend
 
-Panel React 19 + Vite en `frontend/`. La sesión se guarda en `localStorage` y se cierra automáticamente si el token expira.
+Es un panel hecho con React 19 y Vite. La sesión se guarda en `localStorage` y se cierra sola cuando el token caduca.
 
-Vistas según el rol:
+Lo que ve cada persona depende de su rol:
 
-- Perfil: datos de la cuenta, edición y avatar (disponible para todos)
-- Socios: gestión de members (solo trainer admin)
-- Entrenadores: directorio de trainers con filtro por actividad (members y trainer admin)
-- Servicios: catálogo de actividades que lleva a entrenadores y reservas (solo members)
-- Calendario de reservas: calendario con reservas, formulario de reserva con selección de centro, entrenador y franja, y reprogramación arrastrando (solo reservas en estado `Confirmada`)
+- **Perfil** (todos): datos de la cuenta, edición y avatar
+- **Socios** (trainer admin): gestión de members
+- **Entrenadores** (members y trainer admin): directorio de trainers, filtrable por actividad
+- **Servicios** (members): catálogo de actividades, que lleva a entrenadores y reservas
+- **Calendario de reservas**: reservas en un calendario, formulario para reservar eligiendo centro, entrenador y franja, y reprogramación arrastrando (solo las que están `Confirmada`)
 
-Otras funciones:
+Además:
 
-- registro público de members, login unificado y recuperación de contraseña (`/?reset=<token>&role=<role>`)
-- mapa con los centros Noxfit Salamanca y Noxfit Alcobendas
-- subida de avatares a Cloudinary
+- cualquiera puede registrarse como member; el login es el mismo para members y trainers, y la contraseña se recupera desde `/?reset=<token>&role=<role>`
+- hay un mapa con los centros Noxfit Salamanca y Noxfit Alcobendas
+- los avatares se suben a Cloudinary
 
 ## OpenAPI
 
-El contrato compartido entre backend y frontend está definido en `openapi.json`.
+El contrato entre backend y frontend está en `openapi.json`. Lo puedes consultar de dos formas:
 
-- Documento JSON servido por la API: `GET /api/openapi.json`
-- Documentación Swagger UI: `GET /api/docs`
-- Versión del contrato: OpenAPI 3.1
+- el JSON en `GET /api/openapi.json`
+- Swagger UI en `GET /api/docs`, donde puedes probar los endpoints desde el navegador
 
-Validación local:
+Para comprobar que el contrato es válido:
 
 ```bash
 npm run openapi:check
 ```
 
-El repositorio incluye un workflow de GitHub Actions que ejecuta esta validación en cada `push` y `pull_request`.
+Esa misma comprobación se ejecuta en GitHub Actions en cada `push` y `pull_request`.
 
-## Verificación local
+## Comprobar que todo funciona
 
-Chequeo rápido del proyecto:
+Un chequeo rápido de que el proyecto carga bien:
 
 ```bash
 npm run check
 ```
 
-Build del frontend:
+Para compilar el frontend:
 
 ```bash
 npm run frontend:build
 ```
 
-Suite de tests:
+Y para lanzar los tests:
 
 ```bash
 npm test
@@ -217,50 +192,43 @@ npm test
 
 ## Seed de datos
 
-El proyecto incluye una carga inicial a partir del workbook Excel o de los CSV.
+Para tener datos con los que probar hay una carga inicial. Lee `data/noxfit-data.xlsx` si existe y, si no, los CSV de `data/`:
 
 ```bash
 npm run seed
 ```
 
-También puedes generar el workbook Excel que el seed detecta automáticamente:
+Si quieres regenerar el Excel a partir de los CSV:
 
 ```bash
 npm run data:workbook
 ```
 
-Por defecto el seed hace upsert: actualiza o crea los registros sin borrar los existentes y no sobrescribe el `password_hash` de cuentas ya creadas. Para vaciar las colecciones antes de insertar:
+Por defecto el seed hace upsert: crea o actualiza registros sin borrar los que ya hay, y no toca el `password_hash` de las cuentas existentes. Si prefieres empezar de cero, vacía las colecciones antes de insertar (también sirve `SEED_RESET=true`):
 
 ```bash
 npm run seed:reset
 ```
 
-El seed:
+Además de cargar los datos, el seed:
 
-- solo limpia las colecciones con `--reset` (`npm run seed:reset`) o `SEED_RESET=true`
-- completa el campo `center` de los trainers y reservas desde los CSV
-- normaliza el `activity_type` con errores tipográficos conocidos
-- prioriza `data/noxfit-data.xlsx` si existe, y en caso contrario usa `data/members.csv`, `data/trainers.csv` y `data/reservations.csv`
-- normaliza fechas a día UTC
-- convierte campos numéricos
-- usa la columna `password` de cada fila para crear el hash de acceso
-- usa `SEED_DEFAULT_PASSWORD` solo si una fila no trae `password`
-- marca un único trainer admin inicial
+- rellena el `center` de trainers y reservas desde los CSV
+- corrige errores de escritura conocidos en `activity_type`
+- normaliza las fechas a día UTC y convierte los campos numéricos
+- genera el hash de acceso a partir de la columna `password` de cada fila, y solo usa `SEED_DEFAULT_PASSWORD` si una fila no la trae
+- deja un único trainer como admin inicial
 
-Regla de admin inicial:
-
-- si `SEED_ADMIN_TRAINER_ID` está definido, ese trainer será admin
-- si no está definido, se usa el trainer admin por defecto del seed (`843d66cb-b0bf-4655-919f-01081bf4da2d`); si ese `trainer_id` no existe en los datos, el seed falla
+El admin inicial es el trainer de `SEED_ADMIN_TRAINER_ID`. Si no la defines, se usa el del propio seed (`843d66cb-b0bf-4655-919f-01081bf4da2d`), y si ese `trainer_id` no existe en los datos el seed falla.
 
 ## Convenciones HTTP
 
-Autenticación:
+Las rutas protegidas esperan el token en la cabecera:
 
 ```http
 Authorization: Bearer <token>
 ```
 
-Respuesta de colecciones:
+Las colecciones se devuelven así:
 
 ```json
 {
@@ -269,7 +237,7 @@ Respuesta de colecciones:
 }
 ```
 
-Respuesta de error:
+Y los errores, siempre con este formato:
 
 ```json
 {
@@ -277,11 +245,11 @@ Respuesta de error:
 }
 ```
 
-Actualizaciones:
+Sobre los updates:
 
-- el API usa `PATCH` para updates parciales
+- para cambios parciales se usa `PATCH`
 - `PUT` devuelve `405 Method Not Allowed` en members, trainers y reservations
-- los endpoints de `/api/auth` tienen rate limiting; al superarlo devuelven `429` con `Too many attempts, please try again later`
+- los endpoints de `/api/auth` tienen rate limiting; si te pasas, responden `429` con `Too many attempts, please try again later`
 
 ## Recursos y acceso
 
@@ -343,7 +311,7 @@ Campos relevantes de member:
 | POST | `/api/auth/forgot-password` | No | Solicita un enlace de restablecimiento (`role`, `email`); responde siempre `202` |
 | POST | `/api/auth/reset-password` | No | Fija una nueva contraseña (`role`, `token`, `password`) |
 
-Recuperación de contraseña:
+Recuperación de contraseña, en resumen:
 
 - el token se guarda hasheado (sha256) en la cuenta y caduca a la hora
 - el token es de un solo uso
@@ -364,11 +332,11 @@ Campos relevantes de trainer:
 - `is_admin`
 - `active`
 
-Notas de acceso:
+Sobre el acceso a trainers:
 
-- el registro público de trainers solo sirve para crear el primer trainer admin
-- después del primer alta, `/api/trainers/register` queda cerrado
-- un trainer autenticado no admin puede acceder a `/api/trainers/me`, pero no al módulo de reservations ni a rutas admin
+- el registro público de trainers solo sirve para crear el primer admin
+- después de ese primer alta, `/api/trainers/register` queda cerrado
+- un trainer sin permisos de admin puede usar `/api/trainers/me`, pero no puede entrar en reservations ni en las rutas de admin
 
 ### Reservations
 
@@ -406,9 +374,9 @@ Notas de acceso:
 | POST | `/api/billing/packs/checkout` | Member | Pago único en Stripe Checkout de un `pack` (`pack_5` o `pack_10`) |
 | POST | `/api/billing/webhook` | Stripe | Webhook firmado que sincroniza plan y estado de la suscripción |
 
-Configuración de Stripe: define `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` y un precio por plan (`STRIPE_PRICE_BASICA`, `STRIPE_PRICE_PREMIUM`, `STRIPE_PRICE_VIP`). En el dashboard de Stripe apunta el webhook a `/api/billing/webhook` con los eventos `checkout.session.completed` y `customer.subscription.created|updated|deleted`. Sin `STRIPE_SECRET_KEY` los endpoints de pago responden `503`.
+Configuración de Stripe: necesitas `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` y un precio por plan (`STRIPE_PRICE_BASICA`, `STRIPE_PRICE_PREMIUM`, `STRIPE_PRICE_VIP`). En el dashboard de Stripe, apunta el webhook a `/api/billing/webhook` y activa los eventos `checkout.session.completed` y `customer.subscription.created|updated|deleted`. Si falta `STRIPE_SECRET_KEY`, los endpoints de pago responden `503`.
 
-Bonos de sesiones: el webhook `checkout.session.completed` (y `checkout.session.async_payment_succeeded`) suma las sesiones al `session_credits` del member, una sola vez por sesión de pago. Cuando un member sin suscripción activa (`active`/`trialing`) reserva — o un trainer reserva por él, o es promovido desde la lista de espera — se descuenta una sesión y la reserva queda con `credit_used: true`; al cancelarla o borrarla se devuelve. Sin saldo ni suscripción, `POST /api/reservations` responde `402` y la promoción de lista de espera se omite. Los suscriptores activos reservan sin gastar sesiones. Precios por defecto: 45 € (5 sesiones) y 80 € (10); se pueden cambiar con `SESSION_PACK_5_PRICE_CENTS` y `SESSION_PACK_10_PRICE_CENTS`.
+Bonos de sesiones: cuando Stripe confirma el pago (`checkout.session.completed` o `checkout.session.async_payment_succeeded`), el webhook suma las sesiones al `session_credits` del member, una sola vez por pago. Si el member no tiene una suscripción activa (`active` o `trialing`), cada reserva gasta una sesión y queda marcada con `credit_used: true`. Eso incluye las reservas que haga un trainer por él y las que vengan de promocionar la lista de espera. Al cancelar o borrar la reserva, la sesión se devuelve. Sin saldo ni suscripción, `POST /api/reservations` responde `402` y la promoción de lista de espera se salta a esa persona. Los suscriptores activos reservan sin gastar sesiones. Los precios por defecto son 45 € por 5 sesiones y 80 € por 10, y se pueden cambiar con `SESSION_PACK_5_PRICE_CENTS` y `SESSION_PACK_10_PRICE_CENTS`.
 
 Campos relevantes de reservation:
 
@@ -423,27 +391,19 @@ Campos relevantes de reservation:
 - `price`
 - `booked_by`: `member` o `trainer`
 
-Disponibilidad (`GET /api/reservations/availability?date=...&time_slot=HH:MM - HH:MM`) devuelve por trainer `reservations_count`, `has_personal_training`, `spots_left` y `available`.
+Disponibilidad: `GET /api/reservations/availability?date=...&time_slot=HH:MM - HH:MM` devuelve, para cada trainer, `reservations_count`, `has_personal_training`, `spots_left` y `available`.
 
-Filtros soportados en `GET /api/reservations`:
+Se puede filtrar `GET /api/reservations` por `status`, `activity_type`, `date`, `member_id` y `trainer_id`.
 
-- `status`
-- `activity_type`
-- `date`
-- `member_id`
-- `trainer_id`
+Quién puede ver y tocar qué en reservations:
 
-Restricciones de acceso:
+- un member solo ve sus propias reservas, y no puede pedir las de otro member con `member_id`
+- tampoco puede crear una reserva a nombre de otra cuenta ni moverla a otro member
+- un trainer no admin no entra en reservations
 
-- un member solo puede ver sus propias reservas
-- un member no puede consultar reservas de otro member usando `member_id`
-- un member no puede crear reservas para otra cuenta
-- un member no puede mover una reserva a otro member
-- un trainer no admin no puede acceder a reservations
+## Qué devuelve el login
 
-## Respuestas de autenticación
-
-El login de members (`POST /api/auth/login` con `role: "member"`) devuelve:
+Un login de member (`POST /api/auth/login` con `role: "member"`) responde así:
 
 ```json
 {
@@ -456,17 +416,15 @@ El login de members (`POST /api/auth/login` con `role: "member"`) devuelve:
 }
 ```
 
-El registro bootstrap y el login de trainers devuelven el mismo formato, con `user` adaptado al recurso trainer.
+El login de trainers y el alta del primer admin responden igual, con `user` adaptado a trainer.
 
-Las cuentas de members pueden crearse por auto-registro (`POST /api/auth/register`) o por un trainer admin con `POST /api/members`.
+Una cuenta de member se puede crear de dos maneras: el propio socio con `POST /api/auth/register`, o un trainer admin con `POST /api/members`.
 
-Si el email no existe o la contraseña es incorrecta, el login devuelve el mismo `401 Invalid email or password`.
-
-Las respuestas saneadas no exponen `password_hash`.
+Si el email no existe o la contraseña es incorrecta, el login responde siempre lo mismo (`401 Invalid email or password`), así no se puede averiguar qué emails están registrados. Las respuestas nunca incluyen `password_hash`.
 
 ## Bootstrap del primer trainer admin
 
-Si todavía no existe ningún trainer en la base de datos, el primer admin puede crearse mediante un endpoint público protegido por cabecera:
+Si la base de datos aún no tiene ningún trainer, puedes crear el primer admin con un endpoint público que se protege con una cabecera:
 
 ```bash
 curl -X POST http://localhost:3000/api/trainers/register \
@@ -476,55 +434,70 @@ curl -X POST http://localhost:3000/api/trainers/register \
     "trainer_id": "trainer-admin",
     "full_name": "Trainer Admin",
     "email": "admin@noxfit.test",
-    "password": "Noxfit123",
+    "password": "change-me-123",
     "activity_type": "CrossFit"
   }'
 ```
 
-Comportamiento:
+Cómo responde:
 
-- falla con `503` si `TRAINER_BOOTSTRAP_TOKEN` no está configurado
-- falla con `403` si la cabecera `x-bootstrap-token` no coincide
-- falla con `403` si ya existe al menos un trainer
-- crea un trainer con `is_admin: true`
+- `503` si `TRAINER_BOOTSTRAP_TOKEN` no está configurado
+- `403` si la cabecera `x-bootstrap-token` no coincide
+- `403` si ya existe algún trainer
+- si todo va bien, crea un trainer con `is_admin: true`
 
-## Reglas de validación relevantes
+## Reglas de validación
 
-- `email` debe tener formato válido
-- `password` debe tener al menos 8 caracteres
-- `membership_type` debe ser `Básica`, `Premium` o `VIP`
-- `status` de reserva debe ser `Confirmada`, `Completada` o `Cancelada`
-- `years_experience`, `hourly_rate` y `price` deben ser números positivos o cero
-- `active` e `is_admin` deben ser booleanos cuando el endpoint permita enviarlos
-- `time_slot` debe usar el formato `HH:MM - HH:MM` y la hora final debe ser posterior a la inicial
-- `time_slot` debe estar dentro del horario de apertura (07:00 - 20:00)
-- `center` debe ser `Noxfit Salamanca` o `Noxfit Alcobendas`
-- `avatar` debe ser una URL de imagen de Cloudinary de como máximo 500 caracteres
-- `date` se normaliza a medianoche UTC
+Lo que la API rechaza con un `400`:
 
-## Reglas de negocio importantes
+- `email` con formato inválido
+- `password` de menos de 8 caracteres
+- `membership_type` que no sea `Básica`, `Premium` o `VIP`
+- `status` de reserva que no sea `Confirmada`, `Completada` o `Cancelada`
+- `years_experience`, `hourly_rate` o `price` negativos o que no sean números
+- `active` o `is_admin` que no sean booleanos (donde el endpoint deja enviarlos)
+- `time_slot` que no siga el formato `HH:MM - HH:MM`, con hora final posterior a la inicial y dentro del horario de apertura (07:00 - 20:00)
+- `center` que no sea `Noxfit Salamanca` o `Noxfit Alcobendas`
+- `avatar` que no sea una URL de imagen de Cloudinary de como máximo 500 caracteres
 
-- members y trainers usan identificadores de dominio (`member_id`, `trainer_id`, `reservation_id`) en vez de exponer `_id` como contrato principal
-- un member o trainer inactivo no puede autenticarse ni operar con un token válido
-- no se puede borrar un member o trainer si tiene reservas vinculadas; la API devuelve `409 Conflict`
-- los conflictos de agenda se validan en aplicación y también mediante índices únicos parciales en MongoDB
-- los índices de conflicto solo se aplican a reservas con estado `Confirmada` o `Completada`
-- un trainer admite hasta 12 reservas activas por franja; la 13ª devuelve `409`
-- una reserva de `Entrenamiento personal` ocupa toda la franja del trainer: no se puede crear si la franja ya tiene reservas, ni añadir otras sobre ella
+La `date` se normaliza a medianoche UTC.
+
+## Reglas de negocio
+
+Las decisiones que más condicionan cómo se comporta la app.
+
+Cuentas:
+
+- members y trainers se identifican por `member_id` y `trainer_id` (y las reservas por `reservation_id`), no por el `_id` de Mongo
+- una cuenta inactiva no puede iniciar sesión, y un token de una cuenta que se desactiva deja de valer
+- no se puede borrar un member o trainer con reservas vinculadas; la API responde `409 Conflict`
+- al cambiar la contraseña por el flujo de recuperación, el token queda invalidado y se anota `password_changed_at`
+
+Reservas:
+
+- los conflictos de agenda se comprueban en la aplicación y, además, con índices únicos parciales en MongoDB, que solo afectan a reservas `Confirmada` o `Completada`
+- cada trainer admite hasta 12 reservas activas por franja; la 13.ª recibe un `409`
+- un `Entrenamiento personal` ocupa toda la franja del trainer: no se puede crear si ya hay reservas, ni añadir otras encima
 - un member no puede tener dos reservas activas en la misma franja
-- el `center` de la reserva debe coincidir con el centro del trainer; si no, la API devuelve `409`
-- un trainer no admin solo puede reprogramar sus propias reservas
-- un member solo puede cancelar, reprogramar o eliminar una reserva confirmada hasta `CANCELLATION_WINDOW_HOURS` horas antes de que empiece (por defecto 2); los trainers no tienen ese límite
-- al liberarse una plaza (cancelación, cambio de franja o borrado) se promueve automáticamente a la primera entrada compatible de la lista de espera y se le avisa por email
-- solo se puede entrar en la lista de espera de una franja que esté realmente completa
-- el check-in solo es válido desde 30 minutos antes de la sesión hasta que termina, y un trainer no admin solo puede validar sus propias reservas
+- el `center` de la reserva tiene que ser el del trainer; si no, `409`
+- un trainer no admin solo reprograma sus propias reservas
+- un member puede cancelar, reprogramar o borrar una reserva confirmada hasta `CANCELLATION_WINDOW_HOURS` horas antes (2 por defecto); los trainers no tienen ese límite
 - los horarios (`time_slot`) se interpretan en hora de Madrid (`Europe/Madrid`)
-- el email de confirmación, cancelación, reprogramación, recordatorio (24 h antes) y plaza de lista de espera se envía por SMTP; si `SMTP_HOST` no está definido solo se registra en consola
-- el cambio de contraseña (reset) invalida el token de reset y registra `password_changed_at`
 
-## Cobertura de tests actual
+Lista de espera y check-in:
 
-La suite actual cubre, entre otros casos:
+- solo se puede entrar en la lista de espera de una franja que esté realmente llena
+- cuando se libera una plaza (por cancelación, cambio de franja o borrado), se promueve a la primera entrada compatible y se le avisa por email
+- el check-in vale desde 30 minutos antes de la sesión hasta que termina, y un trainer no admin solo valida sus propias reservas
+
+Emails:
+
+- se envían por SMTP al confirmar, cancelar o reprogramar una reserva, 24 h antes como recordatorio y cuando se libera una plaza de la lista de espera
+- si `SMTP_HOST` no está definido, solo se registran en la consola
+
+## Qué cubren los tests
+
+Los tests cubren, entre otras cosas:
 
 - exposición del contrato OpenAPI y Swagger UI
 - login de members y trainers, incluido el caso de un trainer sin hash de contraseña
@@ -543,10 +516,8 @@ La suite actual cubre, entre otros casos:
 - conflictos de agenda
 - errores JSON para rutas `/api` desconocidas
 
-## Estado actual del contrato
+## Limitaciones conocidas
 
-- todas las rutas del dominio viven bajo `/api`
-- no hay versionado de API todavía
-- no hay paginación todavía
-- no hay endpoints de subida de archivos: los avatares se suben a Cloudinary desde el frontend y la API solo guarda la URL
-- el registro público existe solo para members (`/api/auth/register`) y para el primer trainer admin (`/api/trainers/register`)
+- la API todavía no tiene versionado ni paginación
+- la API no recibe archivos: los avatares se suben a Cloudinary desde el frontend y aquí solo se guarda la URL
+- el registro público es solo para members (`/api/auth/register`) y para crear el primer trainer admin (`/api/trainers/register`)
