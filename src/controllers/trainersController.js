@@ -114,11 +114,11 @@ const applyTrainerUpdate = async (res, trainer_id, body, options) => {
   return sendItem(res, trainer);
 };
 
-const SELF_SERVICE_FIELDS = ['avatar', 'password', 'current_password'];
+const SELF_SERVICE_FIELDS = ['full_name', 'email', 'phone', 'bio', 'avatar', 'password', 'current_password'];
 
 const updateCurrentTrainer = async (req, res) => {
   if (!req.auth.isAdmin && Object.keys(req.body).some((field) => !SELF_SERVICE_FIELDS.includes(field))) {
-    throw createForbiddenError('Trainer admin access is required to change fields other than avatar and password');
+    throw createForbiddenError('Trainer admin access is required to change fields other than personal details, avatar and password');
   }
 
   if (req.body.password !== undefined) {

@@ -51,9 +51,12 @@ export const accountsApi = {
     const path = session.role === 'trainer' ? '/trainers/me' : '/members/me';
     return request(path, { token: session.token });
   },
-  updateAvatar(session, avatar) {
+  updateProfile(session, payload) {
     const path = session.role === 'trainer' ? '/trainers/me' : '/members/me';
-    return request(path, { method: 'PATCH', token: session.token, body: { avatar } });
+    return request(path, { method: 'PATCH', token: session.token, body: payload });
+  },
+  updateAvatar(session, avatar) {
+    return this.updateProfile(session, { avatar });
   },
   listMembers(session) {
     return request('/members', { token: session.token });

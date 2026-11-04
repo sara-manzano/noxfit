@@ -11,7 +11,6 @@ export const InvoicesView = ({ members, onSelect }) => {
       <div className="view-heading">
         <span className="eyebrow">Facturación</span>
         <h2>Facturas</h2>
-        <p>Elige un socio para generar su factura mensual con el plan y las clases reservadas.</p>
       </div>
 
       <div className="panel invoices-panel">

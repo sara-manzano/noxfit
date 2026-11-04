@@ -1,0 +1,21 @@
+.profile-edit-form {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.profile-edit-form textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+}
+
+.profile-card-jg .profile-edit-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+}
+
+.profile-card-jg .profile-edit-actions .button {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}

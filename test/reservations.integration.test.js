@@ -358,7 +358,7 @@ test('standard trainers can only reschedule their own reservations', async () =>
   assert.equal(foreign.status, 403);
 });
 
-test('standard trainers cannot modify reservations or their own profile', async () => {
+test('standard trainers cannot modify reservations or restricted profile fields', async () => {
   await createFixtures();
 
   const standardToken = (await loginTrainer('trainer-standard@noxfit.test')).body.token;
@@ -373,7 +373,7 @@ test('standard trainers cannot modify reservations or their own profile', async 
   const patchProfile = await request(app)
     .patch('/api/trainers/me')
     .set('Authorization', `Bearer ${standardToken}`)
-    .send({ full_name: 'Changed' });
+    .send({ center: 'Changed' });
   const deleteMember = await request(app)
     .delete('/api/members/member-a')
     .set('Authorization', `Bearer ${standardToken}`);
@@ -403,12 +403,16 @@ test('members can update their own avatar', async () => {
   assert.equal(profile.body.avatar, avatar);
 });
 
-test('standard trainers can update only their own avatar', async () => {
+test('standard trainers can update only their personal details and avatar', async () => {
   await createFixtures();
 
   const standardToken = (await loginTrainer('trainer-standard@noxfit.test')).body.token;
   const avatar = 'https://res.cloudinary.com/demo/image/upload/avatar.jpg';
 
+  const patchDetails = await request(app)
+    .patch('/api/trainers/me')
+    .set('Authorization', `Bearer ${standardToken}`)
+    .send({ full_name: 'Changed Name', phone: '600111222' });
   const patchAvatar = await request(app)
     .patch('/api/trainers/me')
     .set('Authorization', `Bearer ${standardToken}`)
@@ -418,6 +422,8 @@ test('standard trainers can update only their own avatar', async () => {
     .set('Authorization', `Bearer ${standardToken}`)
     .send({ avatar, is_admin: true });
 
+  assert.equal(patchDetails.status, 200);
+  assert.equal(patchDetails.body.full_name, 'Changed Name');
   assert.equal(patchAvatar.status, 200);
   assert.equal(mixed.status, 403);
 });

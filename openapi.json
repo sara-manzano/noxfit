@@ -793,7 +793,7 @@
         "tags": [
           "Trainers"
         ],
-        "description": "Standard trainers can only change avatar and password. Changing the password requires current_password. The active field is ignored.",
+        "description": "Standard trainers can only change full_name, email, phone, bio, avatar and password. Changing the password requires current_password. The active field is ignored.",
         "summary": "Partially update the authenticated trainer profile",
         "operationId": "updateCurrentTrainer",
         "security": [

@@ -11,6 +11,7 @@ import { ReservationCard } from './ReservationCard.jsx';
 import { ReservationForm } from './ReservationForm.jsx';
 import { StatCard } from './StatCard.jsx';
 import { ProfilePlan } from './ProfilePlan.jsx';
+import { ProfileEditForm } from './ProfileEditForm.jsx';
 import { MediaSlot } from './MediaSlot.jsx';
 import { NextSession } from './NextSession.jsx';
 import { getReservationStart, getWeekLabel } from '../lib/schedule.js';
@@ -111,6 +112,7 @@ export const AppShell = ({ session, onLogout }) => {
   const [activeView, setActiveView] = useState(() => getInitialView(session, launch));
   const [activityFilter, setActivityFilter] = useState('');
   const [avatarError, setAvatarError] = useState('');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [invoiceMember, setInvoiceMember] = useState(null);
   const [memberLimit, setMemberLimit] = useState(MEMBERS_PAGE_SIZE);
   const [reservationLimit, setReservationLimit] = useState(RESERVATIONS_PAGE_SIZE);
@@ -431,10 +433,24 @@ export const AppShell = ({ session, onLogout }) => {
                   Quitar foto
                 </button>
               ) : null}
-              <button className="button button-secondary" type="button" onClick={dashboard.refreshData} disabled={dashboard.isLoading}>
-                Actualizar
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={() => setIsEditingProfile((editing) => !editing)}
+                disabled={!dashboard.profile}
+              >
+                {isEditingProfile ? 'Cerrar' : 'Actualizar'}
               </button>
             </div>
+            {isEditingProfile && dashboard.profile ? (
+              <ProfileEditForm
+                profile={dashboard.profile}
+                isTrainer={session.role === 'trainer'}
+                isSubmitting={dashboard.isSubmitting}
+                onSubmit={dashboard.updateProfile}
+                onCancel={() => setIsEditingProfile(false)}
+              />
+            ) : null}
             {avatarError ? <div className="banner banner-error" role="alert">{avatarError}</div> : null}
           </div>
         </div>

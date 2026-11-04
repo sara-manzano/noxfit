@@ -153,6 +153,10 @@ export const useDashboardData = (session, onSessionExpired) => {
       () => accountsApi.createMember(session, payload),
       'Socio creado correctamente'
     ),
+    updateProfile: (payload) => runMutation(
+      () => accountsApi.updateProfile(session, payload),
+      'Perfil actualizado correctamente'
+    ),
     updateAvatar: (avatar) => runMutation(
       () => accountsApi.updateAvatar(session, avatar),
       avatar ? 'Foto de perfil actualizada' : 'Foto de perfil restablecida'
