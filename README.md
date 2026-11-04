@@ -79,6 +79,7 @@ scripts/
 frontend/
   src/                     -> app React (api, app, components, hooks, lib, styles)
 docs/
+  demo/                    -> vídeo de demostración y su miniatura
   screenshots/             -> capturas de la app para este README
 .github/workflows/
   openapi-contract.yml     -> valida el contrato OpenAPI en CI
@@ -139,6 +140,7 @@ El resto son opcionales:
 - `SEED_DEFAULT_PASSWORD`: contraseña que usa el seed para las filas que no traen `password`. Si no la defines y hay una fila sin contraseña, el seed se detiene con un error
 - `SEED_ADMIN_TRAINER_ID`: selecciona qué trainer del CSV será admin inicial
 - `SEED_RESET`: con valor `true` equivale a pasar `--reset` al seed
+- `SEED_WORKBOOK_PATH`: Excel alternativo para el seed (ruta absoluta o nombre de archivo dentro de `data/`)
 - `DB_NAME`: sobrescribe el nombre de base de datos de `MONGODB_URI`
 - `CORS_ORIGIN`: orígenes permitidos separados por comas (p. ej. `https://noxfit.es`). En desarrollo, si no la defines, se acepta cualquier origen; con `NODE_ENV=production` el servidor se niega a arrancar sin ella
 - `TRUST_PROXY`: número de proxies (o lista de IPs) que hay delante de la API. Hace falta para que el rate limiting vea la IP real del cliente y no la del proxy
