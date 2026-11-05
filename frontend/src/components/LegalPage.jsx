@@ -163,7 +163,7 @@ export const LegalPage = ({ page, onBack }) => {
       </button>
 
       <article className="legal-card">
-        <div className="eyebrow eyebrow-accent">NOXFIT</div>
+        <div className="eyebrow">NOXFIT</div>
         <h1>{content.title}</h1>
         <p className="legal-updated">Última actualización: {lastUpdated}</p>
         <p>{content.intro}</p>

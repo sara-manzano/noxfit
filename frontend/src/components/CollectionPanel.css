@@ -49,12 +49,17 @@
   gap: var(--space-md);
 }
 
+.card-grid .entity-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-tile);
+}
+
 .collection-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
   margin-bottom: var(--space-md);
-  padding: 0.3rem;
+  padding: var(--space-2xs);
   border-radius: var(--radius-pill);
   background: var(--color-fill-faint);
 }
@@ -62,14 +67,14 @@
 .collection-tab {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 1rem;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-sm);
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text-dim);
   font: inherit;
-  font-size: 0.92rem;
+  font-size: var(--font-size-md);
   font-weight: 800;
   cursor: pointer;
   transition: background 160ms ease, color 160ms ease;
@@ -77,10 +82,10 @@
 
 .collection-tab span {
   min-width: 1.4rem;
-  padding: 0.05rem 0.4rem;
+  padding: var(--space-4xs) var(--space-2xs);
   border-radius: var(--radius-pill);
   background: rgba(var(--rgb-ink), 0.1);
-  font-size: 0.75rem;
+  font-size: var(--font-size-2xs);
   text-align: center;
 }
 
@@ -154,7 +159,7 @@
 
 .panel.panel-form {
   overflow: hidden;
-  padding-top: calc(var(--space-lg) + 0.7rem);
+  padding-top: calc(var(--space-lg) + var(--space-xs));
   border-radius: var(--radius-blob-b);
   background: var(--color-card-bg);
 }
@@ -223,7 +228,7 @@
     z-index: 800;
     width: fit-content;
     margin-inline: auto;
-    padding: 0.9rem 1.8rem;
+    padding: var(--space-sm) var(--space-lg);
     border: 2px solid var(--color-ink);
     background: var(--gradient-primary-deep);
     box-shadow: 4px 4px 0 var(--color-ink);

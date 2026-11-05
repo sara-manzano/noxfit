@@ -16,6 +16,6 @@
 }
 
 .profile-card-jg .profile-edit-actions .button {
-  padding: 0.5rem 1rem;
-  font-size: 0.85rem;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-sm);
 }

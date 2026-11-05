@@ -11,7 +11,7 @@
 .media-slot-empty {
   display: grid;
   place-content: center;
-  gap: 0.3rem;
+  gap: var(--space-2xs);
   padding: var(--space-md);
   border: var(--border-dashed);
   background: rgba(var(--rgb-ink), 0.05);
@@ -27,7 +27,7 @@
 }
 
 .media-slot-empty span {
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   overflow-wrap: anywhere;
 }

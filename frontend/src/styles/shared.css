@@ -38,6 +38,11 @@ a {
   line-height: 1.05;
 }
 
+.entity-card h3 {
+  font-size: 1.7rem;
+  letter-spacing: 0.04em;
+}
+
 .auth-card p,
 .section-heading p,
 .profile-card p,
@@ -54,7 +59,7 @@ a {
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
 }
 
 .metric-pill,
@@ -63,9 +68,9 @@ a {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-pill);
-  padding: 0.45rem 0.8rem;
+  padding: var(--space-2xs) var(--space-sm);
   font-weight: 700;
-  font-size: 0.86rem;
+  font-size: var(--font-size-sm);
 }
 
 .metric-pill {
@@ -149,7 +154,7 @@ a {
 }
 
 .field span {
-  font-size: 0.92rem;
+  font-size: var(--font-size-md);
   color: var(--color-muted);
   font-weight: 700;
 }
@@ -159,7 +164,7 @@ a {
   width: 100%;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  padding: 0.9rem 1rem;
+  padding: var(--space-sm) var(--space-sm);
   background: rgba(var(--rgb-paper), 0.92);
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
@@ -190,7 +195,7 @@ a {
 .button {
   border: 0;
   border-radius: var(--radius-pill);
-  padding: 0.9rem 1.2rem;
+  padding: var(--space-sm) var(--space-md);
   font-weight: 800;
   transition: transform 160ms ease, opacity 160ms ease, background 160ms ease;
 }
@@ -238,6 +243,11 @@ a {
   text-align: center;
 }
 
+.entity-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
 .hero-lead {
   max-width: 62ch;
   margin: 0;
@@ -281,12 +291,12 @@ a {
 .login-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.85rem;
+  gap: var(--space-xs);
+  padding: var(--space-2xs) var(--space-sm);
   border-radius: var(--radius-pill);
   border: 1px solid rgba(var(--rgb-primary), 0.45);
   color: var(--color-primary);
-  font-size: 0.74rem;
+  font-size: var(--font-size-2xs);
 }
 
 .view-heading .eyebrow {
@@ -370,7 +380,7 @@ a {
 
 .brand-hero,
 .auth-card,
-.stats-grid,
+.dashboard-stats,
 .collection-shell {
   animation: rise-in 520ms ease both;
 }

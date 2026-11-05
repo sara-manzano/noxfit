@@ -17,7 +17,7 @@
 }
 
 .svc-row:nth-child(4n + 2) {
-  --svc-accent: var(--color-pink);
+  --svc-accent: var(--color-primary-deep);
   --svc-accent-rgb: var(--rgb-primary-deep);
 }
 
@@ -69,13 +69,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.85rem;
+  gap: var(--space-2xs);
+  font-size: var(--font-size-sm);
   font-weight: 700;
 }
 
 .svc-trainers > span:not(.svc-label) {
-  padding: 0.25rem 0.7rem;
+  padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--radius-pill);
   background: rgba(var(--svc-accent-rgb), 0.35);
   border: 1px solid rgba(var(--svc-accent-rgb), 0.9);
@@ -89,7 +89,7 @@
 .svc-label {
   flex-basis: 100%;
   color: var(--color-eyebrow);
-  font-size: 0.72rem;
+  font-size: var(--font-size-2xs);
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -117,7 +117,7 @@
 }
 
 .svc-row-premium {
-  --svc-accent: var(--color-pink);
+  --svc-accent: var(--color-primary-deep);
   --svc-accent-rgb: var(--rgb-primary-deep);
 }
 
@@ -137,9 +137,9 @@
 .svc-price {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.3rem;
+  gap: var(--space-2xs);
   margin-top: var(--space-sm);
-  padding: 0.35rem 0.9rem;
+  padding: var(--space-2xs) var(--space-sm);
   border-radius: var(--radius-pill);
   background: var(--gradient-primary);
   color: var(--color-on-primary);
@@ -147,7 +147,7 @@
 }
 
 .svc-price span {
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
 }
 

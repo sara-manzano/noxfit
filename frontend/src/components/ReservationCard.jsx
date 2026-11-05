@@ -1,6 +1,7 @@
 import { formatCurrency } from '../lib/formatters.js';
 import { ReservationActions } from './ReservationActions.jsx';
 import { StatusPill } from './StatusPill.jsx';
+import './ReservationCard.css';
 
 const getDateParts = (value) => {
   const date = value ? new Date(value) : null;
@@ -33,7 +34,7 @@ export const ReservationCard = ({
   const { day, month, weekday } = getDateParts(reservation.date);
 
   return (
-    <article className="entity-card entity-card-wide reservation-card">
+    <article className="entity-card reservation-card">
       <div className="reservation-stub">
         <span className="reservation-weekday">{weekday}</span>
         <strong className="reservation-day">{day}</strong>

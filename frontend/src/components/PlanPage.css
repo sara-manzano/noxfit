@@ -66,11 +66,11 @@
   top: 1.2rem;
   left: clamp(2rem, 5vw, 3.6rem);
   z-index: 1;
-  padding: 0.3rem 0.9rem;
+  padding: var(--space-2xs) var(--space-sm);
   border: 1px solid var(--plan-accent);
   border-radius: var(--radius-pill);
   color: var(--plan-accent);
-  font-size: 0.75rem;
+  font-size: var(--font-size-2xs);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -82,10 +82,10 @@
   right: -2.8rem;
   z-index: 2;
   width: 11rem;
-  padding: 0.35rem 0;
+  padding: var(--space-2xs) 0;
   background: var(--gradient-primary);
   color: var(--color-on-primary);
-  font-size: 0.75rem;
+  font-size: var(--font-size-2xs);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-align: center;
@@ -136,14 +136,14 @@
 .plan-level {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--space-2xs);
   margin-top: var(--space-xs);
 }
 
 .plan-level em {
-  margin-left: 0.5rem;
+  margin-left: var(--space-xs);
   color: var(--color-on-dark-muted);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-style: normal;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -204,7 +204,7 @@
 }
 
 .plan-sticker span {
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -270,11 +270,11 @@
 
 .plan-ideal-label {
   justify-self: start;
-  padding: 0.25rem 0.9rem;
+  padding: var(--space-3xs) var(--space-sm);
   border-radius: var(--radius-pill);
   background: var(--color-ink);
   color: var(--color-primary-light);
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -301,7 +301,7 @@
 
 .plan-other {
   display: grid;
-  gap: 0.2rem;
+  gap: var(--space-3xs);
   padding: var(--space-lg);
   border-radius: var(--radius-card);
   background: rgba(var(--rgb-ink), 0.07);
@@ -326,14 +326,14 @@
 .plan-other-badge {
   justify-self: start;
   color: var(--color-muted);
-  font-size: 0.7rem;
+  font-size: var(--font-size-2xs);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .plan-other-go {
-  margin-top: 0.4rem;
+  margin-top: var(--space-2xs);
   color: var(--color-eyebrow);
   font-weight: 800;
 }

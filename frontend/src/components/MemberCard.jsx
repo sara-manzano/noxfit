@@ -1,5 +1,6 @@
 import { formatBoolean, formatDate, formatMembershipFee } from '../lib/formatters.js';
 import { StatusPill } from './StatusPill.jsx';
+import './MemberCard.css';
 
 export const MemberCard = ({ member, onDelete, onInvoice, disabled }) => (
   <article className="entity-card">

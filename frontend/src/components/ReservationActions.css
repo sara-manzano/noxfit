@@ -1,7 +1,7 @@
 .reservation-actions {
   display: grid;
   gap: var(--space-sm);
-  margin-top: 0.4rem;
+  margin-top: var(--space-2xs);
 }
 
 .reservation-actions-row {
@@ -11,7 +11,7 @@
 }
 
 .reservation-action {
-  padding: 0.35rem 0.9rem;
+  padding: var(--space-2xs) var(--space-sm);
   border: 2px solid var(--color-outline);
   border-radius: var(--radius-pill);
   background: transparent;
@@ -43,7 +43,7 @@
 
 .reservation-action-more {
   min-width: 2.4rem;
-  padding-inline: 0.6rem;
+  padding-inline: var(--space-xs);
   line-height: 1;
 }
 
@@ -64,7 +64,7 @@
   align-items: end;
   padding: var(--space-md);
   border: var(--border-dashed);
-  border-radius: 8px 24px 8px 24px;
+  border-radius: var(--radius-ticket);
   background: rgba(var(--rgb-paper), 0.6);
 }
 
@@ -74,7 +74,7 @@
   gap: var(--space-sm);
   padding: var(--space-md);
   border: 2px solid var(--color-ink);
-  border-radius: 8px 24px 8px 24px;
+  border-radius: var(--radius-ticket);
   background: var(--color-white);
   box-shadow: -5px 5px 0 var(--color-primary);
   text-align: center;

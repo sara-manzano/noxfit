@@ -1,7 +1,8 @@
+import './StatCard.css';
+
 export const StatCard = ({ label, value, description, onClick }) => (
   <article
-    className="stat-card"
-    style={onClick ? { cursor: 'pointer' } : undefined}
+    className={onClick ? 'stat-card stat-card-clickable' : 'stat-card'}
     {...(onClick ? {
       role: 'button',
       tabIndex: 0,

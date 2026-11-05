@@ -1,0 +1,26 @@
+.entity-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.entity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: var(--space-md) 0;
+  color: var(--color-muted);
+}
+
+.entity-meta span {
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--radius-pill);
+  background: rgba(var(--rgb-ink), 0.06);
+}
+
+@media (max-width: 720px) {
+  .entity-card-head {
+    flex-direction: column;
+  }
+}

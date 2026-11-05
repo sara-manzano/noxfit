@@ -6,14 +6,12 @@
   --color-surface: rgba(var(--rgb-surface), 0.82);
   --color-surface-strong: #fcf8ee;
   --color-border: rgba(var(--rgb-ink), 0.08);
-  --color-pink: #ff2fd0;
   --color-primary: #2de2ff;
   --color-primary-deep: #ff2fd0;
   --color-eyebrow: #7a1a66;
   --color-status-positive: #00566b;
   --color-secondary: #f3ede1;
   --color-danger: #be4253;
-  --color-success: #5c8f11;
   --color-on-dark: #fcf8ee;
   --color-on-primary: #001f28;
   --color-promo: #ffd60a;
@@ -78,11 +76,14 @@
   --radius-blob-b: 40px 8px 40px 8px;
   --radius-blob-c: 28px 28px 8px 28px;
   --radius-card: 28px;
+  --radius-ticket: 8px 24px 8px 24px;
+  --radius-tile: 8px 28px 8px 28px;
   --border-dashed: 2px dashed rgba(var(--rgb-ink), 0.28);
   --radius-xl: 32px;
   --radius-lg: 24px;
   --radius-md: 16px;
   --radius-sm: 12px;
+  --space-4xs: 0.1rem;
   --space-3xs: 0.2rem;
   --space-2xs: 0.35rem;
   --space-xs: 0.6rem;
@@ -91,6 +92,10 @@
   --space-lg: 1.6rem;
   --space-xl: 2.4rem;
   --space-2xl: 3.4rem;
+  --font-size-2xs: 0.75rem;
+  --font-size-xs: 0.8rem;
+  --font-size-sm: 0.85rem;
+  --font-size-md: 0.9rem;
   --content-max: 1280px;
 }
 

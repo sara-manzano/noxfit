@@ -40,11 +40,11 @@
 
 .member-highlights-group li {
   display: grid;
-  gap: 0.15rem;
+  gap: var(--space-3xs);
 }
 
 .member-highlights-group li span {
-  font-size: 0.9rem;
+  font-size: var(--font-size-md);
   color: var(--color-on-dark-muted);
 }
 
@@ -90,7 +90,7 @@
 .member-highlights-edit-item textarea {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.5rem 0.7rem;
+  padding: var(--space-xs) var(--space-xs);
   border: 1px solid rgba(var(--rgb-cream), 0.24);
   border-radius: var(--radius-sm);
   background: rgba(var(--rgb-ink), 0.4);

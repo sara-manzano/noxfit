@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-lg);
-  padding: 0.8rem 0;
+  padding: var(--space-sm) 0;
 }
 
 .top-nav-brand {
@@ -41,11 +41,11 @@
 .top-nav-link {
   border: 0;
   background: none;
-  padding: 0.6rem 0.95rem;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-pill);
   color: var(--color-on-dark-soft);
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: var(--font-size-md);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -80,11 +80,11 @@
 
 .top-nav-user span {
   color: var(--color-on-dark-dim);
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
 }
 
 .top-nav-cta {
-  padding: 0.6rem 1.1rem;
+  padding: var(--space-xs) var(--space-md);
 }
 
 @media (max-width: 1080px) {

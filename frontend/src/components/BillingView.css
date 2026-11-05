@@ -36,7 +36,7 @@
 }
 
 .billing-summary > div:nth-child(2) {
-  border-top-color: var(--color-pink);
+  border-top-color: var(--color-primary-deep);
   background: rgba(var(--rgb-primary-deep), 0.1);
 }
 
@@ -47,14 +47,14 @@
 
 .billing-summary dt {
   color: var(--color-eyebrow);
-  font-size: 0.74rem;
+  font-size: var(--font-size-2xs);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .billing-summary dd {
-  margin: 0.25rem 0 0;
+  margin: var(--space-3xs) 0 0;
   font-family: var(--font-heading);
   font-size: 1.8rem;
   letter-spacing: 0.03em;
@@ -77,7 +77,7 @@
 }
 
 .billing-plan:nth-child(3n + 2) {
-  border-top-color: var(--color-pink);
+  border-top-color: var(--color-primary-deep);
   background: linear-gradient(180deg, rgba(var(--rgb-primary-deep), 0.14) 0%, rgba(var(--rgb-paper), 0.8) 55%);
 }
 
@@ -95,25 +95,25 @@
 }
 
 .billing-plan-featured {
-  border: 2px solid var(--color-pink);
+  border: 2px solid var(--color-primary-deep);
   border-top-width: 5px;
   box-shadow: 0 18px 40px rgba(var(--rgb-primary-deep), 0.22);
 }
 
 .billing-plan-badge {
   justify-self: start;
-  padding: 0.25rem 0.7rem;
+  padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--radius-pill);
   background: rgba(var(--rgb-ink), 0.06);
   color: var(--color-text-warm);
-  font-size: 0.72rem;
+  font-size: var(--font-size-2xs);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .billing-plan-featured .billing-plan-badge {
-  background: var(--color-pink);
+  background: var(--color-primary-deep);
   color: var(--color-on-dark);
 }
 
@@ -135,12 +135,12 @@
   padding: 0;
   list-style: none;
   color: var(--color-text-dim);
-  font-size: 0.9rem;
+  font-size: var(--font-size-md);
 }
 
 .billing-plan-features li {
   position: relative;
-  padding-left: 1.4rem;
+  padding-left: var(--space-md);
 }
 
 .billing-plan-features li::before {
@@ -168,7 +168,7 @@
 
 .billing-credits strong {
   min-width: 3.2rem;
-  padding: 0.2rem 0.8rem;
+  padding: var(--space-3xs) var(--space-sm);
   border-radius: var(--radius-md);
   background: var(--gradient-primary-deep);
   color: var(--color-on-primary);
@@ -224,7 +224,7 @@
 }
 
 .billing-invoice-totals span {
-  font-size: 0.72rem;
+  font-size: var(--font-size-2xs);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -247,7 +247,7 @@
 }
 
 .billing-invoices li:nth-child(even) {
-  border-left-color: var(--color-pink);
+  border-left-color: var(--color-primary-deep);
 }
 
 .billing-invoices li:last-child {
@@ -270,7 +270,7 @@
 
 .billing-invoice-date {
   color: var(--color-muted);
-  font-size: 0.86rem;
+  font-size: var(--font-size-sm);
 }
 
 .billing-invoice-actions {
@@ -284,7 +284,7 @@
 }
 
 .billing-invoice-link {
-  padding: 0.3rem 0.9rem;
+  padding: var(--space-2xs) var(--space-sm);
   border-radius: var(--radius-pill);
   background: rgba(var(--rgb-primary), 0.3);
   color: var(--color-status-positive);

@@ -1,0 +1,36 @@
+.stat-card {
+  padding: var(--space-lg);
+  border-radius: var(--radius-card);
+  background: linear-gradient(180deg, rgba(var(--rgb-cream), 0.92) 0%, rgba(var(--rgb-linen), 0.78) 100%);
+}
+
+.stat-card span {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.stat-card-clickable {
+  cursor: pointer;
+}
+
+.stat-card strong {
+  display: block;
+  margin: var(--space-xs) 0;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-family: var(--font-heading);
+}
+
+.stat-card:nth-child(1) {
+  border-radius: var(--radius-blob-a);
+  background: var(--color-ink);
+  color: var(--color-on-dark);
+}
+
+.stat-card:nth-child(1) span,
+.stat-card:nth-child(1) p {
+  color: var(--color-on-dark-muted);
+}
+
+.stat-card:nth-child(1) strong {
+  color: var(--color-primary);
+}

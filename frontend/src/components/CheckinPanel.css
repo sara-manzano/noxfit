@@ -4,7 +4,7 @@
   width: 100%;
   max-width: 36rem;
   margin-inline: auto;
-  padding-top: calc(var(--space-lg) + 0.7rem);
+  padding-top: calc(var(--space-lg) + var(--space-xs));
   border-radius: var(--radius-blob-b);
   background: var(--color-card-bg);
 }
@@ -24,7 +24,7 @@
 .checkin-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-xs);
 }
 
 .checkin-label-icon {

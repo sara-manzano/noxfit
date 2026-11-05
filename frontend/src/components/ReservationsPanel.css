@@ -1,0 +1,10 @@
+.card-grid .reservation-empty {
+  grid-column: 1 / -1;
+  padding: var(--space-xl) var(--space-lg);
+  border: 2px dashed var(--color-primary-deep);
+  border-radius: var(--radius-ticket);
+  background: var(--color-surface-strong);
+  color: var(--color-ink);
+  font-weight: 700;
+  box-shadow: none;
+}
