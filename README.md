@@ -6,6 +6,12 @@ El backend está hecho con Express 5 y MongoDB (Mongoose), y se autentica con JW
 
 Lo que se puede hacer ahora mismo: reservar sesiones sin que se solapen, apuntarse a una lista de espera cuando una franja está llena, entrar al centro con un QR, recibir avisos por email (con recordatorio 24 horas antes), pagar con Stripe (suscripción o bono de sesiones) y generar la factura mensual de cada socio en PDF.
 
+## Sobre el proyecto
+
+Noxfit es mi proyecto final. Quería construir algo parecido a lo que usaría un gimnasio de verdad, no solo un CRUD de ejemplo, así que le di forma de producto: tiene roles con permisos distintos, pagos reales (en modo de pruebas de Stripe), emails, documentación de la API y tests automáticos.
+
+Las decisiones que más me importaron fueron que las reservas no se pisen entre sí, que los pagos sean seguros frente a avisos repetidos de Stripe y que la API no filtre información que no debe. Todo eso está explicado más abajo, en [Reglas de negocio](#reglas-de-negocio).
+
 ## Demo en vídeo
 
 <video src="docs/demo/noxfit-demo.mp4" poster="docs/demo/poster.png" controls width="100%">
@@ -42,6 +48,20 @@ Vista de un entrenador admin:
 
 ![Gestión de socios](docs/screenshots/09-admin-socios.png)
 
+## Quién puede hacer qué
+
+Hay tres perfiles, y lo que ven y pueden tocar cambia según cuál sea:
+
+| | Socio (member) | Entrenador | Entrenador admin |
+| --- | --- | --- | --- |
+| Reservar, cancelar y reprogramar | Las suyas (con ventana de antelación) | Las suyas | Todas |
+| Lista de espera | Sí | Ver las de sus sesiones | Ver y gestionar |
+| Pagar suscripción y bonos | Sí | No | No |
+| Validar check-in con QR | No | Sus reservas | Todas |
+| Gestionar socios y entrenadores | No | No | Sí |
+| Facturas mensuales | La suya | De cualquier socio | De cualquier socio |
+| Editar noticias y promociones | No | Sí | Sí |
+
 ## Con qué está hecho
 
 - Node.js 20.19+ y Express 5
@@ -52,6 +72,8 @@ Vista de un entrenador admin:
 - nodemailer para los emails
 - Stripe para los pagos
 - Cloudinary para los avatares (se suben desde el frontend y la API solo guarda la URL)
+- PDFKit para generar las facturas en PDF
+- Leaflet para el mapa de los centros y `qrcode` para los códigos QR
 - OpenAPI 3.1 con Swagger UI para documentar la API
 - Tests con el runner de Node, Supertest y mongodb-memory-server
 
@@ -89,6 +111,19 @@ data/
 test/
   *.test.js                -> tests unitarios y de integración
 ```
+
+## Modelo de datos
+
+Hay seis colecciones en MongoDB:
+
+- **Member**: socio, con su plan (`membership_type`), saldo de bonos (`session_credits`) y datos de Stripe
+- **Trainer**: entrenador, con su actividad, su centro y si es admin
+- **Reservation**: sesión entre un member y un trainer en una fecha y franja; guarda el estado, el precio y si se pagó con un bono
+- **Waitlist**: persona esperando una franja llena; cuando se libera una plaza pasa a reserva
+- **SessionPackPurchase**: registro de cada bono pagado; sirve para que el webhook de Stripe no sume dos veces el mismo pago
+- **Highlights**: noticias, promociones y actividades que se muestran en el perfil
+
+Las reservas y la lista de espera apuntan a members y trainers por su `_id` interno, pero hacia fuera la API siempre usa los identificadores propios (`member_id`, `trainer_id`, `reservation_id`).
 
 ## Requisitos
 
@@ -157,6 +192,16 @@ Variables del frontend (`frontend/.env`):
 - `VITE_API_BASE_URL`: URL base de la API; por defecto `http://localhost:3000/api`
 - `VITE_CLOUDINARY_CLOUD_NAME` y `VITE_CLOUDINARY_UPLOAD_PRESET`: necesarias para subir avatares a Cloudinary
 
+Ejemplo de `frontend/.env`:
+
+```env
+VITE_API_BASE_URL=http://localhost:3000/api
+VITE_CLOUDINARY_CLOUD_NAME=
+VITE_CLOUDINARY_UPLOAD_PRESET=
+```
+
+Para los avatares crea una cuenta gratuita en Cloudinary y, en los ajustes de subida, un *upload preset* sin firma (`unsigned`). Si no lo configuras, todo funciona igual salvo la subida de fotos.
+
 ## Instalación y arranque
 
 Instala las dependencias del backend y del frontend:
@@ -174,6 +219,8 @@ npm run frontend:dev
 ```
 
 Si prefieres arrancar la API sin recarga, usa `npm start`.
+
+Orden recomendado la primera vez: instalar, crear el `.env`, ejecutar `npm run seed` para tener datos, y entonces arrancar API y frontend. Para comprobar que la API responde, abre `http://localhost:3000/api/health`.
 
 La API queda en `http://localhost:3000/api` y el frontend en `http://localhost:5173`. Si cambias el puerto de la API, pon la nueva URL en `VITE_API_BASE_URL` dentro de `frontend/.env` antes de arrancar el frontend.
 
@@ -198,6 +245,8 @@ Además:
 - cualquiera puede registrarse como member (el enlace `/?register=1` abre el formulario de alta); el login es el mismo para members y trainers, y la contraseña se recupera desde `/?reset=<token>&role=<role>`
 - hay un mapa con los centros Noxfit Salamanca y Noxfit Alcobendas
 - los avatares se suben a Cloudinary
+- las páginas legales (privacidad, términos y cookies) son accesibles sin iniciar sesión desde `#privacidad`, `#terminos` y `#cookies`; el frontend no usa un router, solo lee el hash de la URL
+- la web solo guarda en el navegador la sesión (en `localStorage`); no usa cookies de analítica ni de publicidad
 
 ## OpenAPI
 
@@ -233,6 +282,8 @@ Y para lanzar los tests:
 ```bash
 npm test
 ```
+
+Los tests no necesitan una base de datos instalada: usan `mongodb-memory-server`, que levanta una MongoDB temporal (la primera vez descarga el binario, así que hace falta conexión). Los emails y Stripe se simulan, no se envía ni se cobra nada.
 
 ## Seed de datos
 
@@ -443,6 +494,14 @@ Bloques de noticias, promociones y actividades extras que se muestran en el perf
 | POST | `/api/billing/packs/checkout` | Member | Pago único en Stripe Checkout de un `pack` (`pack_5` o `pack_10`) |
 | POST | `/api/billing/webhook` | Stripe | Webhook firmado que sincroniza plan y estado de la suscripción |
 
+Para probar los pagos en local, instala la [CLI de Stripe](https://docs.stripe.com/stripe-cli) y reenvía los eventos a tu API:
+
+```bash
+stripe listen --forward-to localhost:3000/api/billing/webhook
+```
+
+El comando imprime un `whsec_...`: ponlo en `STRIPE_WEBHOOK_SECRET`. Usa siempre claves de pruebas (`sk_test_...`) y la tarjeta `4242 4242 4242 4242` con cualquier fecha futura y CVC.
+
 Configuración de Stripe: necesitas `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` y un precio por plan (`STRIPE_PRICE_BASICA`, `STRIPE_PRICE_PREMIUM`, `STRIPE_PRICE_VIP`). En el dashboard de Stripe, apunta el webhook a `/api/billing/webhook` y activa los eventos `checkout.session.completed` y `customer.subscription.created|updated|deleted`. Si falta `STRIPE_SECRET_KEY`, los endpoints de pago responden `503`.
 
 Bonos de sesiones: cuando Stripe confirma el pago (`checkout.session.completed` o `checkout.session.async_payment_succeeded`), el webhook suma las sesiones al `session_credits` del member, una sola vez por pago. Si el member no tiene una suscripción activa (`active` o `trialing`), cada reserva gasta una sesión y queda marcada con `credit_used: true`. Eso incluye las reservas que haga un trainer por él y las que vengan de promocionar la lista de espera. Al cancelar o borrar la reserva, la sesión se devuelve. Sin saldo ni suscripción, `POST /api/reservations` responde `402` y la promoción de lista de espera se salta a esa persona. Los suscriptores activos reservan sin gastar sesiones. Los precios por defecto son 45 € por 5 sesiones y 80 € por 10, y se pueden cambiar con `SESSION_PACK_5_PRICE_CENTS` y `SESSION_PACK_10_PRICE_CENTS`.
@@ -546,7 +605,7 @@ Cuentas:
 
 Reservas:
 
-- los conflictos de agenda se comprueban en la aplicación y, además, con índices únicos parciales en MongoDB, que solo afectan a reservas `Confirmada` o `Completada`
+- los conflictos de agenda se comprueban en la aplicación; además, un índice único parcial en MongoDB impide que un member tenga dos reservas `Confirmada` o `Completada` en la misma franja. El cupo del trainer se verifica creando la reserva y comprobando justo después (si hay conflicto, se borra)
 - cada trainer admite hasta 12 reservas activas por franja; la 13.ª recibe un `409`
 - un `Entrenamiento personal` ocupa toda la franja del trainer: no se puede crear si ya hay reservas, ni añadir otras encima
 - un member no puede tener dos reservas activas en la misma franja
@@ -565,6 +624,17 @@ Emails:
 
 - se envían por SMTP al confirmar, cancelar o reprogramar una reserva, 24 h antes como recordatorio y cuando se libera una plaza de la lista de espera
 - si `SMTP_HOST` no está definido, solo se registran en la consola
+
+## Puesta en producción
+
+Si se despliega, hay que tener en cuenta:
+
+- arrancar con `NODE_ENV=production` y definir `CORS_ORIGIN` con el dominio del frontend (si no, el servidor se niega a arrancar)
+- usar un `JWT_SECRET` largo y aleatorio, y quitar `TRAINER_BOOTSTRAP_TOKEN` en cuanto exista el primer admin
+- definir `TRUST_PROXY` si hay un proxy delante, para que el rate limiting vea la IP real
+- configurar un SMTP real, las claves de Stripe en modo `live` y el webhook apuntando al dominio público
+- compilar el frontend con `npm run frontend:build` y servir `frontend/dist` como archivos estáticos
+- cambiar las contraseñas de las cuentas de prueba del seed, o no cargar el seed
 
 ## Qué cubren los tests
 
@@ -589,9 +659,19 @@ Los tests cubren, entre otras cosas:
 - facturación con Stripe: suscripciones, bonos de sesiones y webhook idempotente
 - factura mensual de cada member en JSON, HTML y PDF
 - errores JSON para rutas `/api` desconocidas
+- lista de espera: entrada, duplicados y promoción automática con aviso por email
+- recordatorios de 24 horas antes
+- borrado de members y trainers con lista de espera o reservas vinculadas
 
 ## Limitaciones conocidas
 
 - la API todavía no tiene versionado ni paginación
 - la API no recibe archivos: los avatares se suben a Cloudinary desde el frontend y aquí solo se guarda la URL
 - el registro público es solo para members (`/api/auth/register`) y para crear el primer trainer admin (`/api/trainers/register`)
+- el frontend no tiene tests automáticos; la comprobación es manual, siguiendo el recorrido del vídeo de demostración
+- los recordatorios los lanza un job dentro del propio proceso de la API (cada 15 minutos); cada reserva se reclama de forma atómica, así que no se duplican, pero no hay una cola de trabajos independiente
+- la interfaz está solo en español
+
+## Autoría y licencia
+
+Proyecto hecho por Sara Manzano como trabajo final. Licencia ISC.
