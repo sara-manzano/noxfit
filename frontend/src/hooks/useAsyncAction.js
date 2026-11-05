@@ -1,6 +1,5 @@
 import { useState } from 'react';
 
-// onError devuelve true cuando gestiona el fallo y no debe mostrarse como mensaje.
 export const useAsyncAction = ({ onError } = {}) => {
   const [error, setError] = useState('');
   const [isPending, setIsPending] = useState(false);

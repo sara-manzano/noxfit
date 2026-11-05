@@ -72,7 +72,6 @@ const deleteAccountRecord = async (Model, identifierField, identifierValue, rese
     throw createStatusError(`${resourceName} cannot be deleted while reservations are linked to the account`, 409);
   }
 
-  // Waitlist entries use the same member/trainer field names as reservations
   if (reservationField === 'member') {
     await Waitlist.deleteMany({ member: account._id });
   } else if (await Waitlist.exists({ [reservationField]: account._id, status: 'Esperando' })) {

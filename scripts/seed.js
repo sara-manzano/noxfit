@@ -280,7 +280,6 @@ const upsertDocuments = async (Model, identifierField, documents) => {
     const fields = withoutUndefined(document);
     const setOnInsert = {};
 
-    // Never overwrite credentials or real Stripe state on re-seed
     for (const field of SET_ON_INSERT_FIELDS) {
       if (field in fields) {
         setOnInsert[field] = fields[field];

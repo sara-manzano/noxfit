@@ -10,7 +10,6 @@ export const MediaSlot = ({ name, kind, alt = '', autoPlay = false, label, class
 
   if (video) {
     const shouldAutoPlay = autoPlay && !prefersReducedMotion();
-    // React no refleja `muted` en el DOM a tiempo y el navegador bloquea el autoplay.
     const startMuted = (element) => {
       if (element && shouldAutoPlay) {
         element.muted = true;
@@ -44,7 +43,6 @@ export const MediaSlot = ({ name, kind, alt = '', autoPlay = false, label, class
     return fallback;
   }
 
-  // Solo en desarrollo, para ver dónde irá cada archivo.
   if (!import.meta.env.DEV) {
     return null;
   }

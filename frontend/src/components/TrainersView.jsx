@@ -19,7 +19,6 @@ const focusByActivity = {
 
 const nutritionActivity = 'nutrición';
 
-// Fallback para entrenadores sin `bio` en la base de datos.
 const bioByFirstName = {
   alberto: 'Prioriza la calidad del movimiento antes que la carga. Diseña circuitos funcionales progresivos que mejoran la movilidad y la resistencia sin pasar por alto la técnica.',
   natalia: 'Especialista en control postural y estabilidad del core. Sus sesiones de Pilates combinan precisión y respiración para aliviar tensiones y fortalecer desde la base.',

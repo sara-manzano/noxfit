@@ -1,6 +1,5 @@
 const MINUTES_PER_DAY = 24 * 60;
 
-// Reservation dates are stored as UTC midnight of the Madrid calendar day.
 export const getReservationStart = (reservation) => {
   const date = reservation.date ? new Date(reservation.date) : null;
   const startTime = (reservation.time_slot || '').split(' - ')[0];
