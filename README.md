@@ -627,7 +627,30 @@ Emails:
 
 ## Puesta en producción
 
-Si se despliega, hay que tener en cuenta:
+### Despliegue
+
+| Parte | URL |
+| --- | --- |
+| Frontend | _pendiente de rellenar tras el despliegue_ |
+| API | _pendiente de rellenar tras el despliegue_ |
+| Documentación (Swagger) | `<URL de la API>/api/docs` |
+
+El repositorio incluye [render.yaml](render.yaml), un *blueprint* de Render con dos servicios: la API (`noxfit-api`, Node) y el frontend (`noxfit-web`, sitio estático). La base de datos es un clúster gratuito de MongoDB Atlas.
+
+Pasos:
+
+1. En MongoDB Atlas crea un clúster, un usuario de base de datos y permite el acceso de red desde cualquier IP (`0.0.0.0/0`); copia la cadena de conexión para `MONGODB_URI`.
+2. En Render, *New > Blueprint*, elige este repositorio y rellena las variables que pide:
+   - `noxfit-api`: `MONGODB_URI`, `CORS_ORIGIN` (URL del frontend, sin barra final), `APP_URL` (la misma URL) y, si hace falta, `TRAINER_BOOTSTRAP_TOKEN`. `JWT_SECRET` se genera solo.
+   - `noxfit-web`: `VITE_API_BASE_URL` (URL de la API terminada en `/api`) y las variables de Cloudinary.
+3. Como el frontend y la API se crean a la vez y cada uno necesita la URL del otro, deja `CORS_ORIGIN`, `APP_URL` y `VITE_API_BASE_URL` para después: crea el blueprint, copia las dos URLs que asigna Render, rellénalas y relanza el despliegue de ambos servicios.
+4. Carga los datos iniciales desde tu máquina contra Atlas: `MONGODB_URI=<cadena de Atlas> npm run seed`.
+5. Comprueba `<URL de la API>/api/health` (debe responder `200`) y entra en el frontend.
+6. Stripe (opcional): añade `STRIPE_*` en la API y crea un webhook en el dashboard de Stripe apuntando a `<URL de la API>/api/billing/webhook`.
+
+Notas del plan gratuito de Render: la API se duerme tras unos minutos sin tráfico (la primera petición tarda en responder) y, mientras duerme, el job de recordatorios no se ejecuta.
+
+### Qué hay que tener en cuenta
 
 - arrancar con `NODE_ENV=production` y definir `CORS_ORIGIN` con el dominio del frontend (si no, el servidor se niega a arrancar)
 - usar un `JWT_SECRET` largo y aleatorio, y quitar `TRAINER_BOOTSTRAP_TOKEN` en cuanto exista el primer admin

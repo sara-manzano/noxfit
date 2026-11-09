@@ -1,5 +1,17 @@
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { accountsApi, highlightsApi, reservationsApi, waitlistApi } from '../api/client.js';
+import {
+  adjustCredits,
+  findById,
+  hasWaitingFor,
+  mergeById,
+  removeById,
+  removeWaitlistEntry,
+  sortByName,
+  sortReservations,
+  syncReservationOwner,
+  upsert,
+} from '../lib/workspacePatches.js';
 import { useDismissibleMessage } from './useDismissibleMessage.js';
 
 const emptyWorkspace = {
@@ -13,8 +25,15 @@ const emptyWorkspace = {
   highlights: null,
 };
 
+const sliceLoaders = {
+  reservations: async (session) => ({ reservations: (await reservationsApi.list(session)).items }),
+  waitlist: async (session) => ({ waitlist: (await waitlistApi.list(session)).items }),
+};
+
 const reducer = (state, action) => {
   switch (action.type) {
+    case 'workspace/patch':
+      return { ...state, workspace: action.update(state.workspace) };
     case 'refresh/start':
       return { ...state, isLoading: action.silent ? state.isLoading : true, error: '' };
     case 'refresh/success':
@@ -45,6 +64,8 @@ export const useDashboardData = (session, onSessionExpired) => {
     notice: '',
   });
   const { workspace, isLoading, isSubmitting, error, notice } = state;
+  const workspaceRef = useRef(workspace);
+  workspaceRef.current = workspace;
 
   const clearNotice = useCallback(() => dispatch({ type: 'notice', message: '' }), []);
   useDismissibleMessage(notice, clearNotice);
@@ -66,6 +87,25 @@ export const useDashboardData = (session, onSessionExpired) => {
 
     dispatch({ type: 'refresh/start', silent });
 
+    const failedSections = [];
+    const optional = (label, request, fallback) => request.catch((requestError) => {
+      if (requestError.status === 401) {
+        throw requestError;
+      }
+
+      console.error(`Failed to load ${label}`, requestError);
+      failedSections.push(label);
+      return fallback;
+    });
+    const reportFailedSections = () => {
+      if (failedSections.length) {
+        dispatch({
+          type: 'error',
+          message: `No se pudo cargar ${failedSections.join(' ni ')}. Lo que ves puede estar incompleto; recarga la página para reintentarlo`,
+        });
+      }
+    };
+
     try {
       if (session.role === 'trainer' && session.user.is_admin) {
         const [profile, members, trainers, reservations, highlights, waitlist] = await Promise.all([
@@ -73,8 +113,8 @@ export const useDashboardData = (session, onSessionExpired) => {
           accountsApi.listMembers(session),
           accountsApi.listTrainers(session),
           reservationsApi.list(session),
-          highlightsApi.get(session).catch(() => null),
-          waitlistApi.list(session).catch(() => ({ items: [] })),
+          optional('las novedades', highlightsApi.get(session), null),
+          optional('la lista de espera', waitlistApi.list(session), { items: [] }),
         ]);
 
         dispatch({
@@ -91,19 +131,23 @@ export const useDashboardData = (session, onSessionExpired) => {
             trainerDirectory: trainers.items,
           },
         });
+        reportFailedSections();
         return;
       }
 
-      const directoryRequest = (session.role === 'trainer'
-        ? accountsApi.listMemberDirectory(session)
-        : accountsApi.listTrainerDirectory(session)
-      ).catch(() => ({ items: [] }));
+      const directoryRequest = optional(
+        'el directorio',
+        session.role === 'trainer'
+          ? accountsApi.listMemberDirectory(session)
+          : accountsApi.listTrainerDirectory(session),
+        { items: [] }
+      );
       const [profile, reservations, directory, highlights, waitlist] = await Promise.all([
         accountsApi.getProfile(session),
         reservationsApi.list(session),
         directoryRequest,
-        highlightsApi.get(session).catch(() => null),
-        waitlistApi.list(session).catch(() => ({ items: [] })),
+        optional('las novedades', highlightsApi.get(session), null),
+        optional('la lista de espera', waitlistApi.list(session), { items: [] }),
       ]);
 
       dispatch({
@@ -118,6 +162,7 @@ export const useDashboardData = (session, onSessionExpired) => {
           trainerDirectory: session.role === 'member' ? directory.items : [],
         },
       });
+      reportFailedSections();
     } catch (requestError) {
       handleRequestError(requestError);
     } finally {
@@ -129,12 +174,29 @@ export const useDashboardData = (session, onSessionExpired) => {
     refreshData();
   }, [session?.role, session?.token, session?.user?.is_admin]);
 
-  const runMutation = useCallback(async (operation, successMessage, { silent = false } = {}) => {
+  // patch(workspace, result) applies the response to the state; refresh(before, result) lists the
+  // slices to reload because the server may have changed them beyond what the response carries
+  const runMutation = useCallback(async (operation, successMessage, { patch, refresh } = {}) => {
     dispatch({ type: 'mutation/start' });
 
     try {
-      await operation();
-      await refreshData({ silent });
+      const before = workspaceRef.current;
+      const result = await operation();
+      const slices = refresh?.(before, result) ?? [];
+
+      if (patch) {
+        dispatch({ type: 'workspace/patch', update: (current) => patch(current, result) });
+      }
+
+      if (slices.length) {
+        try {
+          const loaded = await Promise.all(slices.map((slice) => sliceLoaders[slice](session)));
+          dispatch({ type: 'workspace/patch', update: (current) => Object.assign({}, current, ...loaded) });
+        } catch (refreshError) {
+          handleRequestError(refreshError);
+        }
+      }
+
       if (successMessage) {
         dispatch({ type: 'notice', message: successMessage });
       }
@@ -145,65 +207,167 @@ export const useDashboardData = (session, onSessionExpired) => {
     } finally {
       dispatch({ type: 'mutation/end' });
     }
-  }, [refreshData, handleRequestError]);
+  }, [session, handleRequestError]);
 
-  const actions = useMemo(() => ({
-    getTrainerAvailability: (date, timeSlot) => reservationsApi.availability(session, date, timeSlot),
-    createMember: (payload) => runMutation(
-      () => accountsApi.createMember(session, payload),
-      'Socio creado correctamente'
-    ),
-    updateProfile: (payload) => runMutation(
+  const actions = useMemo(() => {
+    const isMember = session?.role === 'member';
+    const withCredits = (current, delta) => (isMember ? { ...current, profile: adjustCredits(current.profile, delta) } : current);
+    // Only trainers see other members' waitlists, so only they can notice a promotion
+    const promotionRefresh = (before, ...reservations) => (
+      session?.role === 'trainer' && hasWaitingFor(before, ...reservations) ? ['reservations', 'waitlist'] : []
+    );
+    const applyProfile = (current, updated, payload) => {
+      const profile = {
+        ...current.profile,
+        ...updated,
+        ...(payload.avatar !== undefined ? { avatar: payload.avatar } : {}),
+      };
+
+      return session.role === 'trainer'
+        ? {
+          ...current,
+          profile,
+          trainers: mergeById(current.trainers, updated, 'trainer_id'),
+          trainerDirectory: mergeById(current.trainerDirectory, updated, 'trainer_id'),
+          reservations: syncReservationOwner(current.reservations, 'trainer', 'trainer_id', updated),
+        }
+        : {
+          ...current,
+          profile,
+          reservations: syncReservationOwner(current.reservations, 'member', 'member_id', updated),
+        };
+    };
+    const updateProfile = (payload, message) => runMutation(
       () => accountsApi.updateProfile(session, payload),
-      'Perfil actualizado correctamente'
-    ),
-    updateAvatar: (avatar) => runMutation(
-      () => accountsApi.updateAvatar(session, avatar),
-      avatar ? 'Foto de perfil actualizada' : 'Foto de perfil restablecida'
-    ),
-    createReservation: (payload) => runMutation(
-      () => reservationsApi.create(session, payload),
-      'Reserva registrada correctamente'
-    ),
-    deleteMember: (memberId) => runMutation(
-      () => accountsApi.deleteMember(session, memberId),
-      'Socio eliminado correctamente'
-    ),
-    deleteReservation: (reservationId) => runMutation(
-      () => reservationsApi.delete(session, reservationId),
-      'Reserva eliminada correctamente'
-    ),
-    updateHighlights: (payload) => runMutation(
-      () => highlightsApi.update(session, payload),
-      'Contenido actualizado correctamente'
-    ),
-    moveReservation: (reservationId, payload) => runMutation(
-      () => reservationsApi.update(session, reservationId, payload),
-      '',
-      { silent: true }
-    ),
-    cancelReservation: (reservationId) => runMutation(
-      () => reservationsApi.cancel(session, reservationId),
-      'Reserva cancelada correctamente'
-    ),
-    rescheduleReservation: (reservationId, payload) => runMutation(
-      () => reservationsApi.reschedule(session, reservationId, payload),
-      'Reserva reprogramada correctamente'
-    ),
-    joinWaitlist: (payload) => runMutation(
-      () => waitlistApi.join(session, payload),
-      'Te has apuntado a la lista de espera. Te avisaremos por email si se libera una plaza'
-    ),
-    leaveWaitlist: (waitlistId) => runMutation(
-      () => waitlistApi.leave(session, waitlistId),
-      'Has salido de la lista de espera'
-    ),
-    checkIn: (code) => runMutation(
-      () => reservationsApi.checkin(session, code),
-      'Check-in registrado correctamente'
-    ),
-    getCheckinCode: (reservationId) => reservationsApi.checkinCode(session, reservationId),
-  }), [session, runMutation]);
+      message,
+      { patch: (current, updated) => applyProfile(current, updated, payload) }
+    );
+    const moveReservation = (reservationId, request, message) => runMutation(request, message, {
+      patch: (current, moved) => ({
+        ...current,
+        reservations: sortReservations(upsert(current.reservations, moved, 'reservation_id')),
+      }),
+      refresh: (before) => promotionRefresh(before, findById(before.reservations, 'reservation_id', reservationId)),
+    });
+
+    return {
+      getTrainerAvailability: (date, timeSlot) => reservationsApi.availability(session, date, timeSlot),
+      createMember: (payload) => runMutation(
+        () => accountsApi.createMember(session, payload),
+        'Socio creado correctamente',
+        {
+          patch: (current, member) => {
+            const members = sortByName(upsert(current.members, member, 'member_id'));
+
+            return { ...current, members, memberDirectory: members };
+          },
+        }
+      ),
+      updateProfile: (payload) => updateProfile(payload, 'Perfil actualizado correctamente'),
+      updateAvatar: (avatar) => updateProfile(
+        { avatar },
+        avatar ? 'Foto de perfil actualizada' : 'Foto de perfil restablecida'
+      ),
+      createReservation: (payload) => runMutation(
+        () => reservationsApi.create(session, payload),
+        'Reserva registrada correctamente',
+        {
+          patch: (current, created) => withCredits({
+            ...current,
+            reservations: sortReservations(upsert(current.reservations, created, 'reservation_id')),
+          }, created.credit_used ? -1 : 0),
+        }
+      ),
+      deleteMember: (memberId) => runMutation(
+        () => accountsApi.deleteMember(session, memberId),
+        'Socio eliminado correctamente',
+        {
+          patch: (current) => ({
+            ...current,
+            members: removeById(current.members, 'member_id', memberId),
+            memberDirectory: removeById(current.memberDirectory, 'member_id', memberId),
+            waitlist: current.waitlist.filter((entry) => entry.member?.member_id !== memberId),
+          }),
+        }
+      ),
+      deleteReservation: (reservationId) => runMutation(
+        () => reservationsApi.delete(session, reservationId),
+        'Reserva eliminada correctamente',
+        {
+          patch: (current) => {
+            const deleted = findById(current.reservations, 'reservation_id', reservationId);
+            const refunded = deleted?.status === 'Confirmada' && deleted.credit_used;
+
+            return withCredits({
+              ...current,
+              reservations: removeById(current.reservations, 'reservation_id', reservationId),
+            }, refunded ? 1 : 0);
+          },
+          refresh: (before) => {
+            const deleted = findById(before.reservations, 'reservation_id', reservationId);
+
+            return deleted?.status === 'Confirmada' ? promotionRefresh(before, deleted) : [];
+          },
+        }
+      ),
+      updateHighlights: (payload) => runMutation(
+        () => highlightsApi.update(session, payload),
+        'Contenido actualizado correctamente',
+        { patch: (current, highlights) => ({ ...current, highlights }) }
+      ),
+      moveReservation: (reservationId, payload) => moveReservation(
+        reservationId,
+        () => reservationsApi.update(session, reservationId, payload),
+        ''
+      ),
+      cancelReservation: (reservationId) => runMutation(
+        () => reservationsApi.cancel(session, reservationId),
+        'Reserva cancelada correctamente',
+        {
+          patch: (current, cancelled) => {
+            const previous = findById(current.reservations, 'reservation_id', reservationId);
+
+            return withCredits({
+              ...current,
+              reservations: upsert(current.reservations, { ...cancelled, credit_used: false }, 'reservation_id'),
+            }, previous?.credit_used ? 1 : 0);
+          },
+          refresh: (before) => promotionRefresh(before, findById(before.reservations, 'reservation_id', reservationId)),
+        }
+      ),
+      rescheduleReservation: (reservationId, payload) => moveReservation(
+        reservationId,
+        () => reservationsApi.reschedule(session, reservationId, payload),
+        'Reserva reprogramada correctamente'
+      ),
+      joinWaitlist: (payload) => runMutation(
+        () => waitlistApi.join(session, payload),
+        'Te has apuntado a la lista de espera. Te avisaremos por email si se libera una plaza',
+        {
+          patch: (current, entry) => ({
+            ...current,
+            waitlist: sortReservations(upsert(current.waitlist, entry, 'waitlist_id')),
+          }),
+        }
+      ),
+      leaveWaitlist: (waitlistId) => runMutation(
+        () => waitlistApi.leave(session, waitlistId),
+        'Has salido de la lista de espera',
+        { patch: (current) => ({ ...current, waitlist: removeWaitlistEntry(current.waitlist, waitlistId) }) }
+      ),
+      checkIn: (code) => runMutation(
+        () => reservationsApi.checkin(session, code),
+        'Check-in registrado correctamente',
+        {
+          patch: (current, checkedIn) => ({
+            ...current,
+            reservations: sortReservations(upsert(current.reservations, checkedIn, 'reservation_id')),
+          }),
+        }
+      ),
+      getCheckinCode: (reservationId) => reservationsApi.checkinCode(session, reservationId),
+    };
+  }, [session, runMutation]);
 
   return {
     ...workspace,
