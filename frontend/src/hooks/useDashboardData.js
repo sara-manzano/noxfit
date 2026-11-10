@@ -8,9 +8,9 @@ import {
   removeById,
   removeWaitlistEntry,
   sortByName,
-  sortReservations,
   syncReservationOwner,
   upsert,
+  upsertSorted,
 } from '../lib/workspacePatches.js';
 import { useDismissibleMessage } from './useDismissibleMessage.js';
 
@@ -174,8 +174,6 @@ export const useDashboardData = (session, onSessionExpired) => {
     refreshData();
   }, [session?.role, session?.token, session?.user?.is_admin]);
 
-  // patch(workspace, result) applies the response to the state; refresh(before, result) lists the
-  // slices to reload because the server may have changed them beyond what the response carries
   const runMutation = useCallback(async (operation, successMessage, { patch, refresh } = {}) => {
     dispatch({ type: 'mutation/start' });
 
@@ -212,7 +210,6 @@ export const useDashboardData = (session, onSessionExpired) => {
   const actions = useMemo(() => {
     const isMember = session?.role === 'member';
     const withCredits = (current, delta) => (isMember ? { ...current, profile: adjustCredits(current.profile, delta) } : current);
-    // Only trainers see other members' waitlists, so only they can notice a promotion
     const promotionRefresh = (before, ...reservations) => (
       session?.role === 'trainer' && hasWaitingFor(before, ...reservations) ? ['reservations', 'waitlist'] : []
     );
@@ -245,7 +242,7 @@ export const useDashboardData = (session, onSessionExpired) => {
     const moveReservation = (reservationId, request, message) => runMutation(request, message, {
       patch: (current, moved) => ({
         ...current,
-        reservations: sortReservations(upsert(current.reservations, moved, 'reservation_id')),
+        reservations: upsertSorted(current.reservations, moved, 'reservation_id'),
       }),
       refresh: (before) => promotionRefresh(before, findById(before.reservations, 'reservation_id', reservationId)),
     });
@@ -274,7 +271,7 @@ export const useDashboardData = (session, onSessionExpired) => {
         {
           patch: (current, created) => withCredits({
             ...current,
-            reservations: sortReservations(upsert(current.reservations, created, 'reservation_id')),
+            reservations: upsertSorted(current.reservations, created, 'reservation_id'),
           }, created.credit_used ? -1 : 0),
         }
       ),
@@ -346,7 +343,7 @@ export const useDashboardData = (session, onSessionExpired) => {
         {
           patch: (current, entry) => ({
             ...current,
-            waitlist: sortReservations(upsert(current.waitlist, entry, 'waitlist_id')),
+            waitlist: upsertSorted(current.waitlist, entry, 'waitlist_id'),
           }),
         }
       ),
@@ -361,7 +358,7 @@ export const useDashboardData = (session, onSessionExpired) => {
         {
           patch: (current, checkedIn) => ({
             ...current,
-            reservations: sortReservations(upsert(current.reservations, checkedIn, 'reservation_id')),
+            reservations: upsertSorted(current.reservations, checkedIn, 'reservation_id'),
           }),
         }
       ),

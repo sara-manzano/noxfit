@@ -1,6 +1,6 @@
 const dayOf = (value) => new Date(value).toISOString().slice(0, 10);
 
-export const slotKey = (entry) => `${entry.trainer?.trainer_id}|${dayOf(entry.date)}|${entry.time_slot}`;
+const slotKey = (entry) => `${entry.trainer?.trainer_id}|${dayOf(entry.date)}|${entry.time_slot}`;
 
 export const hasWaitingFor = (workspace, ...reservations) => reservations.some(
   (reservation) => reservation && workspace.waitlist.some((entry) => slotKey(entry) === slotKey(reservation))
@@ -18,7 +18,6 @@ export const mergeById = (list, item, key) => list.map(
   (entry) => (entry[key] === item[key] ? { ...entry, ...item } : entry)
 );
 
-// Reservations embed a snapshot of their member/trainer; keep it in sync after a profile edit
 export const syncReservationOwner = (reservations, field, key, updated) => reservations.map((reservation) => {
   const owner = reservation[field];
 
@@ -33,9 +32,11 @@ export const syncReservationOwner = (reservations, field, key, updated) => reser
 
 export const removeById = (list, key, id) => list.filter((item) => item[key] !== id);
 
-export const sortReservations = (reservations) => [...reservations].sort(
+const sortReservations = (reservations) => [...reservations].sort(
   (a, b) => new Date(a.date) - new Date(b.date) || String(a.time_slot).localeCompare(String(b.time_slot))
 );
+
+export const upsertSorted = (list, item, key) => sortReservations(upsert(list, item, key));
 
 export const sortByName = (accounts) => [...accounts].sort(
   (a, b) => String(a.full_name).localeCompare(String(b.full_name), 'es')
@@ -45,7 +46,6 @@ export const adjustCredits = (profile, delta) => (
   profile && delta ? { ...profile, session_credits: Math.max(0, (profile.session_credits || 0) + delta) } : profile
 );
 
-// Entries behind the one that leaves move up one place
 export const removeWaitlistEntry = (waitlist, waitlistId) => {
   const removed = findById(waitlist, 'waitlist_id', waitlistId);
 

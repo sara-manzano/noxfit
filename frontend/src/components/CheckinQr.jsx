@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { formatDateTime } from '../lib/formatters.js';
 import './ReservationActions.css';
 
-export const buildCheckinUrl = (code) => `${window.location.origin}/?checkin=${code}`;
+const buildCheckinUrl = (code) => `${window.location.origin}/?checkin=${code}`;
 
 export const CheckinQr = ({ reservationId, loadCode, onClose }) => {
   const [qr, setQr] = useState(null);

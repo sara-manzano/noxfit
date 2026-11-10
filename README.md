@@ -68,7 +68,7 @@ Hay tres perfiles, y lo que ven y pueden tocar cambia según cuál sea:
 - MongoDB con Mongoose
 - React 19 con Vite
 - JWT para las sesiones y bcryptjs para las contraseñas
-- express-rate-limit para frenar abusos en el login
+- express-rate-limit para frenar abusos en el login y helmet para las cabeceras de seguridad
 - nodemailer para los emails
 - Stripe para los pagos
 - Cloudinary para los avatares (se suben desde el frontend y la API solo guarda la URL)
@@ -189,7 +189,7 @@ El resto son opcionales:
 
 Variables del frontend (`frontend/.env`):
 
-- `VITE_API_BASE_URL`: URL base de la API; por defecto `http://localhost:3000/api`
+- `VITE_API_BASE_URL`: URL base de la API; si no la defines, en desarrollo es `http://localhost:3000/api` y en la versión compilada `/api`
 - `VITE_CLOUDINARY_CLOUD_NAME` y `VITE_CLOUDINARY_UPLOAD_PRESET`: necesarias para subir avatares a Cloudinary
 
 Ejemplo de `frontend/.env`:
@@ -245,7 +245,8 @@ Además:
 - cualquiera puede registrarse como member (el enlace `/?register=1` abre el formulario de alta); el login es el mismo para members y trainers, y la contraseña se recupera desde `/?reset=<token>&role=<role>`
 - hay un mapa con los centros Noxfit Salamanca y Noxfit Alcobendas
 - los avatares se suben a Cloudinary
-- las páginas legales (privacidad, términos y cookies) son accesibles sin iniciar sesión desde `#privacidad`, `#terminos` y `#cookies`; el frontend no usa un router, solo lee el hash de la URL
+- las páginas legales (privacidad, términos y cookies) y las de cada plan son accesibles sin iniciar sesión desde `#privacidad`, `#terminos`, `#cookies`, `#plan-basica`, `#plan-premium` y `#plan-vip`; el frontend no usa un router, solo lee el hash de la URL
+- al volver de Stripe, el parámetro `?billing=` lleva al socio directamente a la vista de suscripción
 - la web solo guarda en el navegador la sesión (en `localStorage`); no usa cookies de analítica ni de publicidad
 
 ## OpenAPI
@@ -631,11 +632,15 @@ Emails:
 
 | Parte | URL |
 | --- | --- |
-| Frontend | _pendiente de rellenar tras el despliegue_ |
-| API | _pendiente de rellenar tras el despliegue_ |
-| Documentación (Swagger) | `<URL de la API>/api/docs` |
+| Frontend | https://noxfit-web.onrender.com |
+| API | https://noxfit-api.onrender.com |
+| Documentación (Swagger) | https://noxfit-api.onrender.com/api/docs |
 
 El repositorio incluye [render.yaml](render.yaml), un *blueprint* de Render con dos servicios: la API (`noxfit-api`, Node) y el frontend (`noxfit-web`, sitio estático). La base de datos es un clúster gratuito de MongoDB Atlas.
+
+![Despliegue de la API en Render](frontend/src/assets/despliegue.png)
+
+![Despliegue del frontend en Render](frontend/src/assets/despliegue-web.png)
 
 Pasos:
 
@@ -685,13 +690,14 @@ Los tests cubren, entre otras cosas:
 - lista de espera: entrada, duplicados y promoción automática con aviso por email
 - recordatorios de 24 horas antes
 - borrado de members y trainers con lista de espera o reservas vinculadas
+- funciones del frontend que actualizan el estado tras cada acción (`frontend/src/lib/workspacePatches.js`)
 
 ## Limitaciones conocidas
 
 - la API todavía no tiene versionado ni paginación
 - la API no recibe archivos: los avatares se suben a Cloudinary desde el frontend y aquí solo se guarda la URL
 - el registro público es solo para members (`/api/auth/register`) y para crear el primer trainer admin (`/api/trainers/register`)
-- el frontend no tiene tests automáticos; la comprobación es manual, siguiendo el recorrido del vídeo de demostración
+- el frontend solo tiene tests de sus funciones de estado (`workspacePatches`); los componentes se comprueban a mano, siguiendo el recorrido del vídeo de demostración
 - los recordatorios los lanza un job dentro del propio proceso de la API (cada 15 minutos); cada reserva se reclama de forma atómica, así que no se duplican, pero no hay una cola de trabajos independiente
 - la interfaz está solo en español
 
