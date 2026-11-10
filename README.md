@@ -40,13 +40,13 @@ Vista de un socio:
 
 Vista de un entrenador admin:
 
-![Gestión de reservas](docs/screenshots/05-admin-reservas.png)
+![Gestión de reservas](docs/screenshots/04-admin-reservas.png)
 
-![Calendario de reservas](docs/screenshots/06-admin-calendario.png)
+![Calendario de reservas](docs/screenshots/05-admin-calendario.png)
 
-![Check-in con QR](docs/screenshots/07-admin-checkin.png)
+![Check-in con QR](docs/screenshots/06-admin-checkin.png)
 
-![Gestión de socios](docs/screenshots/09-admin-socios.png)
+![Gestión de socios](docs/screenshots/07-admin-socios.png)
 
 ## Quién puede hacer qué
 
@@ -247,7 +247,7 @@ Además:
 - los avatares se suben a Cloudinary
 - las páginas legales (privacidad, términos y cookies) y las de cada plan son accesibles sin iniciar sesión desde `#privacidad`, `#terminos`, `#cookies`, `#plan-basica`, `#plan-premium` y `#plan-vip`; el frontend no usa un router, solo lee el hash de la URL
 - al volver de Stripe, el parámetro `?billing=` lleva al socio directamente a la vista de suscripción
-- la web solo guarda en el navegador la sesión (en `localStorage`); no usa cookies de analítica ni de publicidad
+- la web no usa cookies de analítica ni de publicidad
 
 ## OpenAPI
 
@@ -352,7 +352,7 @@ Y los errores, siempre con este formato:
 }
 ```
 
-Sobre los updates:
+Sobre las actualizaciones:
 
 - para cambios parciales se usa `PATCH`
 - `PUT` devuelve `405 Method Not Allowed` en members, trainers y reservations
@@ -412,21 +412,6 @@ Campos relevantes de member:
 | PUT | `/api/trainers/:trainer_id` | Trainer admin | No permitido |
 | DELETE | `/api/trainers/:trainer_id` | Trainer admin | Elimina un trainer si no tiene reservas vinculadas |
 
-### Auth
-
-| Método | Ruta | Auth | Descripción |
-| --- | --- | --- | --- |
-| POST | `/api/auth/login` | No | Login unificado para `member` o `trainer` usando `role`, `email` y `password` |
-| POST | `/api/auth/register` | No | Auto-registro de member (`full_name`, `email`, `password`, `phone`); `member_id` autogenerado y plan `Básica` |
-| POST | `/api/auth/forgot-password` | No | Solicita un enlace de restablecimiento (`role`, `email`); responde siempre `202` |
-| POST | `/api/auth/reset-password` | No | Fija una nueva contraseña (`role`, `token`, `password`) |
-
-Recuperación de contraseña, en resumen:
-
-- el token se guarda hasheado (sha256) en la cuenta y caduca a la hora
-- el token es de un solo uso
-- la respuesta de `forgot-password` no revela si el email existe
-
 Campos relevantes de trainer:
 
 - `trainer_id`
@@ -443,11 +428,22 @@ Campos relevantes de trainer:
 - `is_admin`
 - `active`
 
-Sobre el acceso a trainers:
+Un trainer sin permisos de admin puede usar `/api/trainers/me` y gestionar sus propias reservas, pero no puede entrar en las rutas de admin. El registro público (`/api/trainers/register`) solo crea el primer admin y después queda cerrado.
 
-- el registro público de trainers solo sirve para crear el primer admin
-- después de ese primer alta, `/api/trainers/register` queda cerrado
-- un trainer sin permisos de admin puede usar `/api/trainers/me` y gestionar sus propias reservas, pero no puede entrar en las rutas de admin
+### Auth
+
+| Método | Ruta | Auth | Descripción |
+| --- | --- | --- | --- |
+| POST | `/api/auth/login` | No | Login unificado para `member` o `trainer` usando `role`, `email` y `password` |
+| POST | `/api/auth/register` | No | Autorregistro de member (`full_name`, `email`, `password`, `phone`); `member_id` autogenerado y plan `Básica` |
+| POST | `/api/auth/forgot-password` | No | Solicita un enlace de restablecimiento (`role`, `email`); responde siempre `202` |
+| POST | `/api/auth/reset-password` | No | Fija una nueva contraseña (`role`, `token`, `password`) |
+
+Recuperación de contraseña, en resumen:
+
+- el token se guarda hasheado (sha256) en la cuenta y caduca a la hora
+- el token es de un solo uso
+- la respuesta de `forgot-password` no revela si el email existe
 
 ### Reservations
 
@@ -464,6 +460,30 @@ Sobre el acceso a trainers:
 | POST | `/api/reservations/:reservation_id/reschedule` | Member o Trainer | Cambia `date` y/o `time_slot` de una reserva confirmada |
 | GET | `/api/reservations/:reservation_id/checkin-code` | Member | Código para el QR de check-in de su reserva |
 | POST | `/api/reservations/checkin` | Trainer | Valida un código de QR y marca la reserva como `Completada` |
+
+Campos relevantes de reservation:
+
+- `reservation_id`
+- `member_id`
+- `trainer_id`
+- `activity_type`
+- `center`: `Noxfit Salamanca` o `Noxfit Alcobendas`
+- `date`
+- `time_slot`
+- `status`: `Confirmada`, `Completada`, `Cancelada`
+- `price`
+- `booked_by`: `member` o `trainer`
+- `credit_used`, `cancelled_at`, `cancelled_by` y `checked_in_at` (solo lectura; los rellena la propia API al reservar con bono, cancelar o hacer check-in)
+
+Disponibilidad: `GET /api/reservations/availability?date=...&time_slot=HH:MM - HH:MM` devuelve, para cada trainer, `reservations_count`, `has_personal_training`, `spots_left` y `available`.
+
+Se puede filtrar `GET /api/reservations` por `status`, `activity_type`, `date`, `member_id` y `trainer_id`.
+
+Quién puede ver y tocar qué en reservations:
+
+- un member solo ve sus propias reservas, y no puede pedir las de otro member con `member_id`
+- tampoco puede crear una reserva a nombre de otra cuenta ni moverla a otro member
+- un trainer no admin solo ve y gestiona las reservas en las que figura como entrenador
 
 ### Waitlist
 
@@ -503,33 +523,9 @@ stripe listen --forward-to localhost:3000/api/billing/webhook
 
 El comando imprime un `whsec_...`: ponlo en `STRIPE_WEBHOOK_SECRET`. Usa siempre claves de pruebas (`sk_test_...`) y la tarjeta `4242 4242 4242 4242` con cualquier fecha futura y CVC.
 
-Configuración de Stripe: necesitas `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` y un precio por plan (`STRIPE_PRICE_BASICA`, `STRIPE_PRICE_PREMIUM`, `STRIPE_PRICE_VIP`). En el dashboard de Stripe, apunta el webhook a `/api/billing/webhook` y activa los eventos `checkout.session.completed` y `customer.subscription.created|updated|deleted`. Si falta `STRIPE_SECRET_KEY`, los endpoints de pago responden `503`.
+Configuración de Stripe: además de las variables `STRIPE_*`, en el dashboard de Stripe apunta el webhook a `/api/billing/webhook` y activa los eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded` y `customer.subscription.created|updated|deleted`. Si falta `STRIPE_SECRET_KEY`, los endpoints de pago responden `503`.
 
-Bonos de sesiones: cuando Stripe confirma el pago (`checkout.session.completed` o `checkout.session.async_payment_succeeded`), el webhook suma las sesiones al `session_credits` del member, una sola vez por pago. Si el member no tiene una suscripción activa (`active` o `trialing`), cada reserva gasta una sesión y queda marcada con `credit_used: true`. Eso incluye las reservas que haga un trainer por él y las que vengan de promocionar la lista de espera. Al cancelar o borrar la reserva, la sesión se devuelve. Sin saldo ni suscripción, `POST /api/reservations` responde `402` y la promoción de lista de espera se salta a esa persona. Los suscriptores activos reservan sin gastar sesiones. Los precios por defecto son 45 € por 5 sesiones y 80 € por 10, y se pueden cambiar con `SESSION_PACK_5_PRICE_CENTS` y `SESSION_PACK_10_PRICE_CENTS`.
-
-Campos relevantes de reservation:
-
-- `reservation_id`
-- `member_id`
-- `trainer_id`
-- `activity_type`
-- `center`: `Noxfit Salamanca` o `Noxfit Alcobendas`
-- `date`
-- `time_slot`
-- `status`: `Confirmada`, `Completada`, `Cancelada`
-- `price`
-- `booked_by`: `member` o `trainer`
-- `credit_used`, `cancelled_at`, `cancelled_by` y `checked_in_at` (solo lectura; los rellena la propia API al reservar con bono, cancelar o hacer check-in)
-
-Disponibilidad: `GET /api/reservations/availability?date=...&time_slot=HH:MM - HH:MM` devuelve, para cada trainer, `reservations_count`, `has_personal_training`, `spots_left` y `available`.
-
-Se puede filtrar `GET /api/reservations` por `status`, `activity_type`, `date`, `member_id` y `trainer_id`.
-
-Quién puede ver y tocar qué en reservations:
-
-- un member solo ve sus propias reservas, y no puede pedir las de otro member con `member_id`
-- tampoco puede crear una reserva a nombre de otra cuenta ni moverla a otro member
-- un trainer no admin solo ve y gestiona las reservas en las que figura como entrenador
+Bonos de sesiones: cuando Stripe confirma el pago (`checkout.session.completed` o `checkout.session.async_payment_succeeded`), el webhook suma las sesiones al `session_credits` del member, una sola vez por pago. Si el member no tiene una suscripción activa (`active` o `trialing`), cada reserva gasta una sesión y queda marcada con `credit_used: true`. Eso incluye las reservas que haga un trainer por él y las que vengan de promocionar la lista de espera. Al cancelar o borrar la reserva, la sesión se devuelve. Sin saldo ni suscripción, `POST /api/reservations` responde `402` y la promoción de lista de espera se salta a esa persona. Los suscriptores activos reservan sin gastar sesiones. Los precios por defecto son 45 € por 5 sesiones y 80 € por 10 (se cambian con las variables `SESSION_PACK_*`).
 
 ## Qué devuelve el login
 
@@ -602,14 +598,13 @@ Cuentas:
 - members y trainers se identifican por `member_id` y `trainer_id` (y las reservas por `reservation_id`), no por el `_id` de Mongo
 - una cuenta inactiva no puede iniciar sesión, y un token de una cuenta que se desactiva deja de valer
 - no se puede borrar un member o trainer con reservas vinculadas; la API responde `409 Conflict`
-- al cambiar la contraseña por el flujo de recuperación, el token queda invalidado y se anota `password_changed_at`
+- al cambiar la contraseña por el flujo de recuperación, los tokens de sesión anteriores dejan de valer (se anota `password_changed_at`)
 
 Reservas:
 
 - los conflictos de agenda se comprueban en la aplicación; además, un índice único parcial en MongoDB impide que un member tenga dos reservas `Confirmada` o `Completada` en la misma franja. El cupo del trainer se verifica creando la reserva y comprobando justo después (si hay conflicto, se borra)
 - cada trainer admite hasta 12 reservas activas por franja; la 13.ª recibe un `409`
 - un `Entrenamiento personal` ocupa toda la franja del trainer: no se puede crear si ya hay reservas, ni añadir otras encima
-- un member no puede tener dos reservas activas en la misma franja
 - el `center` de la reserva tiene que ser el del trainer; si no, `409`
 - un trainer no admin solo reprograma sus propias reservas
 - un member puede cancelar, reprogramar o borrar una reserva confirmada hasta `CANCELLATION_WINDOW_HOURS` horas antes (2 por defecto); los trainers no tienen ese límite
