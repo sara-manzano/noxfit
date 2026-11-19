@@ -50,7 +50,6 @@ const cityHighlights = ['Madrid'];
 const contact = {
   phone: '',
   email: 'info@noxfit.es',
-  instagram: 'https://www.instagram.com/nox_fit',
 };
 
 export const LoginForm = ({ onSubmit, onRegister }) => {
@@ -213,7 +212,6 @@ export const LoginForm = ({ onSubmit, onRegister }) => {
             <h3>Contacto</h3>
             {contact.phone && <a href={`tel:${contact.phone.replace(/\s/g, '')}`}>{contact.phone}</a>}
             <a href={`mailto:${contact.email}`}>{contact.email}</a>
-            <a href={contact.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
           </div>
           <div>
             <h3>Centros</h3>
