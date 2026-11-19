@@ -48,8 +48,9 @@ const highlightChecks = [
 const cityHighlights = ['Madrid'];
 
 const contact = {
-  phone: '',
+  phone: '717251300',
   email: 'info@noxfit.es',
+  
 };
 
 export const LoginForm = ({ onSubmit, onRegister }) => {
