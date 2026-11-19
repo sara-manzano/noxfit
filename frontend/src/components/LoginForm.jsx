@@ -50,7 +50,7 @@ const cityHighlights = ['Madrid'];
 const contact = {
   phone: '',
   email: 'info@noxfit.es',
-  instagram: 'https://www.instagram.com/noxfit',
+  instagram: 'https://www.instagram.com/nox_fit',
 };
 
 export const LoginForm = ({ onSubmit, onRegister }) => {
